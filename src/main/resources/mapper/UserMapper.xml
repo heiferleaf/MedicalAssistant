@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+Mapper 的xml 文件
+1. mapper的namespace属性值是对应Mapper类的完整包名
+2. 内部使用<insert/update>结点，就是对应的语句类型
+3. 语句结点的id属性，就是Mapper类中的对应方法
+4. ParameterType:参数类型，编译器可以自动推断
+5. ResultType：返回值类型（适用于简单的数据返回类型）
+6. ResultMap：返回结果的映射（用于配置比较复杂的返回内容，将数据库的内容返回格式，转为需要的Java对象）
+7. #{属性名}：防止SQL注入的占位符
+-->
+<mapper namespace="com.whu.medicalbackend.mapper.UserMapper">
+
+    <!--
+    resultMap:
+        id：Map的标识符
+        type：对应Java类的完整包名
+        column：数据库中的列名
+        property：Java类属性名
+        jdbcType：数据库的数据类型
+    -->
+    <resultMap id="BaseResultMap" type="com.whu.medicalbackend.entity.User">
+<!--        id表示主键-->
+        <id column="id" property="id" jdbcType="BIGINT" javaType="long"/>
+        <result column="username" property="username" jdbcType="VARCHAR" javaType="String"/>
+        <result column="password" property="password" jdbcType="VARCHAR" javaType="String"/>
+        <result column="nickname" property="nickname" jdbcType="VARCHAR" javaType="String"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
+    </resultMap>
+
+    <!--
+    插入用户
+    MyBatis知识点：
+    - useGeneratedKeys="true"：使用数据库自增主键
+    - keyProperty="id"：将生成的主键值回填到user对象的id属性
+    - #{user.属性名}：获取user对象的属性值
+    -->
+    <insert id="insert" parameterType="com.whu.medicalbackend.entity.User"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_user (username, password, nickname, create_time, update_time)
+        VALUES (#{username}, #{password}, #{nickname}, NOW(), NOW())
+    </insert>
+
+    <!--
+    根据用户名查找用户
+    MyBatis知识点：
+    - resultMap：使用上面定义的BaseResultMap映射结果
+    - #{username}：占位符，对应@Param("username")指定的参数名
+    -->
+    <select id="findByUsername" resultMap="BaseResultMap">
+        SELECT id, username, password, nickname, create_time, update_time
+        FROM t_user
+        WHERE username = #{username}
+    </select>
+
+    <!--
+    检查用户名是否存在
+    MyBatis知识点：
+    - resultType="int"：直接返回基本类型
+    - COUNT(*)：返回行数（0或1）
+    -->
+    <select id="existsByUsername" resultType="int">
+        SELECT COUNT(*)
+        FROM t_user
+        WHERE username = #{username}
+    </select>
+</mapper>

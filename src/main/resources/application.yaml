@@ -1,0 +1,32 @@
+# 服务器配置
+server:
+  port: 8080
+
+# Spring配置
+spring:
+  application:
+    name: mediacalbackend
+
+  # 数据源配置
+  datasource:
+    # JDBC URL
+    url: jdbc:mysql://localhost:3306/MedicalAssistant?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    # 数据库用户名
+    username:  root
+    # 数据库密码
+    password: 1234
+    # 驱动类名（MySQL 8.x）
+    driver-class-name:  com.mysql.cj.jdbc.Driver
+
+# MyBatis配置
+mybatis:
+  # Mapper XML文件位置
+  mapper-locations: classpath:mapper/*.xml
+  # 实体类别名包（XML中可以直接用类名，不用写全限定名）
+  type-aliases-package: com.example.userauth.entity
+  # MyBatis全局配置
+  configuration:
+    # 开启驼峰命名映射：create_time -> createTime
+    map-underscore-to-camel-case: true
+    # 打印SQL日志（开发环境）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
