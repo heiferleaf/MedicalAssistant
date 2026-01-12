@@ -1,4 +1,4 @@
-package controller;
+package com.whu.medicalbackend.controller;
 
 import com.whu.medicalbackend.common.Result;
 import com.whu.medicalbackend.dto.UserLoginDto;

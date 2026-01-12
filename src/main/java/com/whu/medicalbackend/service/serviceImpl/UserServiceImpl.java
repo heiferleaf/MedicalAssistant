@@ -36,16 +36,15 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public User login(UserLoginDto dto) {
-        // 1. 检查用户是否存在
-        if(!userRepository.existsByUsername(dto.getUsername())) {
-            throw new UserNotFoundException(dto.getUsername());
-        }
 
         User user = userRepository.findByUsername(dto.getUsername());
 
-        assert user != null : "not found";
+        if(user == null) {
+            throw new UserNotFoundException(dto.getUsername());
+        }
 
-        if(PasswordUtil.matches(user.getPassword(), dto.getPassword())) {
+        assert(user.getPassword() != null) : "empty password";
+        if(!PasswordUtil.matches(dto.getPassword(), user.getPassword())) {
             throw new PasswordIncorrectException();
         }
 

@@ -63,7 +63,7 @@ Mapper 的xml 文件
     - resultType="int"：直接返回基本类型
     - COUNT(*)：返回行数（0或1）
     -->
-    <select id="existsByUsername" resultType="int">
+    <select id="existsByUsername" resultType="int" parameterType="string">
         SELECT COUNT(*)
         FROM t_user
         WHERE username = #{username}
