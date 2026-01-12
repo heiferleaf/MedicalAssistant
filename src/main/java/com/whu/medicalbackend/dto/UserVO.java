@@ -25,6 +25,11 @@ public class UserVO {
         public String          nickname;
         public LocalDateTime   createTime;
 
+        public Builder setUser(User user) {
+            this.user = user;
+            return this;
+        }
+
         public Builder setId() {
             this.id = user.getId();
             return this;
@@ -48,7 +53,7 @@ public class UserVO {
         }
 
         public UserVO build(User user) {
-            return new UserVO(this.setId().setUsername().setPassword().setNickname().setCreateTime());
+            return new UserVO(this.setUser(user).setId().setUsername().setPassword().setNickname().setCreateTime());
         }
     }
 }
