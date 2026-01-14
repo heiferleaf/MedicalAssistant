@@ -4,13 +4,16 @@
     <view class="content">
       <!-- 根据当前tab显示不同内容 -->
       <view v-if="currentTab === 0">
-        AI助手页面内容
+        <HomePage></HomePage>
       </view>
       <view v-else-if="currentTab === 1">
-        健康页面内容
+        <HealthPage></HealthPage>
       </view>
+	  <view v-else-if="currentTab === 2">
+		<MedicinePage></MedicinePage>
+	  </view>
       <view v-else>
-        我的页面内容
+        <MinePage></MinePage>
       </view>
     </view>
     
@@ -25,9 +28,18 @@
 <script>
 import AppNavbar from '@/components/app-navbar.vue';
 
+import HomePage from "./Home.vue"
+import HealthPage from './Health.vue';
+import MedicinePage from './Medicine.vue';
+import MinePage from "./Mine.vue"
+
 export default {
   components: {
-    AppNavbar
+    AppNavbar,
+	HomePage,
+	HealthPage,
+	MedicinePage,
+	MinePage
   },
   data() {
     return {
@@ -51,7 +63,7 @@ export default {
 
 .content {
   flex: 1;
-  overflow-y: auto;
-  padding-bottom: 120rpx; /* 给导航栏留出空间 */
+  overflow-y: hidden;
+  /* padding-bottom: 120rpx; 给导航栏留出空间 */
 }
 </style>

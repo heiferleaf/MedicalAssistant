@@ -12,15 +12,16 @@
           <!-- 使用图片 -->
           <image class="icon" :src="item.icon" mode="widthFix"></image>
         </view>
-        <text class="nav-text">{{ item.text }}</text>
+        <!-- <text class="nav-text">{{ item.text }}</text> -->
       </view>
     </view>
   </view>
 </template>
 
 <script>
-import AIImage from "../static/index/AI.png";
-import HealthImage from "../static/index/health.png";
+import HomeImage from "../static/index/home.svg";
+import MedicineImage from "../static/index/medicine.svg"
+import HealthImage from "../static/index/health.svg";
 import MineImage from "../static/index/mine.png";
 export default {
   name: "AppNavbar",
@@ -33,7 +34,8 @@ export default {
   data() {
     return {
       tabs: [
-        { icon: AIImage, text: "AI助手" },
+        { icon: HomeImage, text: "首页" },
+        { icon: MedicineImage, text: "用药" },
         { icon: HealthImage, text: "健康" },
         { icon: MineImage, text: "我的" },
       ],
@@ -90,19 +92,20 @@ export default {
     }
 
     .icon {
-      width: 40rpx;
-      height: 40rpx;
-      background-size: cover;
-      background-position: center;
+      transform: scale(1.667); /* 60/36 ≈ 1.667 */
     }
   }
 }
 
 .icon {
-  width: 36rpx;
-  height: 36rpx;
+  width: 48rpx;
+  height: 48rpx;
   background-size: cover;
   background-position: center;
+  
+  /* 使用 transform 实现从中心缩放 */
+  transform-origin: center center; /* 确保从中心点缩放 */
+  transition: all 0.5s; /* 添加弹性效果 */
 }
 
 .nav-icon {
