@@ -2,10 +2,11 @@ package com.whu.medicalbackend.dto;
 
 
 import com.whu.medicalbackend.entity.User;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-
+@Getter
 public class UserVO {
     private long            id;
     private String          username;
@@ -14,16 +15,20 @@ public class UserVO {
     private LocalDateTime   createTime;
 
     private UserVO(Builder builder) {
-
+        this.id = builder.id;
+        this.username = builder.username;
+        this.password = builder.password;
+        this.nickname = builder.nickname;
+        this.createTime = builder.createTime;
     }
 
     public static class Builder {
-        public User user;
-        public long            id;
-        public String          username;
-        public String          password;
-        public String          nickname;
-        public LocalDateTime   createTime;
+        private User user;
+        private long            id;
+        private String          username;
+        private String          password;
+        private String          nickname;
+        private LocalDateTime   createTime;
 
         public Builder setUser(User user) {
             this.user = user;

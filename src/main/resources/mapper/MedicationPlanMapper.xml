@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.whu.medicalbackend.mapper.MedicationPlanMapper">
+
+    <!--
+    结果映射（重点：timePoints字段需要指定TypeHandler）
+    -->
+    <resultMap id="BaseResultMap" type="MedicationPlan">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="medicine_id" property="medicineId" jdbcType="BIGINT"/>
+        <result column="dosage" property="dosage" jdbcType="VARCHAR"/>
+        <result column="start_date" property="startDate" jdbcType="DATE"/>
+        <result column="end_date" property="endDate" jdbcType="DATE"/>
+        <!--
+        关键点：timePoints字段指定TypeHandler
+        MyBatis会自动调用LocalTimeListTypeHandler进行转换
+        -->
+        <result column="time_points" property="timePoints" jdbcType="VARCHAR"/>
+        <result column="remark" property="remark" jdbcType="VARCHAR"/>
+        <result column="deleted" property="deleted" jdbcType="TINYINT"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 公共查询字段（避免重复） -->
+    <sql id="Base_Column_List">
+        id, user_id, medicine_id, dosage, start_date, end_date,
+        time_points, remark, deleted, created_at, updated_at
+    </sql>
+
+    <!-- 根据ID查询 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM medication_plan
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询用户的所有有效计划 -->
+    <select id="findByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM medication_plan
+        WHERE user_id = #{userId} AND deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <!--
+    查询指定日期有效的计划（用于定时任务）
+    MyBatis知识点：
+    - <![CDATA[ ]]>：包裹SQL中的特殊字符（如<、>、&等），避免XML解析错误
+    - 条件逻辑：开始日期<=指定日期 且 （结束日期为空 或 结束日期>=指定日期）
+    - 等价于使用 &lt;= &lt为转义后的 < ,用";"作为分割标志
+    -->
+    <select id="findActivePlansByDate" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM medication_plan
+        WHERE user_id = #{userId}
+        AND deleted = 0
+        AND start_date <![CDATA[ <= ]]> #{date}
+        AND (end_date IS NULL OR end_date <![CDATA[ >= ]]> #{date})
+    </select>
+
+    <!--
+    插入计划
+    注意：timePoints字段会自动调用TypeHandler转换
+    -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="MedicationPlan">
+        INSERT INTO medication_plan
+        (user_id, medicine_id, dosage, start_date, end_date, time_points, remark, deleted)
+        VALUES
+            (#{userId}, #{medicineId}, #{dosage}, #{startDate}, #{endDate},
+             #{timePoints, typeHandler=com.whu.medicalbackend.handler.LocalTimeListTypeHandler},
+             #{remark}, 0)
+    </insert>
+
+    <!-- 更新计划 -->
+    <update id="update">
+        UPDATE medication_plan
+        SET medicine_id = #{medicineId},
+            dosage = #{dosage},
+            start_date = #{startDate},
+            end_date = #{endDate},
+            time_points = #{timePoints, typeHandler=com.whu.medicalbackend.handler.LocalTimeListTypeHandler},
+            remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 软删除 -->
+    <update id="softDelete">
+        UPDATE medication_plan
+        SET deleted = 1
+        WHERE id = #{id}
+    </update>
+
+</mapper>

@@ -23,7 +23,9 @@ mybatis:
   # Mapper XML文件位置
   mapper-locations: classpath:mapper/*.xml
   # 实体类别名包（XML中可以直接用类名，不用写全限定名）
-  type-aliases-package: com.example.userauth.entity
+  type-aliases-package: com.whu.medicalbackend.entity
+  # 实体类型转换处理（LocalTime(List<LocalTime>) <-> VARCHAR）
+  type-handlers-package: com.whu.medicalbackend.handler
   # MyBatis全局配置
   configuration:
     # 开启驼峰命名映射：create_time -> createTime

@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 public class UserRegisterDto {
 
     @NotBlank(message = "用户名不能为空")
-    @Pattern(regexp = "^\\.{6,20}$", message = "用户名长度需要是6-20")
+    @Pattern(regexp = "^.{6,20}$", message = "用户名长度需要是6-20")
     @Pattern(regexp = "^[0-9a-zA-Z_]+$", message = "用户名只能包含大小写字母，数字、以及_")
     private String username;
 

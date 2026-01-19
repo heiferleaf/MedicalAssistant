@@ -41,7 +41,7 @@ public class Result<T> {
      * 成功响应（自定义消息）
      */
     public static <T> Result<T> success(String message, T data) {
-        return new Result<T>(ResultCode.SUCCESS. getCode(), message, data);
+        return new Result<T>(ResultCode.SUCCESS.getCode(), message, data);
     }
 
     /**
