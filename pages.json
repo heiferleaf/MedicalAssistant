@@ -17,6 +17,12 @@
 			"style": {
 				"navigationBarTitleText": "uni-app"
 			}
+		},
+		{
+			"path": "pages/scan/DrugScan",
+			"style": {
+				"navigationBarTitleText": "药物识别"
+			}
 		}
 
 	],

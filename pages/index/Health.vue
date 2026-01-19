@@ -820,10 +820,16 @@ export default {
 
 /* 添加药品按钮 */
 .add-button-container {
+  height: 100rpx;
+  width: 40%;
   position: fixed;
   bottom: 120rpx;
-  left: 0;
-  right: 0;
+  /* 关键代码 */
+  left: 50%;
+  transform: translateX(-50%);
+  /* 其他样式 */
+  margin-left: auto;
+  margin-right: auto;
   display: flex;
   justify-content: center;
   padding: 0 32rpx;
@@ -838,7 +844,7 @@ export default {
   max-width: 400rpx;
   padding: 28rpx 0;
   background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
-  border-radius: 28rpx;
+  border-radius: 50rpx;
   border: none;
   box-shadow: 0 8rpx 32rpx rgba(45, 107, 255, 0.3);
   transition: all 0.3s ease;

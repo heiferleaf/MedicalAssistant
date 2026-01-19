@@ -164,10 +164,10 @@ export default {
   data() {
     return {
       userInfo: {
-        name: '张三',
+        name: '陈涛',
         avatar: '../../static/avatars/avatar1.svg',
         gender: '男',
-        age: 45,
+        age: 21,
         healthFile: '健康档案',
         hasUpdate: true
       },
@@ -732,16 +732,15 @@ export default {
   border-radius: 50rpx;
   box-shadow: 0 4rpx 16rpx rgba(45, 107, 255, 0.1);
   transition: all 0.5s ease;
-  
-  &:active {
-    transform: scale(0.98);
-    background: linear-gradient(135deg, #2d6bff 0%, #2d6bff 100%);
-  }
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logout-text {
   font-size: 32rpx;
-  font-weight: 600;
+  font-weight: bold;
   color: #fff;
 }
 </style>

@@ -7,7 +7,7 @@
         <view class="avatar" @click="toProfile">
           <image 
             class="avatar-img" 
-            :src="userInfo.avatar || '/static/default-avatar.png'" 
+            :src="userInfo.avatar || '../../static/avatars/avatar1.svg'" 
             mode="aspectFill"
           />
           <view class="avatar-badge" v-if="userInfo.hasNew"></view>
@@ -23,7 +23,7 @@
       <view class="notification" @click="toNotification">
         <image 
           class="notification-icon" 
-          src="/static/icons/bell.png" 
+          src="../../static/Home/bell.svg" 
           mode="aspectFit"
         />
         <view class="notification-badge" v-if="hasNotification"></view>
@@ -41,11 +41,11 @@
       <!-- 服药提醒卡片 -->
       <view class="card medication-reminder">
         <view class="card-header">
-          <image class="header-icon" src="/static/icons/clock.png" mode="aspectFit" />
+          <image class="header-icon" src="../../static/Home/clock.svg" mode="aspectFit" />
           <text class="header-title">即将服药提醒</text>
           <view class="header-action" @click="toMedicationList">
             <text class="action-text">更多</text>
-            <image class="action-icon" src="/static/icons/right-arrow.png" mode="aspectFit" />
+            <image class="action-icon" src="../../static/Home/right-arrow.svg" mode="aspectFit" />
           </view>
         </view>
         
@@ -68,7 +68,7 @@
       <!-- 快捷功能卡片 -->
       <view class="card quick-functions">
         <view class="card-header">
-          <image class="header-icon" src="/static/icons/camera.png" mode="aspectFit" />
+          <image class="header-icon" src="../../static/Home/camera.svg" mode="aspectFit" />
           <text class="header-title">快捷功能</text>
         </view>
         
@@ -90,11 +90,11 @@
       <!-- 今日健康卡片 -->
       <view class="card health-data">
         <view class="card-header">
-          <image class="header-icon" src="/static/icons/heart.png" mode="aspectFit" />
+          <image class="header-icon" src="../../static/Home/heart.svg" mode="aspectFit" />
           <text class="header-title">今日健康</text>
           <view class="header-action" @click="toHealthDetail">
             <text class="action-text">详情</text>
-            <image class="action-icon" src="/static/icons/right-arrow.png" mode="aspectFit" />
+            <image class="action-icon" src="../../static/Home/right-arrow.svg" mode="aspectFit" />
           </view>
         </view>
         
@@ -102,7 +102,7 @@
           <view class="health-item">
             <view class="health-value">{{ healthData.steps.toLocaleString() }}</view>
             <text class="health-label">步数</text>
-            <image class="trend-icon" src="/static/icons/trend-up.png" mode="aspectFit" />
+            <image class="trend-icon" src="../../static/Home/trend-up.svg" mode="aspectFit" />
           </view>
           <view class="health-item">
             <view class="health-value">{{ healthData.heartRate }}</view>
@@ -124,11 +124,11 @@
       <!-- 家庭动态卡片 -->
       <view class="card family-dynamic">
         <view class="card-header">
-          <image class="header-icon" src="/static/icons/family.png" mode="aspectFit" />
+          <image class="header-icon" src="../../static/Home/family.svg" mode="aspectFit" />
           <text class="header-title">家庭动态</text>
           <view class="header-action" @click="toFamilyManagement">
             <text class="action-text">管理</text>
-            <image class="action-icon" src="/static/icons/right-arrow.png" mode="aspectFit" />
+            <image class="action-icon" src="../../static/Home/right-arrow.svg" mode="aspectFit" />
           </view>
         </view>
         
@@ -164,8 +164,8 @@ export default {
     return {
       refreshing: false,
       userInfo: {
-        name: '王小明',
-        avatar: '/static/avatars/user1.png',
+        name: '陈涛',
+        avatar: '../../static/avatars/avatar1.svg',
         hasNew: true
       },
       hasNotification: true,
@@ -186,10 +186,10 @@ export default {
         }
       ],
       functions: [
-        { id: 1, name: '拍照识药', icon: '/static/icons/camera-drug.png' },
-        { id: 2, name: '就医准备单', icon: '/static/icons/medical-list.png' },
-        { id: 3, name: '家庭管理', icon: '/static/icons/family-manage.png' },
-        { id: 4, name: '问医小助手', icon: '/static/icons/ai-assistant.png' }
+        { id: 1, name: '拍照识药', icon: '../../static/Home/camera-drug.svg' },
+        { id: 2, name: '就医准备单', icon: '../../static/Home/medical-list.svg' },
+        { id: 3, name: '家庭管理', icon: '../../static/Home/family-manage.svg' },
+        { id: 4, name: '问医小助手', icon: '../../static/Home/ai-assistant.svg' }
       ],
       healthData: {
         steps: 6234,
@@ -201,19 +201,19 @@ export default {
         {
           id: 1,
           name: '妈妈',
-          avatar: '/static/avatars/mother.png',
+          avatar: '../../static/avatars/avatar2.svg',
           status: '今日按时服药',
           statusClass: 'status-success',
-          statusIcon: '/static/icons/check.png',
+          statusIcon: '../../static/Home/check.svg',
           time: '10分钟前'
         },
         {
           id: 2,
           name: '爸爸',
-          avatar: '/static/avatars/father.png',
+          avatar: '../../static/avatars/avatar3.svg',
           status: '血压偏高需关注',
           statusClass: 'status-warning',
-          statusIcon: '/static/icons/warning.png',
+          statusIcon: '../../static/Home/warning.svg',
           time: '30分钟前'
         }
       ]
@@ -276,7 +276,7 @@ export default {
     },
     handleFunction(funcId) {
       const routes = {
-        1: '/pages/drug/scan',
+        1: '/pages/scan/DrugScan',
         2: '/pages/medical/prepare',
         3: '/pages/family/manage',
         4: '/pages/ai/assistant'
@@ -352,8 +352,8 @@ export default {
 
 .date-info {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: space-between;
   flex: 1;
 }
 
@@ -611,8 +611,8 @@ export default {
   position: absolute;
   top: 20rpx;
   right: 20rpx;
-  width: 24rpx;
-  height: 24rpx;
+  width: 48rpx;
+  height: 48rpx;
 }
 
 /* 家庭动态卡片 */
@@ -674,8 +674,8 @@ export default {
 }
 
 .status-icon {
-  width: 24rpx;
-  height: 24rpx;
+  width: 36rpx;
+  height: 36rpx;
 }
 
 .update-time {
