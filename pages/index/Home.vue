@@ -277,7 +277,7 @@ export default {
     handleFunction(funcId) {
       const routes = {
         1: '/pages/scan/DrugScan',
-        2: '/pages/medical/prepare',
+        2: '/pages/medical/Prepare',
         3: '/pages/family/manage',
         4: '/pages/ai/assistant'
       }

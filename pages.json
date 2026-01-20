@@ -23,6 +23,18 @@
 			"style": {
 				"navigationBarTitleText": "药物识别"
 			}
+		},
+		{
+			"path": "pages/medical/Prepare",
+			"style": {
+				"navigationBarTitleText": "就医准备单"
+			}
+		},
+		{
+			"path": "pages/reminder/Reminder",
+			"style": {
+				"navigationBarTitleText": "闹钟提醒"
+			}
 		}
 
 	],

@@ -826,7 +826,7 @@ export default {
 }
 
 .result-content {
-  height: calc(100vh - 320rpx);
+  height: 100%;
   padding: 32rpx;
   box-sizing: border-box;
   overflow-x: hidden !important;

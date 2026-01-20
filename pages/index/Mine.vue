@@ -306,7 +306,7 @@ export default {
     },
     handleFunction(id) {
       const routes = {
-        reminder: '/pages/reminder/setting',
+        reminder: '/pages/reminder/Reminder',
         family: '/pages/family/manage',
         reports: '/pages/health/reports',
         medicalRecords: '/pages/medical/records',
