@@ -13,7 +13,7 @@
         <view class="form-item">
           <div
             class="form-label"
-            style="background-image: url('../static/Login/user.png')"
+            style="background-image: url(&quot;../static/Login/user.png&quot;)"
           ></div>
           <input
             class="form-input"
@@ -30,7 +30,7 @@
         <view class="form-item">
           <div
             class="form-label"
-            style="background-image: url('../static/Login/pwd.png')"
+            style="background-image: url(&quot;../static/Login/pwd.png&quot;)"
           ></div>
           <input
             class="form-input"
@@ -177,10 +177,10 @@ export default {
 
       try {
         // 调用登录API
-        // const result = await loginAPI.login({
-        //   username: this.loginForm.username.trim(),
-        //   password: this.loginForm.password,
-        // });
+        const result = await loginAPI.login({
+          username: this.loginForm.username.trim(),
+          password: this.loginForm.password,
+        });
 
         // 登录成功处理
         uni.showToast({
@@ -189,9 +189,11 @@ export default {
         });
 
         // 保存token
-        // if (result.token) {
-        //   uni.setStorageSync("token", result.token);
-        // }
+        console.log("登录返回结果:", result.id);
+        uni.setStorageSync("userId", result.id);
+        if (result.token) {
+          uni.setStorageSync("token", result.token);
+        }
 
         // 记住密码
         if (this.rememberMe) {
