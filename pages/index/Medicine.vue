@@ -199,10 +199,10 @@ export default {
       trendOptions: ['血压', '心率', '血糖', '体重'],
       indicatorUnitMap: { '血压': 'mmHg', '心率': 'bpm', '血糖': 'mmol/L', '体重': 'kg' },
       indicators: [
-        { id: 1, name: '血压', value: '120/80', unit: 'mmHg', status: '正常', statusClass: 'status-normal', trend: 'stable', icon: '/static/icons/bp.png' },
-        { id: 2, name: '心率', value: '72', unit: 'bpm', status: '正常', statusClass: 'status-normal', trend: 'up', icon: '/static/icons/hr.png' },
-        { id: 3, name: '血糖', value: '5.2', unit: 'mmol/L', status: '偏高', statusClass: 'status-warning', trend: 'down', icon: '/static/icons/bs.png' },
-        { id: 4, name: '体重', value: '65', unit: 'kg', status: '正常', statusClass: 'status-normal', trend: 'down', icon: '/static/icons/wt.png' }
+        { id: 1, name: '血压', value: '120/80', unit: 'mmHg', status: '正常', statusClass: 'status-normal', trend: 'stable', icon: '/static/Prepare/blood pressure.svg' },
+        { id: 2, name: '心率', value: '72', unit: 'bpm', status: '正常', statusClass: 'status-normal', trend: 'up', icon: '/static/Home/heart.svg' },
+        { id: 3, name: '血糖', value: '5.2', unit: 'mmol/L', status: '偏高', statusClass: 'status-warning', trend: 'down', icon: '/static/Prepare/blood-sugar.svg' },
+        { id: 4, name: '体重', value: '65', unit: 'kg', status: '正常', statusClass: 'status-normal', trend: 'down', icon: '/static/Prepare/weight.svg' }
       ],
       trendData: [
         { x: 5, y: 30, value: '115' },
@@ -312,7 +312,7 @@ $text-light: #87909c;
 }
 
 .main-content {
-  height: calc(100vh - 200rpx);
+  height: calc(100vh - 280rpx);
   padding: 32rpx;
   box-sizing: border-box;
 }

@@ -449,8 +449,9 @@ $status-red: #ff5c5c;
 
 /* 滚动区域 */
 .main-content {
-  height: calc(100vh - 350rpx);
-  padding: 0 40rpx;
+  /* 使用 calc 计算高度，减去顶部卡片的大致高度 */
+  height: calc(100vh - 420rpx);
+  padding: 0 32rpx;
   box-sizing: border-box;
 }
 
