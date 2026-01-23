@@ -65,8 +65,8 @@ public class TaskController {
     @GetMapping("/history")
     public Result<List<TaskVO>> getHistoryTasks(
             @RequestParam Long userId,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @RequestParam(name = "start", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam(name = "end", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             @RequestParam(required = false) String medicineName,
             @RequestParam(required = false) Integer status) {
 

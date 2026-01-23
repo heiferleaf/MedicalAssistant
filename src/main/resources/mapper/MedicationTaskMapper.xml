@@ -63,7 +63,7 @@
             </if>
             <if test="medicineName != null and medicineName != ''">
                 AND medicine_id IN (
-                SELECT id FROM medicine WHERE user_id = #{userId} AND name = #{medicineName}
+                SELECT id FROM medicine WHERE user_id = #{userId} AND name LIKE CONCAT("%", #{medicineName}, "%")
                 )
             </if>
             <if test="status != null">

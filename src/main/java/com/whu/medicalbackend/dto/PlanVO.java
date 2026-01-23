@@ -33,6 +33,8 @@ public class PlanVO {
         this.dosage         = planVOBuilder.medicationPlan.getDosage();
         this.startDate      = planVOBuilder.medicationPlan.getStartDate();
         this.endDate        = planVOBuilder.medicationPlan.getEndDate();
+        this.timePoints     = planVOBuilder.medicationPlan.getTimePoints();
+        this.remark         = planVOBuilder.medicationPlan.getRemark();
     }
 
     public static class PlanVOBuilder {
