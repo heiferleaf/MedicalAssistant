@@ -1,155 +1,154 @@
-<!-- pages/index/index.vue -->
 <template>
   <view class="page-container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="user-info">
-        <view class="avatar" @click="toProfile">
-          <image 
-            class="avatar-img" 
-            :src="userInfo.avatar || '../../static/avatars/avatar1.svg'" 
+    <view class="status-bar"></view>
+
+    <view class="header-section">
+      <view class="user-row">
+        <view class="user-info" @click="toProfile">
+          <image
+            class="avatar-img"
+            :src="userInfo.avatar || '/static/avatars/avatar1.svg'"
             mode="aspectFill"
           />
-          <view class="avatar-badge" v-if="userInfo.hasNew"></view>
+          <view class="welcome-text">
+            <text class="greeting">你好，</text>
+            <text class="user-name">{{ userInfo.name }}</text>
+          </view>
         </view>
-        <view class="user-name">{{ userInfo.name }}</view>
+        <view class="header-btns">
+          <view class="icon-btn" @click="toNotification">
+            <image src="/static/Home/bell.svg" class="btn-icon" />
+            <view class="dot" v-if="hasNotification"></view>
+          </view>
+        </view>
       </view>
-      
-      <view class="date-info">
-        <text class="date">{{ currentDate }}</text>
-        <text class="week">{{ currentWeek }}</text>
-      </view>
-      
-      <view class="notification" @click="toNotification">
-        <image 
-          class="notification-icon" 
-          src="../../static/Home/bell.svg" 
-          mode="aspectFit"
-        />
-        <view class="notification-badge" v-if="hasNotification"></view>
+
+      <view class="date-card">
+        <view class="date-left">
+          <text class="big-day">{{ currentDay }}</text>
+          <view class="month-year">
+            <text>{{ currentMonth }}月</text>
+            <text>{{ currentYear }}</text>
+          </view>
+        </view>
+        <view class="date-right">
+          <text class="week-tag">{{ currentWeek }}</text>
+        </view>
       </view>
     </view>
 
-    <!-- 主要内容区域 -->
-    <scroll-view 
-      class="main-content" 
-      scroll-y 
-      :refresher-enabled="true"
+    <scroll-view
+      class="main-content"
+      scroll-y
+      refresher-enabled
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh"
     >
-      <!-- 服药提醒卡片 -->
-      <view class="card medication-reminder">
-        <view class="card-header">
-          <image class="header-icon" src="../../static/Home/clock.svg" mode="aspectFit" />
-          <text class="header-title">即将服药提醒</text>
-          <view class="header-action" @click="toMedicationList">
-            <text class="action-text">更多</text>
-            <image class="action-icon" src="../../static/Home/right-arrow.svg" mode="aspectFit" />
+      <view class="section-container">
+        <view class="section-header">
+          <text class="title">今日服药任务</text>
+          <view class="more-link" @click="toMedicationList">
+            <text>任务中心</text>
+            <image src="/static/Home/right-arrow.svg" class="arrow-icon" />
           </view>
         </view>
-        
-        <view class="medication-item" v-for="item in medicationList" :key="item.id">
-          <view class="medication-info">
-            <view class="medication-time">{{ item.time }}</view>
-            <view class="medication-name">{{ item.name }}</view>
-            <view class="medication-detail">{{ item.dosage }}</view>
-          </view>
-          <button 
-            class="action-btn" 
-            :class="{ 'taken': item.taken }"
-            @click="toggleMedication(item)"
+
+        <view class="task-list">
+          <view
+            v-for="item in medicationList"
+            :key="item.id"
+            class="task-card"
+            :class="getStatusClass(item.status)"
           >
-            {{ item.taken ? '已服用' : '服用' }}
-          </button>
-        </view>
-      </view>
-
-      <!-- 快捷功能卡片 -->
-      <view class="card quick-functions">
-        <view class="card-header">
-          <image class="header-icon" src="../../static/Home/camera.svg" mode="aspectFit" />
-          <text class="header-title">快捷功能</text>
-        </view>
-        
-        <view class="function-grid">
-          <view 
-            class="function-item" 
-            v-for="func in functions" 
-            :key="func.id"
-            @click="handleFunction(func.id)"
-          >
-            <view class="function-icon-container">
-              <image class="function-icon" :src="func.icon" mode="aspectFit" />
+            <view class="task-time">
+              <text class="time">{{ item.timePoint }}</text>
+              <view class="status-indicator"></view>
             </view>
-            <text class="function-name">{{ func.name }}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 今日健康卡片 -->
-      <view class="card health-data">
-        <view class="card-header">
-          <image class="header-icon" src="../../static/Home/heart.svg" mode="aspectFit" />
-          <text class="header-title">今日健康</text>
-          <view class="header-action" @click="toHealthDetail">
-            <text class="action-text">详情</text>
-            <image class="action-icon" src="../../static/Home/right-arrow.svg" mode="aspectFit" />
-          </view>
-        </view>
-        
-        <view class="health-grid">
-          <view class="health-item">
-            <view class="health-value">{{ healthData.steps.toLocaleString() }}</view>
-            <text class="health-label">步数</text>
-            <image class="trend-icon" src="../../static/Home/trend-up.svg" mode="aspectFit" />
-          </view>
-          <view class="health-item">
-            <view class="health-value">{{ healthData.heartRate }}</view>
-            <text class="health-label">心率</text>
-            <text class="health-unit">bpm</text>
-          </view>
-          <view class="health-item">
-            <view class="health-value">{{ healthData.bloodPressure }}</view>
-            <text class="health-label">血压</text>
-          </view>
-          <view class="health-item">
-            <view class="health-value">{{ healthData.sleep }}</view>
-            <text class="health-label">睡眠</text>
-            <text class="health-unit">h</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 家庭动态卡片 -->
-      <view class="card family-dynamic">
-        <view class="card-header">
-          <image class="header-icon" src="../../static/Home/family.svg" mode="aspectFit" />
-          <text class="header-title">家庭动态</text>
-          <view class="header-action" @click="toFamilyManagement">
-            <text class="action-text">管理</text>
-            <image class="action-icon" src="../../static/Home/right-arrow.svg" mode="aspectFit" />
-          </view>
-        </view>
-        
-        <view class="family-list">
-          <view class="family-item" v-for="member in familyMembers" :key="member.id">
-            <view class="member-avatar">
-              <image class="member-avatar-img" :src="member.avatar" mode="aspectFill" />
+            <view class="task-info">
+              <text class="medicine-name">{{ item.medicineName }}</text>
+              <text class="dosage">{{ item.dosage }}</text>
             </view>
-            <view class="member-info">
-              <view class="member-name">{{ member.name }}</view>
-              <view class="member-status">
-                <text class="status-text" :class="member.statusClass">{{ member.status }}</text>
-                <image 
-                  class="status-icon" 
-                  :src="member.statusIcon" 
-                  mode="aspectFit" 
-                />
+            <view class="task-action">
+              <button
+                v-if="item.status === 0"
+                class="btn-confirm"
+                @click="handleTakeMedicine(item)"
+              >
+                服用
+              </button>
+              <view v-else-if="item.status === 1" class="status-label done">
+                <text class="icon">✓</text>已服
+              </view>
+              <view v-else-if="item.status === 2" class="status-label missed">
+                <text class="icon">!</text>漏服
               </view>
             </view>
-            <text class="update-time">{{ member.time }}</text>
           </view>
+
+          <view v-if="medicationList.length === 0" class="empty-state">
+            今日暂无用药任务
+          </view>
+        </view>
+      </view>
+
+      <view class="section-container">
+        <view class="section-header">
+          <text class="title">快捷工具</text>
+        </view>
+        <view class="function-grid">
+          <view
+            v-for="func in functions"
+            :key="func.id"
+            class="func-item"
+            @click="handleFunction(func.id)"
+          >
+            <view class="func-icon-bg" :style="{ backgroundColor: func.color }">
+              <image :src="func.icon" class="func-icon" />
+            </view>
+            <text class="func-name">{{ func.name }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-container">
+        <view class="section-header">
+          <text class="title">今日健康指标</text>
+        </view>
+        <view class="health-row">
+          <view class="health-card">
+            <text class="label">今日步数</text>
+            <view class="val-box">
+              <text class="value">{{ healthData.steps }}</text>
+              <text class="unit">步</text>
+            </view>
+          </view>
+          <view class="health-card">
+            <text class="label">心率状态</text>
+            <view class="val-box">
+              <text class="value">{{ healthData.heartRate }}</text>
+              <text class="unit">bpm</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-container last">
+        <view class="section-header">
+          <text class="title">家庭动态</text>
+        </view>
+        <view
+          class="family-card"
+          v-for="member in familyMembers"
+          :key="member.id"
+        >
+          <image :src="member.avatar" class="f-avatar" />
+          <view class="f-info">
+            <text class="f-name">{{ member.name }}</text>
+            <text class="f-desc" :class="member.statusClass">{{
+              member.status
+            }}</text>
+          </view>
+          <text class="f-time">{{ member.time }}</text>
         </view>
       </view>
     </scroll-view>
@@ -157,529 +156,525 @@
 </template>
 
 <script>
-
 export default {
-  name:"HomePage",
   data() {
     return {
       refreshing: false,
-      userInfo: {
-        name: '陈涛',
-        avatar: '../../static/avatars/avatar1.svg',
-        hasNew: true
-      },
+      userInfo: { name: "陈涛", avatar: "", hasNew: true },
       hasNotification: true,
+
+      // medicationList 现在匹配后端字段逻辑
       medicationList: [
         {
           id: 1,
-          name: '阿司匹林肠溶片',
-          time: '10:00',
-          dosage: '每日1次，每次1片',
-          taken: true
+          medicineName: "阿司匹林",
+          timePoint: "10:00",
+          dosage: "1片",
+          status: 1,
         },
         {
           id: 2,
-          name: '降压药',
-          time: '14:00',
-          dosage: '每日2次，每次1片',
-          taken: false
-        }
+          medicineName: "降压药",
+          timePoint: "14:00",
+          dosage: "1片",
+          status: 0,
+        },
+        {
+          id: 3,
+          medicineName: "维C",
+          timePoint: "08:00",
+          dosage: "2粒",
+          status: 2,
+        }, // 漏服演示
       ],
+
       functions: [
-        { id: 1, name: '拍照识药', icon: '../../static/Home/camera-drug.svg' },
-        { id: 2, name: '就医准备单', icon: '../../static/Home/medical-list.svg' },
-        { id: 3, name: '家庭管理', icon: '../../static/Home/family-manage.svg' },
-        { id: 4, name: '问医小助手', icon: '../../static/Home/ai-assistant.svg' }
+        {
+          id: 1,
+          name: "拍照识药",
+          icon: "/static/Home/camera.svg",
+          color: "#a8F2FF",
+        },
+        {
+          id: 2,
+          name: "就医清单",
+          icon: "/static/Home/medical-list.svg",
+          color: "#3B7ACC",
+        },
+        {
+          id: 3,
+          name: "家庭管理",
+          icon: "/static/Home/family.svg",
+          color: "#d8F9F2",
+        },
+        {
+          id: 4,
+          name: "AI 咨询",
+          icon: "/static/Home/ai-assistant.svg",
+          color: "#43E8FF",
+        },
       ],
-      healthData: {
-        steps: 6234,
-        heartRate: 72,
-        bloodPressure: '120/80',
-        sleep: '7.5'
-      },
+
+      healthData: { steps: 6234, heartRate: 72 },
+
       familyMembers: [
         {
           id: 1,
-          name: '妈妈',
-          avatar: '../../static/avatars/avatar2.svg',
-          status: '今日按时服药',
-          statusClass: 'status-success',
-          statusIcon: '../../static/Home/check.svg',
-          time: '10分钟前'
+          name: "妈妈",
+          avatar: "/static/avatars/avatar2.svg",
+          status: "今日按时服药",
+          statusClass: "s-green",
+          time: "10分钟前",
         },
         {
           id: 2,
-          name: '爸爸',
-          avatar: '../../static/avatars/avatar3.svg',
-          status: '血压偏高需关注',
-          statusClass: 'status-warning',
-          statusIcon: '../../static/Home/warning.svg',
-          time: '30分钟前'
-        }
-      ]
-    }
+          name: "爸爸",
+          avatar: "/static/avatars/avatar3.svg",
+          status: "血压偏高需关注",
+          statusClass: "s-orange",
+          time: "30分钟前",
+        },
+      ],
+    };
   },
   computed: {
-    currentDate() {
-      const date = new Date()
-      return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+    currentYear() {
+      return new Date().getFullYear();
+    },
+    currentMonth() {
+      return new Date().getMonth() + 1;
+    },
+    currentDay() {
+      return new Date().getDate();
     },
     currentWeek() {
-      const weeks = ['日', '一', '二', '三', '四', '五', '六']
-      const date = new Date()
-      return `周${weeks[date.getDay()]}`
-    }
+      return (
+        "星期" + ["日", "一", "二", "三", "四", "五", "六"][new Date().getDay()]
+      );
+    },
   },
   methods: {
-    onRefresh() {
-      this.refreshing = true
-      // 模拟数据刷新
+    // 状态样式映射 (规则 3.2 自动漏服检测体现)
+    getStatusClass(status) {
+      const map = {
+        0: "status-pending", // 待服
+        1: "status-done", // 已服
+        2: "status-missed", // 漏服 (新增)
+      };
+      return map[status] || "";
+    },
+
+    async handleTakeMedicine(item) {
+      // 调用修改任务状态接口
+      uni.showLoading({ title: "确认中..." });
       setTimeout(() => {
-        this.refreshing = false
-        uni.showToast({
-          title: '刷新成功',
-          icon: 'success'
-        })
-      }, 1000)
+        item.status = 1;
+        uni.hideLoading();
+        uni.showToast({ title: "已记录服用" });
+      }, 500);
+    },
+
+    onRefresh() {
+      this.refreshing = true;
+      // 模拟重新获取今日任务 (规则 3.1)
+      setTimeout(() => {
+        this.refreshing = false;
+        uni.showToast({ title: "已同步最新数据", icon: "none" });
+      }, 800);
+    },
+
+    // 路由跳转方法 (保持你的原始逻辑)
+    handleFunction(funcId) {
+      const routes = {
+        1: "/pages/scan/DrugScan",
+
+        2: "/pages/medical/Prepare",
+
+        3: "/pages/family/manage",
+
+        4: "/pages/ai/assistant",
+      };
+
+      if (routes[funcId]) {
+        uni.navigateTo({
+          url: routes[funcId],
+        });
+      }
     },
     toProfile() {
       uni.navigateTo({
-        url: '/pages/profile/profile'
-      })
+        url: "/pages/profile/profile",
+      });
     },
+
     toNotification() {
       uni.navigateTo({
-        url: '/pages/notification/notification'
-      })
+        url: "/pages/notification/notification",
+      });
     },
+
     toMedicationList() {
       uni.navigateTo({
-        url: '/pages/medication/list'
-      })
+        url: "/pages/medication/list",
+      });
     },
+
     toHealthDetail() {
       uni.navigateTo({
-        url: '/pages/health/detail'
-      })
+        url: "/pages/health/detail",
+      });
     },
-    toFamilyManagement() {
-      uni.navigateTo({
-        url: '/pages/family/manage'
-      })
-    },
-    toggleMedication(item) {
-      item.taken = !item.taken
-      uni.showToast({
-        title: item.taken ? '已标记为已服用' : '已取消服用',
-        icon: 'success'
-      })
-    },
-    handleFunction(funcId) {
-      const routes = {
-        1: '/pages/scan/DrugScan',
-        2: '/pages/medical/Prepare',
-        3: '/pages/family/manage',
-        4: '/pages/ai/assistant'
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+/* 变量定义 */
+$primary-color: #5c62ff;
+$bg-color: #f8f9fd;
+$text-main: #1d1d2b;
+$text-grey: #9fa0ab;
+$status-green: #00c897;
+$status-orange: #ff9f43;
+$status-red: #ff5c5c;
+
+.page-container {
+  min-height: 100vh;
+  background-color: $bg-color;
+}
+
+.status-bar {
+  height: var(--status-bar-height);
+}
+
+/* 头部 Header */
+.header-section {
+  padding: 30rpx 40rpx 50rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+  border-bottom-left-radius: 60rpx;
+  border-bottom-right-radius: 60rpx;
+
+  .user-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40rpx;
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      .avatar-img {
+        width: 88rpx;
+        height: 88rpx;
+        border-radius: 50%;
+        border: 4rpx solid #fff;
+        box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
       }
-      
-      if (routes[funcId]) {
-        uni.navigateTo({
-          url: routes[funcId]
-        })
+      .welcome-text {
+        margin-left: 20rpx;
+        display: flex;
+        flex-direction: column;
+        .greeting {
+          font-size: 24rpx;
+          color: $text-grey;
+        }
+        .user-name {
+          font-size: 32rpx;
+          font-weight: bold;
+          color: $text-main;
+        }
+      }
+    }
+
+    .icon-btn {
+      position: relative;
+      width: 80rpx;
+      height: 80rpx;
+      background: #fff;
+      border-radius: 24rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.02);
+      .btn-icon {
+        width: 44rpx;
+        height: 44rpx;
+      }
+      .dot {
+        position: absolute;
+        top: 20rpx;
+        right: 20rpx;
+        width: 14rpx;
+        height: 14rpx;
+        background: $status-red;
+        border-radius: 50%;
+        border: 4rpx solid #fff;
+      }
+    }
+  }
+
+  /* 日期卡片 */
+  .date-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    .date-left {
+      display: flex;
+      align-items: center;
+      .big-day {
+        font-size: 80rpx;
+        font-weight: 800;
+        color: $primary-color;
+        line-height: 1;
+      }
+      .month-year {
+        margin-left: 20rpx;
+        display: flex;
+        flex-direction: column;
+        font-size: 26rpx;
+        color: $text-main;
+        font-weight: 500;
+      }
+    }
+    .week-tag {
+      background: rgba($primary-color, 0.1);
+      color: $primary-color;
+      padding: 10rpx 30rpx;
+      border-radius: 30rpx;
+      font-size: 24rpx;
+      font-weight: bold;
+    }
+  }
+}
+
+/* 滚动区域 */
+.main-content {
+  height: calc(100vh - 350rpx);
+  padding: 0 40rpx;
+  box-sizing: border-box;
+}
+
+.section-container {
+  margin-top: 50rpx;
+  &.last {
+    margin-bottom: 60rpx;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24rpx;
+    .title {
+      font-size: 34rpx;
+      font-weight: bold;
+      color: $text-main;
+    }
+    .more-link {
+      display: flex;
+      align-items: center;
+      font-size: 24rpx;
+      color: $text-grey;
+      .arrow-icon {
+        width: 24rpx;
+        height: 24rpx;
+        margin-left: 4rpx;
       }
     }
   }
 }
-</script>
 
-<style scoped lang="scss">
-.page-container {
-    width: 100%;
-  height: 100vh;
-  background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
-  padding-bottom: 120rpx;
-}
-
-/* 头部样式 */
-.header {
+/* 任务卡片样式 (对应规则体现) */
+.task-card {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 40rpx 32rpx 20rpx;
-  background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
-  border-radius: 0 0 32rpx 32rpx;
-  box-shadow: 0 4rpx 20rpx rgba(45, 107, 255, 0.15);
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  flex: 1;
-}
-
-.avatar {
-  position: relative;
-  width: 80rpx;
-  height: 80rpx;
-  margin-right: 20rpx;
-}
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 4rpx solid rgba(255, 255, 255, 0.3);
   background: #fff;
-}
+  padding: 30rpx;
+  border-radius: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.03);
 
-.avatar-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 20rpx;
-  height: 20rpx;
-  background: #ff6b6b;
-  border: 3rpx solid #fff;
-  border-radius: 50%;
-}
+  .task-time {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 100rpx;
+    .time {
+      font-size: 32rpx;
+      font-weight: bold;
+      color: $text-main;
+    }
+    .status-indicator {
+      width: 12rpx;
+      height: 12rpx;
+      border-radius: 50%;
+      background: #ddd;
+      margin-top: 10rpx;
+    }
+  }
 
-.user-name {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #ffffff;
-  letter-spacing: 1rpx;
-}
+  .task-info {
+    flex: 1;
+    margin-left: 30rpx;
+    .medicine-name {
+      font-size: 30rpx;
+      font-weight: bold;
+      color: $text-main;
+      display: block;
+    }
+    .dosage {
+      font-size: 24rpx;
+      color: $text-grey;
+      margin-top: 4rpx;
+    }
+  }
 
-.date-info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex: 1;
-}
+  /* 不同状态的颜色表现 */
+  &.status-pending .status-indicator {
+    background: $primary-color;
+  }
+  &.status-done {
+    opacity: 0.7;
+    .status-indicator {
+      background: $status-green;
+    }
+  }
+  &.status-missed {
+    background: #fff5f5;
+    .status-indicator {
+      background: $status-red;
+    }
+    .time {
+      color: $status-red;
+    }
+  }
 
-.date {
-  font-size: 28rpx;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.95);
-}
+  .btn-confirm {
+    background: $primary-color;
+    color: #fff;
+    font-size: 24rpx;
+    padding: 10rpx 30rpx;
+    border-radius: 16rpx;
+    border: none;
+    line-height: 1.5;
+  }
 
-.week {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.8);
-  margin-top: 4rpx;
-}
-
-.notification {
-  position: relative;
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.notification-icon {
-  width: 44rpx;
-  height: 44rpx;
-}
-
-.notification-badge {
-  position: absolute;
-  top: -4rpx;
-  right: -4rpx;
-  width: 16rpx;
-  height: 16rpx;
-  background: #ff6b6b;
-  border-radius: 50%;
-  border: 2rpx solid #2d6bff;
-}
-
-/* 主要内容区域 */
-/* 直接在 .main-content 上添加这些样式 */
-.main-content {
-  height: calc(100vh - 240rpx);
-  padding: 32rpx 32rpx 0 32rpx;
-  box-sizing: border-box;
-  
-  /* 关键：禁止横向滚动 */
-  overflow-x: hidden !important;
-  overflow-y: auto;
-  
-  /* 隐藏滚动条 */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE 10+ */
-}
-
-/* 针对Webkit浏览器隐藏滚动条 */
-.main-content::-webkit-scrollbar {
-  display: none;
-  width: 0;
-}
-
-/* 卡片通用样式 */
-.card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 32rpx;
-  box-shadow: 0 6rpx 24rpx rgba(45, 107, 255, 0.08);
-  border: 2rpx solid rgba(77, 142, 255, 0.1);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 28rpx;
-}
-
-.header-icon {
-  width: 36rpx;
-  height: 36rpx;
-  margin-right: 16rpx;
-}
-
-.header-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #2d3b4e;
-  flex: 1;
-}
-
-.header-action {
-  display: flex;
-  align-items: center;
-  padding: 8rpx 16rpx;
-  background: rgba(77, 142, 255, 0.1);
-  border-radius: 20rpx;
-  transition: all 0.3s ease;
-}
-
-.header-action:active {
-  background: rgba(77, 142, 255, 0.2);
-}
-
-.action-text {
-  font-size: 26rpx;
-  color: #4d8eff;
-  margin-right: 8rpx;
-}
-
-.action-icon {
-  width: 20rpx;
-  height: 20rpx;
-}
-
-/* 服药提醒卡片 */
-.medication-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx;
-  background: linear-gradient(135deg, rgba(77, 142, 255, 0.05) 0%, rgba(45, 107, 255, 0.03) 100%);
-  border-radius: 20rpx;
-  margin-bottom: 20rpx;
-  border: 2rpx solid rgba(77, 142, 255, 0.15);
-  
-  &:last-child {
-    margin-bottom: 0;
+  .status-label {
+    font-size: 24rpx;
+    font-weight: bold;
+    &.done {
+      color: $status-green;
+    }
+    &.missed {
+      color: $status-red;
+    }
+    .icon {
+      margin-right: 6rpx;
+    }
   }
 }
 
-.medication-info {
-  flex: 1;
-}
-
-.medication-time {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #ff6b6b;
-  margin-bottom: 8rpx;
-}
-
-.medication-name {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #2d3b4e;
-  margin-bottom: 4rpx;
-}
-
-.medication-detail {
-  font-size: 26rpx;
-  color: #87909c;
-}
-
-.action-btn {
-  padding: 16rpx 32rpx;
-  background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
-  border-radius: 20rpx;
-  border: none;
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  
-  &.taken {
-    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-  }
-}
-
-.action-btn:active {
-  transform: scale(0.95);
-}
-
-/* 快捷功能卡片 */
+/* 快捷功能网格 */
 .function-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 32rpx;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20rpx;
+  .func-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    .func-icon-bg {
+      width: 100rpx;
+      height: 100rpx;
+      border-radius: 30rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12rpx;
+      .func-icon {
+        width: 50rpx;
+        height: 50rpx;
+      }
+    }
+    .func-name {
+      font-size: 22rpx;
+      color: $text-main;
+      font-weight: 500;
+    }
+  }
 }
 
-.function-item {
+/* 健康指标 */
+.health-row {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32rpx 24rpx;
-  background: linear-gradient(135deg, rgba(77, 142, 255, 0.08) 0%, rgba(45, 107, 255, 0.04) 100%);
-  border-radius: 24rpx;
-  border: 2rpx solid rgba(77, 142, 255, 0.15);
-  transition: all 0.3s ease;
-}
-
-.function-item:active {
-  transform: translateY(-4rpx);
-  background: linear-gradient(135deg, rgba(77, 142, 255, 0.12) 0%, rgba(45, 107, 255, 0.08) 100%);
-  box-shadow: 0 8rpx 32rpx rgba(45, 107, 255, 0.15);
-}
-
-.function-icon-container {
-  width: 80rpx;
-  height: 80rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
-  border-radius: 20rpx;
-  margin-bottom: 20rpx;
-}
-
-.function-icon {
-  width: 40rpx;
-  height: 40rpx;
-}
-
-.function-name {
-  font-size: 28rpx;
-  font-weight: 500;
-  color: #2d3b4e;
-}
-
-/* 今日健康卡片 */
-.health-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 32rpx;
-}
-
-.health-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32rpx 24rpx;
-  background: linear-gradient(135deg, rgba(77, 142, 255, 0.05) 0%, rgba(45, 107, 255, 0.02) 100%);
-  border-radius: 20rpx;
-  position: relative;
-  border: 2rpx solid rgba(77, 142, 255, 0.1);
-}
-
-.health-value {
-  font-size: 44rpx;
-  font-weight: 700;
-  color: #2d6bff;
-  margin-bottom: 8rpx;
-}
-
-.health-label {
-  font-size: 26rpx;
-  color: #87909c;
-}
-
-.health-unit {
-  font-size: 24rpx;
-  color: #87909c;
-  margin-left: 4rpx;
-}
-
-.trend-icon {
-  position: absolute;
-  top: 20rpx;
-  right: 20rpx;
-  width: 48rpx;
-  height: 48rpx;
-}
-
-/* 家庭动态卡片 */
-.family-list {
-  display: flex;
-  flex-direction: column;
   gap: 24rpx;
+  .health-card {
+    flex: 1;
+    background: #fff;
+    padding: 24rpx;
+    border-radius: 24rpx;
+    .label {
+      font-size: 22rpx;
+      color: $text-grey;
+    }
+    .val-box {
+      margin-top: 10rpx;
+      .value {
+        font-size: 40rpx;
+        font-weight: 800;
+        color: $text-main;
+      }
+      .unit {
+        font-size: 20rpx;
+        color: $text-grey;
+        margin-left: 6rpx;
+      }
+    }
+  }
 }
 
-.family-item {
+/* 家庭动态 */
+.family-card {
   display: flex;
   align-items: center;
+  background: #fff;
   padding: 24rpx;
-  background: linear-gradient(135deg, rgba(77, 142, 255, 0.05) 0%, rgba(45, 107, 255, 0.02) 100%);
-  border-radius: 20rpx;
-  border: 2rpx solid rgba(77, 142, 255, 0.1);
+  border-radius: 24rpx;
+  margin-bottom: 20rpx;
+  .f-avatar {
+    width: 70rpx;
+    height: 70rpx;
+    border-radius: 50%;
+  }
+  .f-info {
+    flex: 1;
+    margin-left: 20rpx;
+    .f-name {
+      font-size: 28rpx;
+      font-weight: bold;
+      color: $text-main;
+      display: block;
+    }
+    .f-desc {
+      font-size: 22rpx;
+    }
+    .s-green {
+      color: $status-green;
+    }
+    .s-orange {
+      color: $status-orange;
+    }
+  }
+  .f-time {
+    font-size: 20rpx;
+    color: $text-grey;
+  }
 }
 
-.member-avatar {
-  width: 80rpx;
-  height: 80rpx;
-  margin-right: 20rpx;
-}
-
-.member-avatar-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 4rpx solid rgba(77, 142, 255, 0.2);
-}
-
-.member-info {
-  flex: 1;
-}
-
-.member-name {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #2d3b4e;
-  margin-bottom: 8rpx;
-}
-
-.member-status {
-  display: flex;
-  align-items: center;
-}
-
-.status-text {
+.empty-state {
+  text-align: center;
+  padding: 60rpx;
+  color: #ccc;
   font-size: 26rpx;
-  margin-right: 12rpx;
-  
-  &.status-success {
-    color: #10b981;
-  }
-  
-  &.status-warning {
-    color: #f59e0b;
-  }
-}
-
-.status-icon {
-  width: 36rpx;
-  height: 36rpx;
-}
-
-.update-time {
-  font-size: 24rpx;
-  color: #87909c;
 }
 </style>

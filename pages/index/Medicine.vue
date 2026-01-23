@@ -1,99 +1,76 @@
-<!-- pages/health/data.vue -->
 <template>
   <view class="page-container">
-    <!-- 顶部导航栏 -->
+    <view class="status-bar"></view>
+
     <view class="header">
       <view class="header-left">
         <text class="page-title">健康数据</text>
+        <text class="page-subtitle">实时监控您的身体状态</text>
       </view>
       <view class="header-right">
-        <button class="report-btn" @click="generateReport">
-          <image class="chart-icon" src="/static/icons/chart.png" mode="aspectFit" />
-          <text class="report-text">生成报告</text>
-        </button>
+        <view class="report-btn" @click="generateReport">
+          <text class="report-text">分析报告</text>
+          <text class="report-icon">↗</text>
+        </view>
       </view>
     </view>
 
-    <!-- 主要内容区域 -->
     <scroll-view 
       class="main-content"
       scroll-y
       :show-scrollbar="false"
-      :scroll-x="false"
       :refresher-enabled="true"
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh"
     >
-      <!-- 本周概览 -->
       <view class="section">
-        <view class="section-header">
-          <text class="section-title">本周概览</text>
-        </view>
-        
         <view class="overview-card">
-          <view class="overview-item">
-            <view class="overview-header">
+          <view class="overview-top">
+            <view class="overview-main">
               <text class="overview-label">服药依从性</text>
-              <view class="trend-badge" @click="viewAdherenceDetail">
-                <text class="trend-text">📈 较上周 +5%</text>
+              <view class="overview-value-box">
+                <text class="value-number">{{ adherenceRate }}</text>
+                <text class="value-unit">%</text>
               </view>
             </view>
-            <view class="overview-value">
-              <text class="value-number">{{ adherenceRate }}</text>
-              <text class="value-unit">%</text>
-            </view>
-            <!-- 进度条 -->
-            <view class="progress-bar">
-              <view class="progress-track">
-                <view 
-                  class="progress-fill" 
-                  :style="{ width: adherenceRate + '%' }"
-                ></view>
-              </view>
-              <view class="progress-labels">
-                <text class="progress-label">0%</text>
-                <text class="progress-label">50%</text>
-                <text class="progress-label">100%</text>
-              </view>
+            <view class="trend-tag up">
+              <text class="trend-arrow">▲</text>
+              <text>较上周+5%</text>
             </view>
           </view>
           
-          <!-- 分隔线 -->
+          <view class="progress-container">
+            <view class="progress-track">
+              <view class="progress-fill" :style="{ width: adherenceRate + '%' }"></view>
+            </view>
+            <view class="progress-info">
+              <text>坚持就是胜利，本周表现优于 90% 用户</text>
+            </view>
+          </view>
+
           <view class="divider"></view>
-          
-          <view class="overview-item">
-            <view class="overview-header">
-              <text class="overview-label">健康评分</text>
-              <view class="score-badge" :class="healthScoreLevel">
-                <text class="score-text">{{ getHealthScoreText(healthScore) }}</text>
-              </view>
+
+          <view class="overview-bottom">
+            <view class="score-info">
+              <text class="overview-label">健康综合评分</text>
+              <text class="score-desc">{{ getScoreDescription(healthScore) }}</text>
             </view>
-            <view class="overview-value">
-              <text class="value-number">{{ healthScore }}</text>
-              <text class="value-unit">分</text>
-            </view>
-            <!-- 评分说明 -->
-            <view class="score-desc">
-              <text class="desc-text">{{ getScoreDescription(healthScore) }}</text>
+            <view class="score-circle" :class="healthScoreLevel">
+              <text class="score-num">{{ healthScore }}</text>
+              <text class="score-text">{{ getHealthScoreText(healthScore) }}</text>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- 核心指标 -->
       <view class="section">
         <view class="section-header">
-          <text class="section-title">核心指标</text>
-          <view class="time-selector">
-            <picker 
-              mode="selector" 
-              :range="timeRanges" 
-              :value="timeIndex"
-              @change="onTimeRangeChange"
-            >
-              <view class="time-selector-btn">
-                <text class="time-text">{{ selectedTimeRange }}</text>
-                <image class="dropdown-icon" src="/static/icons/dropdown.png" mode="aspectFit" />
+          <text class="section-title">核心体征</text>
+          <view class="time-picker-wrap">
+            <picker :range="timeRanges" @change="onTimeRangeChange">
+              <view class="time-picker">
+                <text>{{ selectedTimeRange }}数据</text>
+                <text class="icon-down">▼</text>
               </view>
             </picker>
           </view>
@@ -106,145 +83,102 @@
             :key="indicator.id"
             @click="viewIndicatorDetail(indicator.id)"
           >
-            <view class="indicator-header">
-              <image class="indicator-icon" :src="indicator.icon" mode="aspectFit" />
-              <text class="indicator-name">{{ indicator.name }}</text>
+            <view class="card-header">
+              <view class="icon-bg" :class="indicator.statusClass">
+                <image class="card-icon" :src="indicator.icon" mode="aspectFit" />
+              </view>
+              <text class="status-dot" :class="indicator.statusClass"></text>
             </view>
-            <view class="indicator-value">
-              <text class="value-number">{{ indicator.value }}</text>
-              <text class="value-unit">{{ indicator.unit }}</text>
-            </view>
-            <view class="indicator-status">
-              <text class="status-text" :class="indicator.statusClass">
-                {{ indicator.status }}
-              </text>
-              <view class="trend-icon" v-if="indicator.trend">
-                <image 
-                  :src="getTrendIcon(indicator.trend)" 
-                  class="trend-icon-img"
-                  mode="aspectFit"
-                />
+            <view class="card-body">
+              <text class="card-name">{{ indicator.name }}</text>
+              <view class="card-value-row">
+                <text class="card-value">{{ indicator.value }}</text>
+                <text class="card-unit">{{ indicator.unit }}</text>
               </view>
             </view>
-            <view class="chart-placeholder">
-              <text class="chart-icon-mini">📊</text>
-              <text class="chart-text">查看趋势</text>
+            <view class="card-footer">
+              <text class="card-status" :class="indicator.statusClass">{{ indicator.status }}</text>
+              <text class="card-trend" :class="indicator.trend">{{ indicator.trend === 'up' ? '↗' : indicator.trend === 'down' ? '↘' : '→' }}</text>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- 健康趋势 -->
       <view class="section">
         <view class="section-header">
-          <text class="section-title">健康趋势</text>
-          <view class="trend-selector">
-            <picker 
-              mode="selector" 
-              :range="trendOptions" 
-              :value="trendIndex"
-              @change="onTrendChange"
+          <text class="section-title">指标趋势</text>
+          <scroll-view scroll-x class="tab-scroll" :show-scrollbar="false">
+            <view 
+              v-for="(opt, index) in trendOptions" 
+              :key="index"
+              class="tab-item"
+              :class="{active: trendIndex === index}"
+              @click="trendIndex = index"
             >
-              <view class="trend-selector-btn">
-                <text class="trend-text">{{ selectedTrend }}</text>
-                <image class="dropdown-icon" src="/static/icons/dropdown.png" mode="aspectFit" />
-              </view>
-            </picker>
-          </view>
+              {{ opt }}
+            </view>
+          </scroll-view>
         </view>
         
         <view class="trend-card">
-          <view class="trend-header">
-            <image class="trend-chart-icon" src="/static/icons/line-chart.png" mode="aspectFit" />
-            <text class="trend-title">{{ selectedTrend }}趋势({{ selectedTimeRange }})</text>
+          <view class="chart-header">
+            <view class="chart-legend">
+              <view class="legend-dot"></view>
+              <text>{{ selectedTrend }} ({{ indicatorUnitMap[selectedTrend] }})</text>
+            </view>
+            <text class="avg-label">周期均值: {{ averageValue }}</text>
           </view>
           
-          <!-- 简易趋势图（实际项目中可接入echarts等图表库） -->
-          <view class="trend-chart">
-            <!-- Y轴标签 -->
+          <view class="mock-chart">
             <view class="y-axis">
-              <text class="y-label">140</text>
-              <text class="y-label">120</text>
-              <text class="y-label">100</text>
+              <text v-for="label in ['max', 'mid', 'min']" :key="label">{{ label }}</text>
             </view>
-            
-            <!-- 图表区域 -->
-            <view class="chart-area">
-              <!-- 网格线 -->
-              <view class="grid-lines">
-                <view class="grid-line" v-for="i in 4" :key="i"></view>
-              </view>
-              
-              <!-- 数据点 -->
-              <view class="data-points">
+            <view class="chart-content">
+              <view class="grid-line" v-for="i in 3" :key="i"></view>
+              <view class="data-line">
                 <view 
-                  class="data-point"
+                  class="data-node" 
+                  v-for="(point, pIdx) in trendData" 
+                  :key="pIdx"
                   :style="{ left: point.x + '%', bottom: point.y + '%' }"
-                  v-for="point in trendData"
-                  :key="point.id"
                 >
-                  <view class="point-circle"></view>
-                  <view class="point-value">{{ point.value }}</view>
+                  <view class="node-dot"></view>
+                  <view class="node-tip">{{ point.value }}</view>
                 </view>
               </view>
-              
-              <!-- 连接线 -->
-              <view class="trend-line"></view>
             </view>
-            
-            <!-- X轴标签 -->
             <view class="x-axis">
-              <text class="x-label" v-for="day in xAxisLabels" :key="day">{{ day }}</text>
-            </view>
-          </view>
-          
-          <!-- 趋势分析 -->
-          <view class="trend-analysis">
-            <view class="analysis-item">
-              <text class="analysis-label">平均数值:</text>
-              <text class="analysis-value">{{ averageValue }}</text>
-            </view>
-            <view class="analysis-item">
-              <text class="analysis-label">变化趋势:</text>
-              <text class="analysis-value" :class="trendChangeClass">
-                {{ trendChange }}%
-              </text>
+              <text v-for="day in xAxisLabels" :key="day">{{ day }}</text>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- 异常提醒 -->
-      <view class="section">
+      <view class="section" v-if="alerts.length > 0">
         <view class="section-header">
-          <text class="section-title">异常提醒</text>
-          <view class="reminder-count" v-if="alerts.length > 0">
-            <text class="count-badge">{{ alerts.length }}</text>
-          </view>
+          <text class="section-title">异常预警</text>
+          <text class="alert-count">{{ alerts.length }} 条待处理</text>
         </view>
         
-        <view class="alerts-list">
+        <view class="alert-stack">
           <view 
-            class="alert-card"
+            class="alert-item"
             v-for="alert in alerts"
             :key="alert.id"
             :class="alert.level"
             @click="viewAlertDetail(alert.id)"
           >
-            <view class="alert-header">
-              <image class="alert-icon" :src="getAlertIcon(alert.level)" mode="aspectFit" />
-              <view class="alert-info">
+            <view class="alert-left">
+              <view class="alert-dot"></view>
+            </view>
+            <view class="alert-mid">
+              <view class="alert-title-row">
                 <text class="alert-title">{{ alert.title }}</text>
                 <text class="alert-time">{{ alert.time }}</text>
               </view>
-              <image 
-                class="alert-more" 
-                src="/static/icons/right-arrow.png" 
-                mode="aspectFit" 
-              />
+              <text class="alert-msg">{{ alert.content }}</text>
             </view>
-            <text class="alert-content">{{ alert.content }}</text>
-            <text class="alert-suggestion">{{ alert.suggestion }}</text>
+            <text class="alert-arrow">〉</text>
           </view>
         </view>
       </view>
@@ -254,845 +188,423 @@
 
 <script>
 export default {
-    name:"MedicinePage",
   data() {
     return {
       refreshing: false,
       adherenceRate: 92,
-      healthScore: 85,
+      healthScore: 88,
       timeIndex: 0,
       trendIndex: 0,
-      timeRanges: ['7天', '30天', '90天'],
+      timeRanges: ['最近7天', '最近30天', '最近90天'],
       trendOptions: ['血压', '心率', '血糖', '体重'],
+      indicatorUnitMap: { '血压': 'mmHg', '心率': 'bpm', '血糖': 'mmol/L', '体重': 'kg' },
       indicators: [
-        {
-          id: 1,
-          name: '血压',
-          value: '120/80',
-          unit: 'mmHg',
-          status: '正常',
-          statusClass: 'status-normal',
-          trend: 'stable',
-          icon: '/static/icons/blood-pressure.png'
-        },
-        {
-          id: 2,
-          name: '心率',
-          value: '72',
-          unit: 'bpm',
-          status: '正常',
-          statusClass: 'status-normal',
-          trend: 'stable',
-          icon: '/static/icons/heart-rate.png'
-        },
-        {
-          id: 3,
-          name: '血糖',
-          value: '5.2',
-          unit: 'mmol/L',
-          status: '正常',
-          statusClass: 'status-normal',
-          trend: 'down',
-          icon: '/static/icons/blood-sugar.png'
-        },
-        {
-          id: 4,
-          name: '体重',
-          value: '65',
-          unit: 'kg',
-          status: '正常',
-          statusClass: 'status-normal',
-          trend: 'down',
-          icon: '/static/icons/weight.png'
-        }
+        { id: 1, name: '血压', value: '120/80', unit: 'mmHg', status: '正常', statusClass: 'status-normal', trend: 'stable', icon: '/static/icons/bp.png' },
+        { id: 2, name: '心率', value: '72', unit: 'bpm', status: '正常', statusClass: 'status-normal', trend: 'up', icon: '/static/icons/hr.png' },
+        { id: 3, name: '血糖', value: '5.2', unit: 'mmol/L', status: '偏高', statusClass: 'status-warning', trend: 'down', icon: '/static/icons/bs.png' },
+        { id: 4, name: '体重', value: '65', unit: 'kg', status: '正常', statusClass: 'status-normal', trend: 'down', icon: '/static/icons/wt.png' }
       ],
       trendData: [
-        { id: 1, x: 0, y: 20, value: '145' },
-        { id: 2, x: 25, y: 50, value: '130' },
-        { id: 3, x: 50, y: 40, value: '125' },
-        { id: 4, x: 75, y: 30, value: '120' },
-        { id: 5, x: 100, y: 10, value: '110' }
+        { x: 5, y: 30, value: '115' },
+        { x: 30, y: 55, value: '128' },
+        { x: 55, y: 45, value: '122' },
+        { x: 80, y: 70, value: '135' },
+        { x: 95, y: 50, value: '125' }
       ],
-      xAxisLabels: ['12/26', '12/27', '12/28', '12/29', '12/30'],
+      xAxisLabels: ['周一', '周二', '周三', '周四', '今日'],
       averageValue: '126 mmHg',
-      trendChange: '-5.2',
       alerts: [
-        {
-          id: 1,
-          level: 'warning',
-          title: '血压偏高',
-          time: '12/30 14:30',
-          content: '血压测量值 145/90 mmHg',
-          suggestion: '建议减少钠摄入，适量运动'
-        },
-        {
-          id: 2,
-          level: 'info',
-          title: '服药提醒',
-          time: '12/29 10:00',
-          content: '阿司匹林漏服1次',
-          suggestion: '请按时服药，如需调整请咨询医生'
-        }
+        { id: 1, level: 'danger', title: '血压异常升高', time: '14:30', content: '测量结果 145/95 mmHg，已超过警戒线。' },
+        { id: 2, level: 'warning', title: '指标缺失', time: '09:00', content: '您今天尚未记录空腹血糖数据。' }
       ]
     }
   },
   computed: {
-    selectedTimeRange() {
-      return this.timeRanges[this.timeIndex]
-    },
-    selectedTrend() {
-      return this.trendOptions[this.trendIndex]
-    },
+    selectedTimeRange() { return this.timeRanges[this.timeIndex] },
+    selectedTrend() { return this.trendOptions[this.trendIndex] },
     healthScoreLevel() {
-      if (this.healthScore >= 90) return 'score-excellent'
-      if (this.healthScore >= 80) return 'score-good'
-      if (this.healthScore >= 60) return 'score-fair'
-      return 'score-poor'
-    },
-    trendChangeClass() {
-      if (this.trendChange.startsWith('-')) return 'trend-down'
-      if (this.trendChange.startsWith('+')) return 'trend-up'
-      return 'trend-stable'
+      if (this.healthScore >= 90) return 'level-excellent'
+      if (this.healthScore >= 80) return 'level-good'
+      return 'level-warn'
     }
-  },
-  onLoad() {
-    this.loadHealthData()
   },
   methods: {
     onRefresh() {
-      this.refreshing = true
-      setTimeout(() => {
-        this.refreshing = false
-        uni.showToast({
-          title: '数据已更新',
-          icon: 'success'
-        })
-      }, 1000)
+      this.refreshing = true;
+      setTimeout(() => { this.refreshing = false }, 1500);
     },
-    loadHealthData() {
-      // 加载健康数据
-      console.log('加载健康数据')
-    },
-    generateReport() {
-      uni.showLoading({
-        title: '生成报告中...'
-      })
-      
-      setTimeout(() => {
-        uni.hideLoading()
-        uni.navigateTo({
-          url: '/pages/health/report'
-        })
-      }, 1500)
-    },
-    viewAdherenceDetail() {
-      uni.navigateTo({
-        url: '/pages/health/adherence'
-      })
-    },
+    onTimeRangeChange(e) { this.timeIndex = e.detail.value },
     getHealthScoreText(score) {
-      if (score >= 90) return '优秀'
-      if (score >= 80) return '良好'
-      if (score >= 60) return '一般'
-      return '需关注'
+      return score >= 90 ? '优秀' : score >= 80 ? '良好' : '注意'
     },
     getScoreDescription(score) {
-      if (score >= 90) return '继续保持良好的健康习惯'
-      if (score >= 80) return '整体健康状况良好'
-      if (score >= 60) return '部分指标需要关注'
-      return '建议加强健康管理'
+      return score >= 80 ? '您的健康状况非常稳定，请继续保持。' : '近期有指标波动，建议关注预警。'
     },
-    onTimeRangeChange(e) {
-      this.timeIndex = e.detail.value
-      this.loadTrendData()
-    },
-    onTrendChange(e) {
-      this.trendIndex = e.detail.value
-      this.loadTrendData()
-    },
-    loadTrendData() {
-      // 根据选择的时间范围和指标加载趋势数据
-      console.log('加载趋势数据:', this.selectedTrend, this.selectedTimeRange)
+    generateReport() {
+      uni.showLoading({ title: '分析中...' });
+      setTimeout(() => uni.hideLoading(), 2000);
     },
     viewIndicatorDetail(id) {
-      const indicator = this.indicators.find(i => i.id === id)
-      if (indicator) {
-        uni.navigateTo({
-          url: `/pages/health/indicator-detail?id=${id}&name=${indicator.name}`
-        })
-      }
-    },
-    getTrendIcon(trend) {
-      const icons = {
-        up: '/static/icons/trend-up.png',
-        down: '/static/icons/trend-down.png',
-        stable: '/static/icons/trend-stable.png'
-      }
-      return icons[trend] || icons.stable
-    },
-    viewAlertDetail(id) {
-      const alert = this.alerts.find(a => a.id === id)
-      if (alert) {
-        uni.navigateTo({
-          url: `/pages/health/alert-detail?id=${id}`
-        })
-      }
-    },
-    getAlertIcon(level) {
-      const icons = {
-        warning: '/static/icons/warning.png',
-        info: '/static/icons/info-circle.png',
-        danger: '/static/icons/danger.png'
-      }
-      return icons[level] || icons.info
+      console.log('查看指标详情', id)
     }
   }
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
+// 变量定义
+$primary-color: #4d8eff;
+$success-color: #10b981;
+$warning-color: #f59e0b;
+$danger-color: #ff4d4f;
+$bg-color: #f7f9fc;
+$text-main: #2d3b4e;
+$text-light: #87909c;
+
 .page-container {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
-  padding-bottom: 120rpx;
+  background-color: $bg-color;
+  color: $text-main;
 }
 
-/* 头部样式 */
+.status-bar { height: var(--status-bar-height); background-color: #fff; }
+
+// 头部设计
 .header {
+  padding: 40rpx 32rpx;
+  background: #fff;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 60rpx 32rpx 24rpx;
-  background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
-  border-radius: 0 0 32rpx 32rpx;
-  box-shadow: 0 4rpx 20rpx rgba(45, 107, 255, 0.15);
-}
-
-.header-left {
-  flex: 1;
-}
-
-.page-title {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 1rpx;
-}
-
-.header-right {
-  display: flex;
   align-items: center;
+  border-radius: 0 0 40rpx 40rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.05);
+
+  .page-title {
+    font-size: 44rpx;
+    font-weight: 800;
+    display: block;
+    color: $text-main;
+  }
+  .page-subtitle {
+    font-size: 24rpx;
+    color: $text-light;
+    margin-top: 8rpx;
+  }
+  
+  .report-btn {
+    background: rgba($primary-color, 0.1);
+    padding: 16rpx 28rpx;
+    border-radius: 20rpx;
+    display: flex;
+    align-items: center;
+    
+    .report-text {
+      color: $primary-color;
+      font-size: 26rpx;
+      font-weight: 600;
+    }
+    .report-icon {
+      color: $primary-color;
+      margin-left: 8rpx;
+      font-size: 24rpx;
+    }
+  }
 }
 
-.report-btn {
-  display: flex;
-  align-items: center;
-  padding: 12rpx 24rpx;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 24rpx;
-  border: none;
-  backdrop-filter: blur(10rpx);
-  transition: all 0.3s ease;
-}
-
-.report-btn:active {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(0.95);
-}
-
-.chart-icon {
-  width: 32rpx;
-  height: 32rpx;
-  margin-right: 8rpx;
-}
-
-.report-text {
-  font-size: 26rpx;
-  color: #ffffff;
-  font-weight: 500;
-}
-
-/* 主要内容区域 */
 .main-content {
-  height: calc(100vh - 240rpx);
+  height: calc(100vh - 200rpx);
   padding: 32rpx;
   box-sizing: border-box;
-  overflow-x: hidden !important;
 }
 
-.main-content::-webkit-scrollbar {
-  display: none;
-}
-
-/* 分区样式 */
 .section {
   margin-bottom: 40rpx;
+  
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24rpx;
+    padding: 0 8rpx;
+    
+    .section-title {
+      font-size: 32rpx;
+      font-weight: 700;
+    }
+    
+    .time-picker {
+      font-size: 24rpx;
+      color: $primary-color;
+      background: #fff;
+      padding: 8rpx 20rpx;
+      border-radius: 30rpx;
+      display: flex;
+      align-items: center;
+      .icon-down { font-size: 16rpx; margin-left: 8rpx; }
+    }
+  }
 }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24rpx;
-}
-
-.section-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #2d3b4e;
-}
-
-/* 时间选择器 */
-.time-selector,
-.trend-selector {
-  position: relative;
-}
-
-.time-selector-btn,
-.trend-selector-btn {
-  display: flex;
-  align-items: center;
-  padding: 12rpx 24rpx;
-  background: rgba(77, 142, 255, 0.1);
-  border-radius: 24rpx;
-  transition: all 0.3s ease;
-}
-
-.time-selector-btn:active,
-.trend-selector-btn:active {
-  background: rgba(77, 142, 255, 0.2);
-}
-
-.time-text,
-.trend-text {
-  font-size: 26rpx;
-  color: #4d8eff;
-  font-weight: 500;
-  margin-right: 8rpx;
-}
-
-.dropdown-icon {
-  width: 20rpx;
-  height: 20rpx;
-}
-
-/* 提醒计数 */
-.reminder-count {
-  margin-left: auto;
-}
-
-.count-badge {
-  display: inline-block;
-  padding: 6rpx 16rpx;
-  background: #ff6b6b;
-  color: #ffffff;
-  font-size: 24rpx;
-  font-weight: 600;
-  border-radius: 16rpx;
-  min-width: 32rpx;
-  text-align: center;
-}
-
-/* 概览卡片 */
+// 概览卡片
 .overview-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  box-shadow: 0 6rpx 24rpx rgba(45, 107, 255, 0.08);
-  border: 2rpx solid rgba(77, 142, 255, 0.1);
-}
+  background: #fff;
+  border-radius: 32rpx;
+  padding: 40rpx;
+  box-shadow: 0 10rpx 30rpx rgba($primary-color, 0.08);
 
-.overview-item {
-  margin-bottom: 32rpx;
-  
-  &:last-child {
-    margin-bottom: 0;
+  .overview-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    
+    .overview-label { font-size: 28rpx; color: $text-light; }
+    .overview-value-box {
+      margin-top: 10rpx;
+      .value-number { font-size: 72rpx; font-weight: 800; color: $primary-color; }
+      .value-unit { font-size: 28rpx; color: $text-light; margin-left: 8rpx; }
+    }
+    
+    .trend-tag {
+      padding: 8rpx 16rpx;
+      border-radius: 12rpx;
+      font-size: 22rpx;
+      font-weight: 600;
+      &.up { background: rgba($success-color, 0.1); color: $success-color; }
+      .trend-arrow { margin-right: 4rpx; }
+    }
+  }
+
+  .progress-container {
+    margin-top: 30rpx;
+    .progress-track {
+      height: 16rpx;
+      background: #f0f4f8;
+      border-radius: 8rpx;
+      overflow: hidden;
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, $primary-color, #83b2ff);
+        border-radius: 8rpx;
+      }
+    }
+    .progress-info {
+      margin-top: 16rpx;
+      font-size: 22rpx;
+      color: $text-light;
+    }
+  }
+
+  .divider { height: 2rpx; background: #f0f3f6; margin: 40rpx 0; }
+
+  .overview-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .score-info {
+      flex: 1;
+      .score-desc { display: block; font-size: 24rpx; color: $text-light; margin-top: 8rpx; width: 80%; }
+    }
+    
+    .score-circle {
+      width: 110rpx;
+      height: 110rpx;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border: 6rpx solid;
+      
+      &.level-excellent { border-color: $success-color; color: $success-color; }
+      &.level-good { border-color: $primary-color; color: $primary-color; }
+      
+      .score-num { font-size: 36rpx; font-weight: 800; line-height: 1; }
+      .score-text { font-size: 20rpx; font-weight: 600; margin-top: 4rpx; }
+    }
   }
 }
 
-.overview-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
-}
-
-.overview-label {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #2d3b4e;
-}
-
-.trend-badge {
-  padding: 8rpx 16rpx;
-  background: rgba(16, 185, 129, 0.1);
-  border-radius: 20rpx;
-}
-
-.trend-text {
-  font-size: 24rpx;
-  color: #10b981;
-  font-weight: 500;
-}
-
-.score-badge {
-  padding: 8rpx 20rpx;
-  border-radius: 20rpx;
-  font-size: 24rpx;
-  font-weight: 500;
-  
-  &.score-excellent {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-  }
-  
-  &.score-good {
-    background: rgba(77, 142, 255, 0.1);
-    color: #4d8eff;
-  }
-  
-  &.score-fair {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-  }
-  
-  &.score-poor {
-    background: rgba(255, 107, 107, 0.1);
-    color: #ff6b6b;
-  }
-}
-
-.score-text {
-  font-size: 24rpx;
-  font-weight: 500;
-}
-
-/* 概览数值 */
-.overview-value {
-  display: flex;
-  align-items: baseline;
-  margin-bottom: 24rpx;
-}
-
-.value-number {
-  font-size: 64rpx;
-  font-weight: 700;
-  color: #4d8eff;
-  line-height: 1;
-}
-
-.value-unit {
-  font-size: 32rpx;
-  color: #87909c;
-  margin-left: 8rpx;
-}
-
-/* 进度条 */
-.progress-bar {
-  margin-top: 8rpx;
-}
-
-.progress-track {
-  height: 12rpx;
-  background: rgba(77, 142, 255, 0.1);
-  border-radius: 6rpx;
-  overflow: hidden;
-  margin-bottom: 12rpx;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4d8eff 0%, #2d6bff 100%);
-  border-radius: 6rpx;
-  transition: width 1s ease-in-out;
-}
-
-.progress-labels {
-  display: flex;
-  justify-content: space-between;
-}
-
-.progress-label {
-  font-size: 22rpx;
-  color: #87909c;
-}
-
-/* 分隔线 */
-.divider {
-  height: 2rpx;
-  background: linear-gradient(90deg, transparent 0%, rgba(77, 142, 255, 0.2) 50%, transparent 100%);
-  margin: 32rpx 0;
-}
-
-/* 评分说明 */
-.score-desc {
-  padding: 16rpx;
-  background: rgba(77, 142, 255, 0.05);
-  border-radius: 16rpx;
-  margin-top: 16rpx;
-}
-
-.desc-text {
-  font-size: 26rpx;
-  color: #555e6d;
-  line-height: 1.4;
-}
-
-/* 核心指标网格 */
+// 指标网格
 .indicators-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 24rpx;
-}
-
-.indicator-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  box-shadow: 0 6rpx 24rpx rgba(45, 107, 255, 0.08);
-  border: 2rpx solid rgba(77, 142, 255, 0.1);
-  transition: all 0.3s ease;
   
-  &:active {
-    transform: translateY(-4rpx);
-    box-shadow: 0 8rpx 32rpx rgba(45, 107, 255, 0.15);
+  .indicator-card {
+    background: #fff;
+    border-radius: 28rpx;
+    padding: 30rpx;
+    position: relative;
+    transition: all 0.2s;
+    &:active { transform: scale(0.97); background: #fafbfc; }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      .icon-bg {
+        width: 64rpx;
+        height: 64rpx;
+        border-radius: 16rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        &.status-normal { background: rgba($primary-color, 0.08); }
+        &.status-warning { background: rgba($warning-color, 0.08); }
+        .card-icon { width: 36rpx; height: 36rpx; }
+      }
+      .status-dot {
+        width: 12rpx;
+        height: 12rpx;
+        border-radius: 50%;
+        &.status-normal { background: $success-color; }
+        &.status-warning { background: $warning-color; }
+      }
+    }
+    
+    .card-body {
+      margin-top: 24rpx;
+      .card-name { font-size: 26rpx; color: $text-light; }
+      .card-value-row {
+        margin-top: 8rpx;
+        .card-value { font-size: 36rpx; font-weight: 700; color: $text-main; }
+        .card-unit { font-size: 22rpx; color: $text-light; margin-left: 6rpx; }
+      }
+    }
+    
+    .card-footer {
+      margin-top: 20rpx;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      .card-status { font-size: 22rpx; font-weight: 600; }
+      .card-trend {
+        font-size: 24rpx;
+        &.up { color: $danger-color; }
+        &.down { color: $success-color; }
+        &.stable { color: $text-light; }
+      }
+    }
   }
 }
 
-.indicator-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20rpx;
-}
-
-.indicator-icon {
-  width: 36rpx;
-  height: 36rpx;
-  margin-right: 12rpx;
-}
-
-.indicator-name {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #2d3b4e;
-}
-
-.indicator-value {
-  display: flex;
-  align-items: baseline;
-  margin-bottom: 12rpx;
-}
-
-.indicator-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24rpx;
-}
-
-.status-text {
-  font-size: 24rpx;
-  font-weight: 500;
-  
-  &.status-normal {
-    color: #10b981;
-  }
-  
-  &.status-warning {
-    color: #f59e0b;
-  }
-  
-  &.status-danger {
-    color: #ff6b6b;
-  }
-}
-
-.trend-icon {
-  width: 24rpx;
-  height: 24rpx;
-}
-
-.trend-icon-img {
-  width: 100%;
-  height: 100%;
-}
-
-/* 图表占位符 */
-.chart-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16rpx;
-  background: rgba(77, 142, 255, 0.05);
-  border-radius: 16rpx;
-  transition: all 0.3s ease;
-}
-
-.chart-placeholder:active {
-  background: rgba(77, 142, 255, 0.1);
-}
-
-.chart-icon-mini {
-  font-size: 24rpx;
-  margin-right: 8rpx;
-}
-
-.chart-text {
-  font-size: 24rpx;
-  color: #4d8eff;
-  font-weight: 500;
-}
-
-/* 健康趋势卡片 */
-.trend-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  box-shadow: 0 6rpx 24rpx rgba(45, 107, 255, 0.08);
-  border: 2rpx solid rgba(77, 142, 255, 0.1);
-}
-
-.trend-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 32rpx;
-}
-
-.trend-chart-icon {
-  width: 36rpx;
-  height: 36rpx;
-  margin-right: 12rpx;
-}
-
-.trend-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #2d3b4e;
-}
-
-/* 趋势图表 */
-.trend-chart {
-  display: flex;
-  height: 300rpx;
-  margin-bottom: 32rpx;
-}
-
-.y-axis {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 60rpx;
-  padding-right: 20rpx;
-}
-
-.y-label {
-  font-size: 22rpx;
-  color: #87909c;
-  text-align: right;
-}
-
-.chart-area {
-  flex: 1;
-  position: relative;
-  border-left: 2rpx solid rgba(77, 142, 255, 0.2);
-  border-bottom: 2rpx solid rgba(77, 142, 255, 0.2);
-  padding-left: 20rpx;
-}
-
-.grid-lines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-
-.grid-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1rpx;
-  background: rgba(77, 142, 255, 0.1);
-  
-  &:nth-child(1) { top: 0; }
-  &:nth-child(2) { top: 33.33%; }
-  &:nth-child(3) { top: 66.66%; }
-  &:nth-child(4) { top: 100%; }
-}
-
-.data-points {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-}
-
-.data-point {
-  position: absolute;
-  transform: translate(-50%, 50%);
-}
-
-.point-circle {
-  width: 16rpx;
-  height: 16rpx;
-  background: #4d8eff;
-  border: 3rpx solid #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 4rpx 12rpx rgba(45, 107, 255, 0.3);
-}
-
-.point-value {
-  position: absolute;
-  top: -40rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 20rpx;
-  color: #4d8eff;
-  font-weight: 600;
+// 图表选项卡
+.tab-scroll {
+  width: 60%;
   white-space: nowrap;
-}
-
-.trend-line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-bottom: 2rpx dashed rgba(77, 142, 255, 0.5);
-}
-
-.x-axis {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20rpx;
-  padding-left: 80rpx;
-}
-
-.x-label {
-  font-size: 22rpx;
-  color: #87909c;
-  flex: 1;
-  text-align: center;
-}
-
-/* 趋势分析 */
-.trend-analysis {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 24rpx;
-  border-top: 2rpx solid rgba(77, 142, 255, 0.1);
-}
-
-.analysis-item {
-  display: flex;
-  flex-direction: column;
-}
-
-.analysis-label {
-  font-size: 24rpx;
-  color: #87909c;
-  margin-bottom: 8rpx;
-}
-
-.analysis-value {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #2d3b4e;
-  
-  &.trend-up {
-    color: #10b981;
-  }
-  
-  &.trend-down {
-    color: #ff6b6b;
-  }
-  
-  &.trend-stable {
-    color: #f59e0b;
+  .tab-item {
+    display: inline-block;
+    padding: 8rpx 24rpx;
+    font-size: 24rpx;
+    color: $text-light;
+    border-radius: 20rpx;
+    &.active { color: $primary-color; background: rgba($primary-color, 0.1); font-weight: 600; }
   }
 }
 
-/* 异常提醒 */
-.alerts-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-
-.alert-card {
-  background: #ffffff;
-  border-radius: 24rpx;
+// 趋势图
+.trend-card {
+  background: #fff;
+  border-radius: 32rpx;
   padding: 32rpx;
-  box-shadow: 0 6rpx 24rpx rgba(45, 107, 255, 0.08);
-  border-left: 8rpx solid;
-  transition: all 0.3s ease;
   
-  &.warning {
-    border-left-color: #f59e0b;
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 40rpx;
+    .chart-legend {
+      display: flex;
+      align-items: center;
+      font-size: 24rpx;
+      font-weight: 600;
+      .legend-dot { width: 12rpx; height: 12rpx; background: $primary-color; border-radius: 50%; margin-right: 12rpx; }
+    }
+    .avg-label { font-size: 22rpx; color: $text-light; }
   }
   
-  &.info {
-    border-left-color: #4d8eff;
+  .mock-chart {
+    height: 300rpx;
+    display: flex;
+    position: relative;
+    
+    .y-axis {
+      width: 60rpx;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 18rpx;
+      color: #ccc;
+      padding-bottom: 40rpx;
+    }
+    
+    .chart-content {
+      flex: 1;
+      position: relative;
+      border-left: 2rpx solid #f0f0f0;
+      border-bottom: 2rpx solid #f0f0f0;
+      margin-bottom: 40rpx;
+      
+      .grid-line {
+        position: absolute; width: 100%; height: 2rpx; background: #fafafa;
+        &:nth-child(1) { top: 0; }
+        &:nth-child(2) { top: 50%; }
+        &:nth-child(3) { top: 100%; }
+      }
+      
+      .data-node {
+        position: absolute;
+        .node-dot {
+          width: 14rpx; height: 14rpx; background: $primary-color; 
+          border: 4rpx solid #fff; border-radius: 50%;
+          box-shadow: 0 4rpx 10rpx rgba($primary-color, 0.3);
+        }
+        .node-tip {
+          position: absolute; top: -34rpx; left: 50%; transform: translateX(-50%);
+          font-size: 18rpx; font-weight: 700; color: $primary-color;
+        }
+      }
+    }
+    
+    .x-axis {
+      position: absolute; bottom: 0; left: 60rpx; right: 0;
+      display: flex; justify-content: space-between;
+      font-size: 20rpx; color: $text-light;
+    }
   }
-  
-  &.danger {
-    border-left-color: #ff6b6b;
+}
+
+// 预警堆栈
+.alert-stack {
+  .alert-item {
+    background: #fff;
+    border-radius: 24rpx;
+    padding: 24rpx;
+    margin-bottom: 20rpx;
+    display: flex;
+    align-items: center;
+    border-left: 10rpx solid transparent;
+    
+    &.danger { border-left-color: $danger-color; background: rgba($danger-color, 0.02); }
+    &.warning { border-left-color: $warning-color; background: rgba($warning-color, 0.02); }
+    
+    .alert-left {
+      margin-right: 20rpx;
+      .alert-dot { width: 16rpx; height: 16rpx; border-radius: 50%; background: currentColor; }
+    }
+    
+    .alert-mid {
+      flex: 1;
+      .alert-title-row {
+        display: flex; justify-content: space-between; align-items: center;
+        .alert-title { font-size: 28rpx; font-weight: 700; }
+        .alert-time { font-size: 22rpx; color: $text-light; }
+      }
+      .alert-msg { font-size: 24rpx; color: #666; margin-top: 6rpx; display: block; }
+    }
+    
+    .alert-arrow { font-size: 24rpx; color: #ccc; margin-left: 10rpx; }
   }
-  
-  &:active {
-    transform: translateY(-2rpx);
-    box-shadow: 0 8rpx 32rpx rgba(45, 107, 255, 0.12);
-  }
 }
 
-.alert-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20rpx;
-}
-
-.alert-icon {
-  width: 36rpx;
-  height: 36rpx;
-  margin-right: 16rpx;
-}
-
-.alert-info {
-  flex: 1;
-}
-
-.alert-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #2d3b4e;
-  display: block;
-  margin-bottom: 4rpx;
-}
-
-.alert-time {
-  font-size: 24rpx;
-  color: #87909c;
-}
-
-.alert-more {
-  width: 24rpx;
-  height: 24rpx;
-}
-
-.alert-content {
-  display: block;
-  font-size: 28rpx;
-  color: #555e6d;
-  margin-bottom: 16rpx;
-  line-height: 1.4;
-}
-
-.alert-suggestion {
-  display: block;
-  font-size: 26rpx;
-  color: #4d8eff;
-  font-weight: 500;
-  line-height: 1.4;
-}
+.alert-count { font-size: 22rpx; color: $danger-color; background: rgba($danger-color, 0.1); padding: 4rpx 16rpx; border-radius: 20rpx; }
 </style>

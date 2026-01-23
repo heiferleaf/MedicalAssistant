@@ -1,869 +1,352 @@
-<!-- pages/medication/medicine-box.vue -->
 <template>
   <view class="page-container">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-left">
+    <view class="nav-header">
+      <view class="status-bar"></view>
+      <view class="nav-content">
         <text class="page-title">我的药箱</text>
-      </view>
-      <view class="header-right">
-        <button class="calendar-btn" @click="switchView">
-          <image
-            class="calendar-icon"
-            src="../../static/Health/calendar.svg"
-            mode="aspectFit"
+        <view class="view-switcher" @click="switchView">
+          <image 
+            class="switch-icon" 
+            :src="viewMode === 'list' ? '../../static/Health/calendar.svg' : '../../static/Health/list.svg'" 
+            mode="aspectFit" 
           />
-          <text class="calendar-text">{{
-            viewMode === "list" ? "日历视图" : "列表视图"
-          }}</text>
-        </button>
+          <text>{{ viewMode === "list" ? "日历视图" : "列表视图" }}</text>
+        </view>
       </view>
     </view>
 
-    <!-- 日历视图（折叠） -->
-    <view class="calendar-view" v-if="viewMode === 'calendar' && showCalendar">
-      <!-- 日历组件占位，可根据需求实现完整日历 -->
-      <view class="calendar-placeholder">
-        <text class="placeholder-text">日历视图</text>
-        <text class="placeholder-desc">点击日期查看当日用药计划</text>
-      </view>
-    </view>
-
-    <!-- 主要内容区域 -->
-    <scroll-view
-      class="main-content"
-      scroll-y
-      :show-scrollbar="false"
-      :scroll-x="false"
-    >
-      <!-- 搜索栏 -->
-      <view class="search-container">
-        <view class="search-box">
-          <image
-            class="search-icon"
-            src="../../static/Health/search.svg"
-            mode="aspectFit"
-          />
-          <input
-            class="search-input"
-            type="text"
-            placeholder="搜索药品"
-            placeholder-class="placeholder"
-            v-model="searchKeyword"
+    <view class="search-section">
+      <view class="nav-search">
+        <view class="search-inner">
+          <icon type="search" size="18" color="#9FA0AB" class="search-icon" />
+          <input 
+            type="text" 
+            v-model="searchKeyword" 
+            placeholder="搜索我的药品名称..." 
+            placeholder-class="search-placeholder"
             @confirm="onSearch"
+            confirm-type="search"
           />
-          <button class="clear-btn" @click="clearSearch" v-if="searchKeyword">
-            <image
-              class="clear-icon"
-              src="../../static/Health/close.svg"
-              mode="aspectFit"
-            />
-          </button>
+          <text v-if="searchKeyword" class="clear-btn" @click="clearSearch">×</text>
+        </view>
+      </view>
+    </view>
+
+    <scroll-view class="main-scroll" scroll-y>
+      
+      <view class="calendar-panel" v-if="viewMode === 'calendar'">
+        <view class="calendar-card">
+          <text class="c-title">2026年1月</text>
+          <view class="c-placeholder">日历视图开发中...</view>
         </view>
       </view>
 
-      <!-- 正在服用的药品 -->
-      <view class="section">
-        <view class="section-header">
-          <text class="section-title">正在服用</text>
-          <text class="section-count">({{ activeMedications.length }})</text>
+      <view class="section-box">
+        <view class="section-head">
+          <text class="s-title">正在服用</text>
+          <text class="s-badge">{{ activeMedications.length }}</text>
         </view>
 
-        <view class="medication-list">
-          <view
-            class="medication-card active"
-            v-for="medication in activeMedications"
-            :key="medication.id"
-            @click="toMedicationDetail(medication.id)"
+        <view class="med-list">
+          <view 
+            class="med-card" 
+            v-for="med in activeMedications" 
+            :key="med.id"
+            @click="toMedicationDetail(med.id)"
           >
-            <view class="medication-header">
-              <image
-                class="pill-icon"
-                src="../../static/Health/pill-active.svg"
-                mode="aspectFit"
-              />
-              <view class="medication-name-wrapper">
-                <text class="medication-name">{{ medication.name }}</text>
-                <view class="medication-tags">
-                  <view class="tag" v-for="tag in medication.tags" :key="tag">
-                    <text class="tag-text">{{ tag }}</text>
-                  </view>
+            <view class="card-top">
+              <view class="med-icon-bg">
+                <image src="../../static/Health/pill-active.svg" class="pill-img" />
+              </view>
+              <view class="med-main">
+                <text class="med-name">{{ med.name }}</text>
+                <view class="med-tags">
+                  <text class="m-tag" v-for="tag in med.tags" :key="tag">{{ tag }}</text>
                 </view>
               </view>
-              <view class="medication-status" :class="medication.statusClass">
-                <text>{{ medication.statusText }}</text>
+              <view class="status-tag" :class="med.statusClass">
+                <text>{{ med.statusText }}</text>
               </view>
             </view>
 
-            <view class="medication-details">
-              <view class="detail-item">
-                <image
-                  class="detail-icon"
-                  src="../../static/Health/time.svg"
-                  mode="aspectFit"
-                />
-                <text class="detail-text">{{ medication.schedule }}</text>
+            <view class="card-info">
+              <view class="info-line">
+                <image src="../../static/Health/time.svg" class="i-icon" />
+                <text>{{ med.schedule }}</text>
               </view>
-              <view class="detail-item">
-                <image
-                  class="detail-icon"
-                  src="../../static/Health/calendar-check.svg"
-                  mode="aspectFit"
-                />
-                <text class="detail-text"
-                  >已服用{{ medication.takenDays }}天 剩余{{
-                    medication.remainingDays
-                  }}天</text
-                >
-                <view class="missed-count" v-if="medication.missedCount > 0">
-                  <text class="missed-text"
-                    >⚠️漏服{{ medication.missedCount }}次</text
-                  >
-                </view>
+              <view class="info-line">
+                <image src="../../static/Health/calendar-check.svg" class="i-icon" />
+                <text>已服 {{ med.takenDays }} 天 · 剩余 {{ med.remainingDays }} 天</text>
+                <text v-if="med.missedCount > 0" class="missed-warn">! 漏服{{ med.missedCount }}次</text>
               </view>
             </view>
 
-            <view class="medication-actions">
-              <button
-                class="action-btn detail-btn"
-                @click.stop="toMedicationDetail(medication.id)"
+            <view class="card-btns">
+              <view class="btn-sub" @click.stop="setReminder(med.id)">提醒</view>
+              <view class="btn-sub" @click.stop="toMedicationDetail(med.id)">详情</view>
+              <view 
+                class="btn-main" 
+                :class="{ 'is-taken': med.todayTaken }"
+                @click.stop="recordDose(med.id)"
               >
-                <text class="btn-text">详情</text>
-              </button>
-              <button
-                class="action-btn reminder-btn"
-                @click.stop="setReminder(medication.id)"
-              >
-                <text class="btn-text">提醒设置</text>
-              </button>
-              <button
-                class="action-btn record-btn"
-                @click.stop="recordDose(medication.id)"
-                :class="{ recorded: medication.todayTaken }"
-              >
-                <text class="btn-text">{{
-                  medication.todayTaken ? "今日已服" : "记录服用"
-                }}</text>
-              </button>
+                {{ med.todayTaken ? "今日已服" : "记录服用" }}
+              </view>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- 已停用的药品 -->
-      <view class="section">
-        <view class="section-header" @click="toggleInactive">
-          <text class="section-title">已停用</text>
-          <text class="section-count">({{ inactiveMedications.length }})</text>
-          <view class="expand-btn">
-            <text class="expand-text">{{
-              showInactive ? "收起" : "展开"
-            }}</text>
-            <image
-              class="expand-icon"
-              :src="
-                showInactive ? '../../static/Health/up.svg' : '../../static/Health/down.svg'
-              "
-              mode="aspectFit"
-            />
-          </view>
+      <view class="section-box inactive-section">
+        <view class="section-head" @click="toggleInactive">
+          <text class="s-title">已停用</text>
+          <text class="s-badge grey">{{ inactiveMedications.length }}</text>
+          <image 
+            class="arrow-icon" 
+            :class="{rotate: showInactive}" 
+            src="../../static/Health/down.svg" 
+          />
         </view>
 
-        <view class="medication-list" v-if="showInactive">
-          <view
-            class="medication-card inactive"
-            v-for="medication in inactiveMedications"
-            :key="medication.id"
-            @click="toMedicationDetail(medication.id)"
-          >
-            <view class="medication-header">
-              <image
-                class="pill-icon"
-                src="../../static/Health/pill-inactive.svg"
-                mode="aspectFit"
-              />
-              <view class="medication-name-wrapper">
-                <text class="medication-name">{{ medication.name }}</text>
-              </view>
-              <view class="medication-status status-inactive">
-                <text>已停用</text>
-              </view>
+        <view class="med-list" v-if="showInactive">
+          <view class="med-card-small" v-for="med in inactiveMedications" :key="med.id">
+            <view class="small-info">
+              <text class="small-name">{{ med.name }}</text>
+              <text class="small-desc">停用于: {{ med.stopTime }} (服用了{{ med.duration }})</text>
             </view>
-
-            <view class="medication-details">
-              <view class="detail-item">
-                <image
-                  class="detail-icon"
-                  src="../../static/Health/info.svg"
-                  mode="aspectFit"
-                />
-                <text class="detail-text"
-                  >停用时间: {{ medication.stopTime }}</text
-                >
-              </view>
-              <view class="detail-item">
-                <image
-                  class="detail-icon"
-                  src="../../static/Health/clock-history.svg"
-                  mode="aspectFit"
-                />
-                <text class="detail-text"
-                  >服用时长: {{ medication.duration }}</text
-                >
-              </view>
-            </view>
-
-            <view class="medication-actions">
-              <button
-                class="action-btn restart-btn"
-                @click.stop="restartMedication(medication.id)"
-              >
-                <text class="btn-text">重新启用</text>
-              </button>
-              <button
-                class="action-btn delete-btn"
-                @click.stop="deleteMedication(medication.id)"
-              >
-                <text class="btn-text">删除</text>
-              </button>
+            <view class="small-btns">
+              <text class="btn-text blue" @click="restartMedication(med.id)">重启</text>
+              <text class="btn-text red" @click="deleteMedication(med.id)">删除</text>
             </view>
           </view>
         </view>
       </view>
+      
+      <view class="safe-area-bottom"></view>
     </scroll-view>
 
-    <!-- 添加药品按钮 -->
-    <view class="add-button-container">
-      <button class="add-button" @click="addMedication">
-        <image
-          class="add-icon"
-          src="../../static/Health/plus-circle.svg"
-          mode="aspectFit"
-        />
-        <text class="add-text">添加药品</text>
-      </button>
+    <view class="fab-container">
+      <view class="fab-btn" @click="addMedication">
+        <image src="../../static/Health/plus-circle.svg" class="fab-icon" />
+        <text>添加新计划</text>
+      </view>
     </view>
   </view>
 </template>
 
 <script>
 export default {
-  name: "HealthPage",
   data() {
     return {
-      viewMode: "list", // 'list' 或 'calendar'
-      showCalendar: false,
+      viewMode: "list",
       searchKeyword: "",
       showInactive: false,
       activeMedications: [
-        {
-          id: 1,
-          name: "阿司匹林肠溶片",
-          tags: ["抗血小板", "处方药"],
-          schedule: "每日1次 上午10:00",
-          takenDays: 7,
-          remainingDays: 23,
-          missedCount: 0,
-          todayTaken: true,
-          statusClass: "status-normal",
-          statusText: "按时服用",
-        },
-        {
-          id: 2,
-          name: "二甲双胍缓释片",
-          tags: ["降糖药"],
-          schedule: "每日2次 早晚饭后",
-          takenDays: 3,
-          remainingDays: 27,
-          missedCount: 1,
-          todayTaken: false,
-          statusClass: "status-warning",
-          statusText: "有漏服",
-        },
-        {
-          id: 3,
-          name: "阿托伐他汀钙片",
-          tags: ["降脂药"],
-          schedule: "每晚1次 睡前",
-          takenDays: 15,
-          remainingDays: 15,
-          missedCount: 0,
-          todayTaken: true,
-          statusClass: "status-normal",
-          statusText: "按时服用",
-        },
+        { id: 1, name: "阿司匹林肠溶片", tags: ["抗血小板", "早饭后"], schedule: "10:00 每次1片", takenDays: 7, remainingDays: 23, missedCount: 0, todayTaken: true, statusClass: "s-normal", statusText: "良好" },
+        { id: 2, name: "二甲双胍缓释片", tags: ["降糖药"], schedule: "08:00/18:00 每次1片", takenDays: 3, remainingDays: 27, missedCount: 1, todayTaken: false, statusClass: "s-warn", statusText: "有漏服" }
       ],
       inactiveMedications: [
-        {
-          id: 4,
-          name: "头孢克肟片",
-          stopTime: "2025-12-15",
-          duration: "7天",
-          reason: "疗程结束",
-        },
-        {
-          id: 5,
-          name: "布洛芬缓释胶囊",
-          stopTime: "2025-12-10",
-          duration: "3天",
-          reason: "症状缓解",
-        },
-      ],
+        { id: 4, name: "头孢克肟片", stopTime: "2025-12-15", duration: "7天" }
+      ]
     };
   },
-  onLoad() {
-    // 初始化数据
-    this.loadMedications();
-  },
   methods: {
-    loadMedications() {
-      // 这里可以调用API加载药品数据
-      console.log("加载药品数据");
-    },
-    switchView() {
-      this.viewMode = this.viewMode === "list" ? "calendar" : "list";
-      this.showCalendar = this.viewMode === "calendar";
-    },
-    onSearch() {
-      if (this.searchKeyword.trim()) {
-        uni.showLoading({
-          title: "搜索中...",
-        });
-        setTimeout(() => {
-          uni.hideLoading();
-          // 这里实现搜索逻辑
-          console.log("搜索关键词:", this.searchKeyword);
-        }, 500);
-      }
-    },
-    clearSearch() {
-      this.searchKeyword = "";
-    },
-    toggleInactive() {
-      this.showInactive = !this.showInactive;
-    },
-    toMedicationDetail(id) {
-      uni.navigateTo({
-        url: `/pages/medication/detail?id=${id}`,
-      });
-    },
-    setReminder(id) {
-      uni.navigateTo({
-        url: `/pages/medication/reminder?id=${id}`,
-      });
-    },
+    switchView() { this.viewMode = this.viewMode === 'list' ? 'calendar' : 'list'; },
+    clearSearch() { this.searchKeyword = ""; },
+    toggleInactive() { this.showInactive = !this.showInactive; },
+    toMedicationDetail(id) { uni.navigateTo({ url: `/pages/medication/detail?id=${id}` }); },
+    setReminder(id) { uni.showToast({ title: '去设置页面', icon: 'none' }); },
     recordDose(id) {
-      const medication = this.activeMedications.find((m) => m.id === id);
-      if (medication) {
-        medication.todayTaken = !medication.todayTaken;
-        uni.showToast({
-          title: medication.todayTaken ? "已记录服用" : "已取消服用记录",
-          icon: "success",
-        });
-      }
+      const med = this.activeMedications.find(m => m.id === id);
+      if (med) med.todayTaken = !med.todayTaken;
     },
-    restartMedication(id) {
-      uni.showModal({
-        title: "重新启用药品",
-        content: "确定要重新启用这个药品吗？",
-        success: (res) => {
-          if (res.confirm) {
-            const index = this.inactiveMedications.findIndex(
-              (m) => m.id === id
-            );
-            if (index !== -1) {
-              const medication = this.inactiveMedications.splice(index, 1)[0];
-              // 这里可以调用API更新药品状态
-              uni.showToast({
-                title: "药品已重新启用",
-                icon: "success",
-              });
-            }
-          }
-        },
-      });
+    restartMedication(id) { uni.showModal({ title: '提示', content: '是否重新启用该计划？' }); },
+    deleteMedication(id) { 
+      // 对应规则 3.4：告知用户影响
+      uni.showModal({ 
+        title: '删除计划', 
+        content: '删除后明日起不再提醒，历史记录将保留。',
+        confirmColor: '#FF5C5C'
+      }); 
     },
-    deleteMedication(id) {
-      uni.showModal({
-        title: "删除药品",
-        content: "确定要删除这个药品记录吗？",
-        confirmColor: "#FF6B6B",
-        success: (res) => {
-          if (res.confirm) {
-            const index = this.inactiveMedications.findIndex(
-              (m) => m.id === id
-            );
-            if (index !== -1) {
-              this.inactiveMedications.splice(index, 1);
-              uni.showToast({
-                title: "删除成功",
-                icon: "success",
-              });
-            }
-          }
-        },
-      });
-    },
-    addMedication() {
-      uni.navigateTo({
-        url: "/pages/medication/add",
-      });
-    },
-  },
+    addMedication() { uni.navigateTo({ url: "/pages/medication/add" }); }
+  }
 };
 </script>
 
 <style scoped lang="scss">
+/* 全局变量配色 */
+$primary: #5C62FF;
+$bg-light: #F8F9FD;
+$text-main: #1D1D2B;
+$text-grey: #9FA0AB;
+$white: #FFFFFF;
+
 .page-container {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
-  padding-bottom: 160rpx;
+  background-color: $bg-light;
 }
 
-/* 头部样式 */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 60rpx 32rpx 24rpx;
+.status-bar { height: var(--status-bar-height); }
+
+/* 1. 顶部导航 */
+.nav-header {
   background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
-  border-radius: 0 0 32rpx 32rpx;
-  box-shadow: 0 4rpx 20rpx rgba(45, 107, 255, 0.15);
+  padding: 20rpx 40rpx 40rpx;
+  border-radius: 0 0 40rpx 40rpx;
+  
+  .nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20rpx;
+    
+    .page-title { font-size: 44rpx; font-weight: 800; color: $white; }
+    
+    .view-switcher {
+      display: flex; align-items: center;
+      background: rgba($white, 0.2);
+      padding: 12rpx 24rpx;
+      border-radius: 30rpx;
+      font-size: 24rpx; color: $white;
+      .switch-icon { width: 30rpx; height: 30rpx; margin-right: 10rpx; }
+    }
+  }
 }
 
-.header-left {
-  flex: 1;
+/* 2. 搜索栏 (完全匹配你要求的样式) */
+.search-section {
+  padding: 0 40rpx;
+  margin-top: -40rpx; /* 向上偏移压在Header上 */
+  
+  .nav-search {
+    .search-inner {
+      display: flex; align-items: center;
+      background-color: $white;
+      height: 90rpx; border-radius: 24rpx;
+      padding: 0 30rpx;
+      box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.05);
+      border: 1rpx solid rgba($primary, 0.05);
+      
+      input { flex: 1; font-size: 28rpx; color: $text-main; margin-left: 20rpx; }
+      .search-placeholder { color: $text-grey; }
+      .clear-btn { font-size: 40rpx; color: #CCC; padding-left: 10rpx; }
+    }
+  }
 }
 
-.page-title {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 1rpx;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-}
-
-.calendar-btn {
-  display: flex;
-  align-items: center;
-  padding: 12rpx 24rpx;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 24rpx;
-  border: none;
-  backdrop-filter: blur(10rpx);
-  transition: all 0.3s ease;
-}
-
-.calendar-btn:active {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(0.95);
-}
-
-.calendar-icon {
-  width: 32rpx;
-  height: 32rpx;
-  margin-right: 8rpx;
-}
-
-.calendar-text {
-  font-size: 26rpx;
-  color: #ffffff;
-  font-weight: 500;
-}
-
-/* 日历视图 */
-.calendar-view {
-  padding: 32rpx;
-}
-
-.calendar-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60rpx;
-  background: rgba(77, 142, 255, 0.1);
-  border-radius: 24rpx;
-  border: 2rpx dashed rgba(77, 142, 255, 0.3);
-}
-
-.placeholder-text {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #4d8eff;
-  margin-bottom: 12rpx;
-}
-
-.placeholder-desc {
-  font-size: 26rpx;
-  color: #87909c;
-}
-
-/* 主要内容区域 */
-.main-content {
-  height: calc(100vh - 240rpx);
-  padding: 32rpx;
+/* 3. 内容滚动区 */
+.main-scroll {
+  height: calc(100vh - 280rpx);
+  padding: 40rpx;
   box-sizing: border-box;
-  overflow-x: hidden !important;
 }
 
-.main-content::-webkit-scrollbar {
-  display: none;
-}
-
-/* 搜索栏 */
-.search-container {
-  margin-bottom: 40rpx;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  padding: 0 28rpx;
-  background: #ffffff;
-  border-radius: 24rpx;
-  border: 2rpx solid rgba(77, 142, 255, 0.2);
-  box-shadow: 0 4rpx 16rpx rgba(45, 107, 255, 0.08);
-}
-
-.search-icon {
-  width: 32rpx;
-  height: 32rpx;
-  margin-right: 16rpx;
-}
-
-.search-input {
-  flex: 1;
-  height: 88rpx;
-  font-size: 30rpx;
-  color: #2d3b4e;
-}
-
-.placeholder {
-  color: #b4bfd3;
-  font-size: 30rpx;
-}
-
-.clear-btn {
-  width: 40rpx;
-  height: 40rpx;
-  padding: 0;
-  border: none;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.clear-icon {
-  width: 24rpx;
-  height: 24rpx;
-}
-
-/* 分区样式 */
-.section {
-  margin-bottom: 40rpx;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 24rpx;
-  padding: 0 8rpx;
-}
-
-.section-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #2d3b4e;
-}
-
-.section-count {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #4d8eff;
-  margin-left: 12rpx;
-}
-
-.expand-btn {
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  padding: 8rpx 16rpx;
-  background: rgba(77, 142, 255, 0.1);
-  border-radius: 20rpx;
-  transition: all 0.3s ease;
-}
-
-.expand-btn:active {
-  background: rgba(77, 142, 255, 0.2);
-}
-
-.expand-text {
-  font-size: 26rpx;
-  color: #4d8eff;
-  margin-right: 8rpx;
-}
-
-.expand-icon {
-  width: 24rpx;
-  height: 24rpx;
-}
-
-/* 药品卡片 */
-.medication-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-
-.medication-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  box-shadow: 0 6rpx 24rpx rgba(45, 107, 255, 0.08);
-  border: 2rpx solid rgba(77, 142, 255, 0.1);
-  transition: all 0.3s ease;
-}
-
-.medication-card.active {
-  border-left: 8rpx solid #4d8eff;
-}
-
-.medication-card.inactive {
-  border-left: 8rpx solid #b4bfd3;
-  opacity: 0.8;
-}
-
-.medication-card:active {
-  transform: translateY(-2rpx);
-  box-shadow: 0 8rpx 32rpx rgba(45, 107, 255, 0.12);
-}
-
-/* 药品头部 */
-.medication-header {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 24rpx;
-}
-
-.pill-icon {
-  width: 48rpx;
-  height: 48rpx;
-  margin-right: 20rpx;
-  flex-shrink: 0;
-}
-
-.medication-name-wrapper {
-  flex: 1;
-}
-
-.medication-name {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #2d3b4e;
-  margin-bottom: 12rpx;
-  display: block;
-}
-
-.medication-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx;
-}
-
-.tag {
-  padding: 6rpx 16rpx;
-  background: rgba(77, 142, 255, 0.1);
-  border-radius: 16rpx;
-}
-
-.tag-text {
-  font-size: 22rpx;
-  color: #4d8eff;
-  font-weight: 500;
-}
-
-.medication-status {
-  padding: 8rpx 16rpx;
-  border-radius: 20rpx;
-  font-size: 24rpx;
-  font-weight: 500;
-
-  &.status-normal {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-  }
-
-  &.status-warning {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-  }
-
-  &.status-inactive {
-    background: rgba(180, 191, 211, 0.1);
-    color: #87909c;
+.section-box {
+  margin-bottom: 50rpx;
+  
+  .section-head {
+    display: flex; align-items: center; margin-bottom: 24rpx;
+    .s-title { font-size: 34rpx; font-weight: bold; color: $text-main; }
+    .s-badge { 
+      background: rgba($primary, 0.1); color: $primary;
+      font-size: 22rpx; padding: 4rpx 16rpx; border-radius: 20rpx; margin-left: 12rpx;
+      &.grey { background: #EEE; color: #999; }
+    }
+    .arrow-icon { width: 24rpx; height: 24rpx; margin-left: auto; transition: 0.3s; }
+    .rotate { transform: rotate(180deg); }
   }
 }
 
-/* 药品详情 */
-.medication-details {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  margin-bottom: 32rpx;
-  padding-left: 68rpx; /* 对齐图标 */
-}
+/* 4. 药品卡片 (Active) */
+.med-card {
+  background: $white;
+  border-radius: 32rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 6rpx 20rpx rgba(0,0,0,0.02);
+  border: 1rpx solid rgba($primary, 0.05);
 
-.detail-item {
-  display: flex;
-  align-items: center;
-}
+  .card-top {
+    display: flex; align-items: flex-start;
+    .med-icon-bg {
+      width: 90rpx; height: 90rpx; border-radius: 24rpx;
+      background: rgba($primary, 0.05);
+      display: flex; align-items: center; justify-content: center;
+      .pill-img { width: 50rpx; height: 50rpx; }
+    }
+    .med-main {
+      flex: 1; margin-left: 24rpx;
+      .med-name { font-size: 34rpx; font-weight: bold; color: $text-main; display: block; }
+      .med-tags {
+        display: flex; gap: 10rpx; margin-top: 10rpx;
+        .m-tag { font-size: 20rpx; color: $text-grey; background: #F3F4F6; padding: 4rpx 12rpx; border-radius: 8rpx; }
+      }
+    }
+    .status-tag {
+      font-size: 22rpx; padding: 6rpx 20rpx; border-radius: 12rpx;
+      &.s-normal { background: #E6F9F3; color: #00C897; }
+      &.s-warn { background: #FFF5F0; color: #FF9F43; }
+    }
+  }
 
-.detail-icon {
-  width: 28rpx;
-  height: 28rpx;
-  margin-right: 12rpx;
-  flex-shrink: 0;
-}
+  .card-info {
+    margin: 30rpx 0; border-top: 1rpx solid #F5F5F5; padding-top: 24rpx;
+    .info-line {
+      display: flex; align-items: center; margin-bottom: 12rpx;
+      font-size: 26rpx; color: #666;
+      .i-icon { width: 28rpx; height: 28rpx; margin-right: 12rpx; opacity: 0.5; }
+      .missed-warn { color: #FF5C5C; font-weight: bold; margin-left: 20rpx; }
+    }
+  }
 
-.detail-text {
-  font-size: 28rpx;
-  color: #555e6d;
-  flex: 1;
-}
-
-.missed-count {
-  margin-left: 16rpx;
-}
-
-.missed-text {
-  font-size: 24rpx;
-  color: #ff6b6b;
-  font-weight: 500;
-}
-
-/* 药品操作按钮 */
-.medication-actions {
-  display: flex;
-  gap: 20rpx;
-  padding-left: 68rpx; /* 对齐图标 */
-}
-
-.action-btn {
-  flex: 1;
-  padding: 20rpx 0;
-  border-radius: 20rpx;
-  border: none;
-  font-size: 28rpx;
-  font-weight: 600;
-  transition: all 0.3s ease;
-
-  &:active {
-    transform: scale(0.95);
+  .card-btns {
+    display: flex; gap: 20rpx;
+    .btn-sub {
+      flex: 1; height: 70rpx; border-radius: 18rpx;
+      background: #F3F4FF; color: $primary;
+      display: flex; align-items: center; justify-content: center; font-size: 26rpx;
+    }
+    .btn-main {
+      flex: 2; height: 70rpx; border-radius: 18rpx;
+      background: $primary; color: $white;
+      display: flex; align-items: center; justify-content: center; font-size: 26rpx; font-weight: bold;
+      &.is-taken { background: #00C897; opacity: 0.8; }
+    }
   }
 }
 
-.detail-btn {
-  background: linear-gradient(
-    135deg,
-    rgba(77, 142, 255, 0.1) 0%,
-    rgba(45, 107, 255, 0.05) 100%
-  );
-  color: #4d8eff;
-}
-
-.reminder-btn {
-  background: linear-gradient(
-    135deg,
-    rgba(245, 158, 11, 0.1) 0%,
-    rgba(245, 158, 11, 0.05) 100%
-  );
-  color: #f59e0b;
-}
-
-.record-btn {
-  background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
-  color: #ffffff;
-
-  &.recorded {
-    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+/* 5. 停用卡片 (Inactive) */
+.med-card-small {
+  background: #F3F4F6; padding: 24rpx; border-radius: 24rpx;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16rpx;
+  .small-info {
+    .small-name { font-size: 28rpx; font-weight: bold; color: #666; display: block; }
+    .small-desc { font-size: 22rpx; color: #999; }
+  }
+  .small-btns {
+    display: flex; gap: 20rpx;
+    .btn-text {
+      font-size: 24rpx; font-weight: bold;
+      &.blue { color: $primary; }
+      &.red { color: #FF5C5C; }
+    }
   }
 }
 
-.restart-btn {
-  background: linear-gradient(
-    135deg,
-    rgba(77, 142, 255, 0.1) 0%,
-    rgba(45, 107, 255, 0.05) 100%
-  );
-  color: #4d8eff;
+/* 6. 底部悬浮按钮 */
+.fab-container {
+  position: fixed; bottom: 120rpx; left: 0; right: 0;
+  display: flex; justify-content: center;
+  .fab-btn {
+    background: $primary; width: 340rpx; height: 90rpx;
+    border-radius: 45rpx; box-shadow: 0 10rpx 30rpx rgba($primary, 0.3);
+    display: flex; align-items: center; justify-content: center;
+    color: $white; font-size: 30rpx; font-weight: bold;
+    .fab-icon { width: 40rpx; height: 40rpx; margin-right: 12rpx; }
+    &:active { transform: scale(0.96); opacity: 0.9; }
+  }
 }
 
-.delete-btn {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 107, 107, 0.1) 0%,
-    rgba(255, 107, 107, 0.05) 100%
-  );
-  color: #ff6b6b;
-}
-
-.btn-text {
-  font-size: 26rpx;
-  font-weight: 600;
-}
-
-/* 添加药品按钮 */
-.add-button-container {
-  height: 100rpx;
-  width: 40%;
-  position: fixed;
-  bottom: 120rpx;
-  /* 关键代码 */
-  left: 50%;
-  transform: translateX(-50%);
-  /* 其他样式 */
-  margin-left: auto;
-  margin-right: auto;
-  display: flex;
-  justify-content: center;
-  padding: 0 32rpx;
-  z-index: 1000;
-}
-
-.add-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 400rpx;
-  padding: 28rpx 0;
-  background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
-  border-radius: 50rpx;
-  border: none;
-  box-shadow: 0 8rpx 32rpx rgba(45, 107, 255, 0.3);
-  transition: all 0.3s ease;
-}
-
-.add-button:active {
-  transform: scale(0.95);
-  box-shadow: 0 4rpx 20rpx rgba(45, 107, 255, 0.4);
-}
-
-.add-icon {
-  width: 40rpx;
-  height: 40rpx;
-  margin-right: 12rpx;
-}
-
-.add-text {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #ffffff;
-}
+.safe-area-bottom { height: 160rpx; }
 </style>
