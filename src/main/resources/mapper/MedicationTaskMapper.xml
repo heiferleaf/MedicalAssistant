@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.whu.medicalbackend.mapper.MedicationTaskMapper">
+
+    <!--
+    结果映射（timePoint字段指定TypeHandler）
+    -->
+    <resultMap id="BaseResultMap" type="com.whu.medicalbackend.entity.MedicationTask">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="plan_id" property="planId" jdbcType="BIGINT"/>
+        <result column="medicine_id" property="medicineId" jdbcType="BIGINT"/>
+        <result column="dosage" property="dosage" jdbcType="VARCHAR"/>
+        <result column="task_date" property="taskDate" jdbcType="DATE"/>
+        <!-- timePoint字段指定TypeHandler -->
+        <result column="time_point" property="timePoint" jdbcType="VARCHAR"
+                typeHandler="com.whu.medicalbackend.handler.LocalTimeTypeHandler"/>
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="operate_time" property="operateTime" jdbcType="TIMESTAMP"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, plan_id, medicine_id, dosage, task_date,
+        time_point, status, operate_time, created_at, updated_at
+    </sql>
+
+    <!-- 根据ID查询 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM medication_task
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询用户指定日期的任务 -->
+    <select id="findByUserIdAndDate" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM medication_task
+        WHERE user_id = #{userId} AND task_date = #{taskDate}
+        ORDER BY time_point ASC
+    </select>
+
+    <!--
+    历史任务查询（动态SQL）
+    MyBatis知识点：
+    - <where>：智能去除多余的AND/OR
+    - <if test="条件">：条件判断（支持OGNL表达式）
+    - test中的参数名必须和@Param中的一致
+    -->
+    <select id="findHistory" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM medication_task
+        <where>
+            user_id = #{userId}
+            <if test="startDate != null">
+                AND task_date <![CDATA[ >= ]]> #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND task_date <![CDATA[ <= ]]> #{endDate}
+            </if>
+            <if test="medicineName != null and medicineName != ''">
+                AND medicine_id IN (
+                SELECT id FROM medicine WHERE user_id = #{userId} AND name = #{medicineName}
+                )
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY task_date DESC, time_point DESC
+    </select>
+
+    <!--
+    批量插入任务
+    MyBatis知识点：
+    - <foreach>：遍历集合生成SQL片段
+    - collection：集合参数名（@Param指定的）
+    - item：当前遍历的元素
+    - separator：分隔符
+    - open/close：包裹符号
+
+    生成的SQL：
+    INSERT INTO medication_task (...) VALUES (?, ? ), (?, ? ), (?, ?)
+    -->
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO medication_task
+        (user_id, plan_id, medicine_id, dosage, task_date, time_point, status)
+        VALUES
+        <foreach collection="tasks" item="task" separator=",">
+            (#{task.userId}, #{task.planId}, #{task.medicineId}, #{task.dosage},
+            #{task.taskDate}, #{task.timePoint, typeHandler=com.whu.medicalbackend.handler.LocalTimeTypeHandler},
+            #{task.status})
+        </foreach>
+    </insert>
+
+    <!-- 更新任务状态 -->
+    <update id="updateStatus">
+        UPDATE medication_task
+        SET status = #{status},
+            operate_time = #{operateTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除计划的未来任务 -->
+    <delete id="deleteFutureTasks">
+        DELETE FROM medication_task
+        WHERE plan_id = #{planId} AND task_date <![CDATA[ >= ]]> #{fromDate}
+    </delete>
+
+    <!-- 查询需要标记为漏服的任务 -->
+    <select id="findTasksToMarkAsMissed" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM medication_task
+        WHERE status = 0
+        AND task_date = #{currentDate}
+        AND CONCAT(#{currentDate}, ' ', time_point) <![CDATA[ < ]]> #{currentTime}
+    </select>
+
+    <!-- 批量更新为漏服 -->
+    <update id="batchUpdateToMissed">
+        UPDATE medication_task
+        SET status = 2
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="findUncompletedTasksByDate" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM medication_task
+        WHERE status = 0
+        AND task_date = #{taskDate}
+        ORDER BY time_point ASC
+    </select>
+</mapper>

@@ -26,7 +26,7 @@ public class GlobalExceptionHandler {
         // 获取第一个校验失败的字段错误信息
         FieldError fieldError = e.getBindingResult().getFieldError();
         String message = fieldError != null ? fieldError.getDefaultMessage() : "参数校验失败";
-        return Result.error(ResultCode. VALIDATE_ERROR.getCode(), message);
+        return Result.error(ResultCode.VALIDATE_ERROR.getCode(), message);
     }
 
     /**

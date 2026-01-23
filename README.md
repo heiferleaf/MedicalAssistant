@@ -19,4 +19,7 @@
 - `entity` :实体包，存放数据库中，关系模式对应的Java类,也是`mapper`使用和返回的数据类型
 - `exception` :异常包，存放自定义的异常，以及全局的异常处理器。在`controller`收到的异常，会直接进入处理器的对应方法
 - `commom` :公共包，存放所有业务通过的返回数据包装类，包括状态码的枚举类和返回数据的封装类
-- `util` :工具类，存放`service`层处理业务时，需要使用的工具
+- `util` :工具包，存放`service`层处理业务时，需要使用的工具
+- `config` :配置包，存放执行定时任务调度线程池的配置类
+- `schedule` :任务调度包，实现每日定时生成任务，并配置每一个任务的超时漏服处理
+- `handler` :类型处理包，实现了`entity`中，`LocalTime / List<LocalTime>` \<--> `JdbcType.VARCHAR` 的转换。具体在`MyBatis`的`xml`文件中配置使用
