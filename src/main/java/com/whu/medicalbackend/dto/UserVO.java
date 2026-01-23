@@ -2,10 +2,16 @@ package com.whu.medicalbackend.dto;
 
 
 import com.whu.medicalbackend.entity.User;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 
-
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserVO {
     private long            id;
     private String          username;
@@ -24,6 +30,8 @@ public class UserVO {
         public String          password;
         public String          nickname;
         public LocalDateTime   createTime;
+
+        public void setUser(User user) {this.user = user;}
 
         public Builder setId() {
             this.id = user.getId();
@@ -48,6 +56,7 @@ public class UserVO {
         }
 
         public UserVO build(User user) {
+            setUser(user);
             return new UserVO(this.setId().setUsername().setPassword().setNickname().setCreateTime());
         }
     }

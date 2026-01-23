@@ -20,10 +20,10 @@ public class UserRegisterDto {
     private String username;
 
     @NotBlank(message = "密码不能为空")
-    @Pattern(regexp = "^. {6,20}$", message = "密码长度为6-20位")
+    @Pattern(regexp = "^\\w{6,20}$", message = "密码长度为6-20位")
     private String password;
 
     @NotBlank(message = "密码不能为空")
-    @Pattern(regexp = "^. {6,20}$", message = "昵称长度为6-20位")
+    @Pattern(regexp = "^\\w{6,20}$", message = "昵称长度为6-20位")
     private String nickname;
 }

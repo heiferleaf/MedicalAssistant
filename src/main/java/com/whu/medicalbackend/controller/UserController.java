@@ -32,6 +32,7 @@ public class UserController {
         // 1. 调用Service注册
         User user = userService.register(dto);
 
+        assert user != null : "user is null";
         // 2. 转换为VO（不返回密码）
         UserVO userVO = new UserVO.Builder().build(user);
 
