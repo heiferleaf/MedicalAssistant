@@ -7,21 +7,27 @@
 			}
 		},
 		{
-			"path": "pages/Register",
-			"style": {
-				"navigationBarTitleText": "注册"
-			}
-		},
-		{
 			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "uni-app"
 			}
 		},
 		{
+			"path": "pages/Register",
+			"style": {
+				"navigationBarTitleText": "注册"
+			}
+		},
+		{
 			"path": "pages/scan/DrugScan",
 			"style": {
 				"navigationBarTitleText": "药物识别"
+			}
+		},
+		{
+			"path": "pages/scan/Analysis",
+			"style": {
+				"navigationBarTitleText": "识别结果"
 			}
 		},
 		{
@@ -34,6 +40,30 @@
 			"path": "pages/reminder/Reminder",
 			"style": {
 				"navigationBarTitleText": "闹钟提醒"
+			}
+		},
+		{
+			"path": "pages/preview/Agent",
+			"style": {
+				"navigationBarTitleText": "Agent"
+			}
+		},
+		{
+			"path": "pages/preview/Scan",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/preview/Confirm",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/ai/Assistant",
+			"style": {
+				"navigationBarTitleText": "Agent"
 			}
 		}
 

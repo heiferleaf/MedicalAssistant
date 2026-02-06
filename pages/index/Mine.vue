@@ -1,746 +1,313 @@
-<!-- pages/profile/index.vue -->
 <template>
-  <view class="page-container">
-    <!-- 顶部用户信息卡片 -->
-    <view class="user-card">
-      <view class="user-header" @click="editProfile">
-        <view class="avatar-section">
-          <view class="avatar-container">
-            <image 
-              class="avatar" 
-              :src="userInfo.avatar || '../../static/avatars/avatar1.svg'" 
-              mode="aspectFill"
-            />
-            <view class="avatar-badge" v-if="userInfo.hasUpdate"></view>
-          </view>
-          <view class="user-basic">
-            <text class="user-name">{{ userInfo.name }}</text>
-            <view class="user-tags">
-              <view class="tag-item gender">
-                <image class="tag-icon" src="../../static/Mine/gender.svg" mode="aspectFit" />
-                <text class="tag-text">{{ userInfo.gender }}</text>
-              </view>
-              <view class="tag-item age">
-                <image class="tag-icon" src="../../static/Mine/age.png" mode="aspectFit" />
-                <text class="tag-text">{{ userInfo.age }}岁</text>
-              </view>
-              <view class="tag-item health">
-                <image class="tag-icon" src="../../static/Mine/health-file.png" mode="aspectFit" />
-                <text class="tag-text">{{ userInfo.healthFile }}</text>
-              </view>
-            </view>
-          </view>
-        </view>
-        <image class="right-arrow" src="../../static/Mine/right-arrow.svg" mode="aspectFit" />
-      </view>
-      
-      <!-- 健康概览 -->
-      <view class="health-overview">
-        <view 
-          class="health-item"
-          v-for="item in healthOverview"
-          :key="item.id"
-          @click="toHealthDetail(item.type)"
-        >
-          <view class="health-value">
-            <text class="value-number">{{ item.value }}</text>
-            <text class="value-unit">{{ item.unit }}</text>
-          </view>
-          <text class="health-label">{{ item.label }}</text>
-          <image 
-            class="trend-icon" 
-            :src="item.trendIcon" 
-            mode="aspectFit"
-            v-if="item.trend"
-          />
-        </view>
-      </view>
-    </view>
+	<view class="mine-container">
+		<view class="status-bar"></view>
 
-    <!-- 主要内容区域 -->
-    <scroll-view 
-      class="main-content"
-      scroll-y
-      :show-scrollbar="false"
-      :scroll-x="false"
-    >
-      <!-- 常用功能 -->
-      <view class="section">
-        <view class="section-header">
-          <text class="section-title">常用功能</text>
-        </view>
-        <view class="menu-list">
-          <view 
-            class="menu-item"
-            v-for="item in commonFunctions"
-            :key="item.id"
-            @click="handleFunction(item.id)"
-          >
-            <view class="menu-icon-container">
-              <image class="menu-icon" :src="item.icon" mode="aspectFit" />
-            </view>
-            <view class="menu-content">
-              <text class="menu-title">{{ item.title }}</text>
-              <text class="menu-desc" v-if="item.desc">{{ item.desc }}</text>
-            </view>
-            <view class="menu-right">
-              <text class="menu-badge" v-if="item.badge">{{ item.badge }}</text>
-              <image class="menu-arrow" src="../../static/Mine/right-arrow.svg" mode="aspectFit" />
-            </view>
-          </view>
-        </view>
-      </view>
+		<scroll-view scroll-y class="scroll-body">
+			<header class="header-section">
+				<view class="top-row">
+					<text class="page-title">个人中心</text>
+					<view class="settings-btn" @tap="toSettings">
+						<image class="icon" src="../../static/Mine/settings.svg"/>
+					</view>
+				</view>
 
-      <!-- 数据与隐私 -->
-      <view class="section">
-        <view class="section-header">
-          <text class="section-title">数据与隐私</text>
-        </view>
-        <view class="menu-list">
-          <view 
-            class="menu-item"
-            v-for="item in privacyFunctions"
-            :key="item.id"
-            @click="handleFunction(item.id)"
-          >
-            <view class="menu-icon-container" :class="item.iconClass">
-              <image class="menu-icon" :src="item.icon" mode="aspectFit" />
-            </view>
-            <view class="menu-content">
-              <text class="menu-title">{{ item.title }}</text>
-              <text class="menu-desc" v-if="item.desc">{{ item.desc }}</text>
-            </view>
-            <view class="menu-right">
-              <view class="privacy-status" v-if="item.status">
-                <text class="status-text">{{ item.status }}</text>
-              </view>
-              <image class="menu-arrow" src="../../static/Mine/right-arrow.svg" mode="aspectFit" />
-            </view>
-          </view>
-        </view>
-      </view>
+				<view class="user-card" @tap="toProfile">
+					<view class="avatar-wrapper">
+						<image 
+							class="avatar" 
+							src="/static/avatars/avatar1.svg" 
+							mode="aspectFill"
+						></image>
+						<view class="online-status"></view>
+					</view>
+					<view class="user-info">
+						<text class="user-name">小明</text>
+						<text class="user-status">坚持服药第 124 天</text>
+						<view class="badge">
+							<text class="badge-text">LV.4 活跃用户</text>
+						</view>
+					</view>
+					<image class="icon" src="../../static/Mine/right-arrow.svg"/>
+				</view>
+			</header>
 
-      <!-- 其他 -->
-      <view class="section">
-        <view class="section-header">
-          <text class="section-title">其他</text>
-        </view>
-        <view class="menu-list">
-          <view 
-            class="menu-item"
-            v-for="item in otherFunctions"
-            :key="item.id"
-            @click="handleFunction(item.id)"
-          >
-            <view class="menu-icon-container" :class="item.iconClass">
-              <image class="menu-icon" :src="item.icon" mode="aspectFit" />
-            </view>
-            <view class="menu-content">
-              <text class="menu-title">{{ item.title }}</text>
-              <text class="menu-desc" v-if="item.desc">{{ item.desc }}</text>
-            </view>
-            <view class="menu-right">
-              <text class="version-text" v-if="item.id === 'about'">{{ appVersion }}</text>
-              <image class="menu-arrow" src="../../static/Mine/right-arrow.svg" mode="aspectFit" />
-            </view>
-          </view>
-        </view>
-      </view>
+			<section class="stats-section">
+				<view class="stat-box bg-indigo">
+					<text class="stat-label">今日步数</text>
+					<text class="stat-value color-indigo">8,432</text>
+				</view>
+				<view class="stat-box bg-emerald">
+					<text class="stat-label">服药率</text>
+					<text class="stat-value color-emerald">98%</text>
+				</view>
+				<view class="stat-box bg-rose">
+					<text class="stat-label">心率</text>
+					<text class="stat-value color-rose">72</text>
+				</view>
+			</section>
 
-      <!-- 退出登录 -->
-      <view class="logout-section">
-        <button class="logout-btn" @click="logout">
-          <text class="logout-text">退出登录</text>
-        </button>
-      </view>
-    </scroll-view>
-  </view>
+			<section class="menu-section">
+				<view class="menu-group">
+					<view class="menu-item" hover-class="hover-gray" @tap="navigateTo('history')">
+						<view class="menu-left">
+							<view class="menu-icon bg-blue-light">
+								<image class="icon" src="../../static/Health/clock-history.svg"/>
+							</view>
+							<text class="menu-text">服药记录</text>
+						</view>
+						<image class="icon" src="../../static/Mine/right-arrow.svg"/>
+					</view>
+					<view class="divider"></view>
+					<view class="menu-item" hover-class="hover-gray" @tap="navigateTo('report')">
+						<view class="menu-left">
+							<view class="menu-icon bg-purple-light">
+								<image class="icon" src="../../static/Mine/report.svg"/>
+							</view>
+							<text class="menu-text">健康报告</text>
+						</view>
+						<image class="icon" src="../../static/Mine/right-arrow.svg"/>
+					</view>
+					<view class="divider"></view>
+					<view class="menu-item" hover-class="hover-gray" @tap="navigateTo('doctor')">
+						<view class="menu-left">
+							<view class="menu-icon bg-orange-light">
+								<image class="icon" src="../../static/Mine/doctor.svg"/>
+							</view>
+							<text class="menu-text">我的医生</text>
+						</view>
+						<image class="icon" src="../../static/Mine/right-arrow.svg"/>
+					</view>
+				</view>
+
+				<view class="menu-group mt-4">
+					<view class="menu-item" hover-class="hover-gray" @tap="navigateTo('help')">
+						<view class="menu-left">
+							<view class="menu-icon bg-slate-light">
+								<image class="icon" src="../../static/Mine/help.svg"/>
+							</view>
+							<text class="menu-text">帮助与反馈</text>
+						</view>
+						<image class="icon" src="../../static/Mine/right-arrow.svg"/>
+					</view>
+				</view>
+			</section>
+
+			<view class="safe-area-bottom"></view>
+		</scroll-view>
+
+		<app-navbar :current="3" />
+	</view>
 </template>
 
 <script>
-
 export default {
-  name:"MinePage",
-  data() {
-    return {
-      userInfo: {
-        name: '陈涛',
-        avatar: '../../static/avatars/avatar1.svg',
-        gender: '男',
-        age: 21,
-        healthFile: '健康档案',
-        hasUpdate: true
-      },
-      healthOverview: [
-        {
-          id: 1,
-          type: 'bloodPressure',
-          value: '120/80',
-          unit: 'mmHg',
-          label: '血压',
-          trend: 'stable',
-          trendIcon: '../../static/Mine/trend-stable.svg'
-        },
-        {
-          id: 2,
-          type: 'heartRate',
-          value: '72',
-          unit: 'bpm',
-          label: '心率',
-          trend: 'stable',
-          trendIcon: '../../static/Mine/trend-stable.svg'
-        },
-        {
-          id: 3,
-          type: 'bloodSugar',
-          value: '5.2',
-          unit: 'mmol/L',
-          label: '血糖',
-          trend: 'down',
-          trendIcon: '../../static/Mine/trend-down.svg'
-        }
-      ],
-      commonFunctions: [
-        {
-          id: 'reminder',
-          title: '提醒设置',
-          desc: '服药、复查提醒',
-          icon: '../../static/Mine/bell-setting.svg',
-          badge: '3'
-        },
-        {
-          id: 'family',
-          title: '家庭成员管理',
-          desc: '管理家人健康数据',
-          icon: '../../static/Mine/family.svg'
-        },
-        {
-          id: 'reports',
-          title: '历史健康报告',
-          desc: '查看历史健康报告',
-          icon: '../../static/Mine/report.svg'
-        },
-        {
-          id: 'medicalRecords',
-          title: '就医记录',
-          desc: '门诊、住院记录',
-          icon: '../../static/Mine/medical-record.svg',
-          badge: '5'
-        }
-      ],
-      privacyFunctions: [
-        {
-          id: 'privacy',
-          title: '隐私保护',
-          desc: '联邦学习技术保护',
-          icon: '../../static/Mine/lock.svg',
-          iconClass: 'icon-privacy',
-          status: '已启用'
-        },
-        {
-          id: 'export',
-          title: '数据导出',
-          desc: '导出健康数据',
-          icon: '../../static/Mine/export.svg',
-          iconClass: 'icon-export'
-        },
-        {
-          id: 'clear',
-          title: '清除本地数据',
-          desc: '清空缓存和本地数据',
-          icon: '../../static/Mine/trash.svg',
-          iconClass: 'icon-clear'
-        }
-      ],
-      otherFunctions: [
-        {
-          id: 'settings',
-          title: '通用设置',
-          desc: '应用设置与偏好',
-          icon: '../../static/Mine/settings.svg',
-          iconClass: 'icon-settings'
-        },
-        {
-          id: 'help',
-          title: '帮助与反馈',
-          desc: '使用帮助与问题反馈',
-          icon: '../../static/Mine/help.svg',
-          iconClass: 'icon-help'
-        },
-        {
-          id: 'about',
-          title: '关于我们',
-          desc: '版本信息与介绍',
-          icon: '../../static/Mine/info.svg',
-          iconClass: 'icon-about'
-        }
-      ],
-      appVersion: 'v1.2.0'
-    }
-  },
-  onShow() {
-    this.loadUserInfo()
-  },
-  methods: {
-    loadUserInfo() {
-      // 加载用户信息
-      // 可以从本地存储或API获取
-    },
-    editProfile() {
-      uni.navigateTo({
-        url: '/pages/profile/edit'
-      })
-    },
-    toHealthDetail(type) {
-      const routes = {
-        bloodPressure: '/pages/health/detail?type=bloodPressure',
-        heartRate: '/pages/health/detail?type=heartRate',
-        bloodSugar: '/pages/health/detail?type=bloodSugar'
-      }
-      
-      if (routes[type]) {
-        uni.navigateTo({
-          url: routes[type]
-        })
-      }
-    },
-    handleFunction(id) {
-      const routes = {
-        reminder: '/pages/reminder/Reminder',
-        family: '/pages/family/manage',
-        reports: '/pages/health/reports',
-        medicalRecords: '/pages/medical/records',
-        privacy: '/pages/privacy/setting',
-        export: '/pages/data/export',
-        clear: '/pages/data/clear',
-        settings: '/pages/settings/index',
-        help: '/pages/help/index',
-        about: '/pages/about/index'
-      }
-      
-      if (routes[id]) {
-        uni.navigateTo({
-          url: routes[id]
-        })
-        return
-      }
-      
-      // 处理特殊功能
-      switch (id) {
-        case 'clear':
-          this.clearLocalData()
-          break
-      }
-    },
-    clearLocalData() {
-      uni.showModal({
-        title: '清除本地数据',
-        content: '确定要清除所有本地缓存数据吗？此操作不可恢复。',
-        confirmColor: '#FF6B6B',
-        success: (res) => {
-          if (res.confirm) {
-            uni.showLoading({
-              title: '清除中...'
-            })
-            
-            // 模拟清除操作
-            setTimeout(() => {
-              uni.hideLoading()
-              uni.showToast({
-                title: '清除完成',
-                icon: 'success'
-              })
-              
-              // 重新加载数据
-              this.loadUserInfo()
-            }, 1500)
-          }
-        }
-      })
-    },
-    logout() {
-      uni.showModal({
-        title: '退出登录',
-        content: '确定要退出登录吗？',
-        success: (res) => {
-          if (res.confirm) {
-            uni.showLoading({
-              title: '退出中...'
-            })
-            
-            // 模拟退出操作
-            setTimeout(() => {
-              uni.hideLoading()
-              
-              // 清除登录状态
-              uni.removeStorageSync('token')
-              uni.removeStorageSync('userInfo')
-              
-              // 跳转到登录页
-              uni.reLaunch({
-                url: '/pages/login/index'
-              })
-            }, 1000)
-          }
-        }
-      })
-    }
-  }
+	methods: {
+		toSettings() {
+			uni.navigateTo({ url: '/pages/mine/settings' });
+		},
+		toProfile() {
+			uni.navigateTo({ url: '/pages/mine/profile' });
+		},
+		navigateTo(type) {
+			console.log('跳转至：', type);
+		}
+	}
 }
 </script>
 
-<style scoped lang="scss">
-.page-container {
-  min-height: 100vh;
-  background: linear-gradient(180deg, #f8faff 0%, #f0f5ff 100%);
-  padding-bottom: 120rpx;
+<style lang="scss" scoped>
+$primary: #6366F1;
+$bg-light: #F8FAFC;
+$bg-dark: #0F172A;
+
+.mine-container {
+	min-height: 100vh;
+	background-color: $bg-light;
+	@media (prefers-color-scheme: dark) { background-color: $bg-dark; }
 }
 
-/* 用户卡片 */
+.status-bar { height: var(--status-bar-height); }
+
+.header-section {
+	padding: 40rpx 40rpx 30rpx;
+	
+	.top-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 50rpx;
+		
+		.page-title {
+			font-size: 48rpx;
+			font-weight: 700;
+			color: #1e293b;
+			@media (prefers-color-scheme: dark) { color: #fff; }
+		}
+		
+		.settings-btn {
+			width: 80rpx;
+			height: 80rpx;
+			background: #fff;
+			border-radius: 24rpx;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+			@media (prefers-color-scheme: dark) { background: #1e293b; }
+			.material-icons { color: #64748b; font-size: 40rpx; }
+		}
+	}
+}
+
 .user-card {
-  background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
-  border-radius: 0 0 32rpx 32rpx;
-  padding: 60rpx 32rpx 40rpx;
-  box-shadow: 0 4rpx 20rpx rgba(45, 107, 255, 0.15);
-  margin-bottom: 32rpx;
+	background: #fff;
+	padding: 40rpx;
+	border-radius: 50rpx;
+	display: flex;
+	align-items: center;
+	gap: 30rpx;
+	border: 1rpx solid #f1f5f9;
+	@media (prefers-color-scheme: dark) { 
+		background: #1e293b; 
+		border-color: rgba(255,255,255,0.05);
+	}
+	
+	.avatar-wrapper {
+		position: relative;
+		.avatar {
+			width: 140rpx;
+			height: 140rpx;
+			border-radius: 70rpx;
+			background: #ffedd5;
+			border: 6rpx solid $bg-light;
+			@media (prefers-color-scheme: dark) { border-color: #334155; }
+		}
+		.online-status {
+			position: absolute;
+			bottom: 6rpx;
+			right: 6rpx;
+			width: 32rpx;
+			height: 32rpx;
+			background: #10b981;
+			border: 4rpx solid #fff;
+			border-radius: 50%;
+			@media (prefers-color-scheme: dark) { border-color: #1e293b; }
+		}
+	}
+	
+	.user-info {
+		flex: 1;
+		.user-name {
+			font-size: 40rpx;
+			font-weight: 700;
+			color: #1e293b;
+			display: block;
+			@media (prefers-color-scheme: dark) { color: #fff; }
+		}
+		.user-status {
+			font-size: 26rpx;
+			color: #64748b;
+			margin-top: 4rpx;
+			display: block;
+		}
+		.badge {
+			display: inline-block;
+			background: rgba(99, 102, 241, 0.1);
+			padding: 4rpx 16rpx;
+			border-radius: 10rpx;
+			margin-top: 12rpx;
+			.badge-text { color: $primary; font-size: 20rpx; font-weight: 700; }
+		}
+	}
+	.arrow { color: #cbd5e1; }
 }
 
-.user-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 40rpx;
-  
-  &:active {
-    opacity: 0.9;
-  }
+.stats-section {
+	padding: 0 40rpx;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 20rpx;
+	margin-top: 20rpx;
+	
+	.stat-box {
+		padding: 30rpx 20rpx;
+		border-radius: 40rpx;
+		text-align: center;
+		.stat-label { font-size: 22rpx; color: #64748b; display: block; margin-bottom: 8rpx; }
+		.stat-value { font-size: 36rpx; font-weight: 700; }
+	}
 }
 
-.avatar-section {
-  display: flex;
-  align-items: center;
-  flex: 1;
+// 统计配色
+.bg-indigo { background: #eef2ff; @media (prefers-color-scheme: dark) { background: rgba(99, 102, 241, 0.1); } }
+.color-indigo { color: #4f46e5; }
+.bg-emerald { background: #ecfdf5; @media (prefers-color-scheme: dark) { background: rgba(16, 185, 129, 0.1); } }
+.color-emerald { color: #059669; }
+.bg-rose { background: #fff1f2; @media (prefers-color-scheme: dark) { background: rgba(244, 63, 94, 0.1); } }
+.color-rose { color: #e11d48; }
+
+.menu-section {
+	padding: 40rpx;
+	
+	.menu-group {
+		background: #fff;
+		border-radius: 50rpx;
+		overflow: hidden;
+		border: 1rpx solid #f1f5f9;
+		@media (prefers-color-scheme: dark) { 
+			background: #1e293b; 
+			border-color: rgba(255,255,255,0.05);
+		}
+	}
+	
+	.menu-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 36rpx 40rpx;
+		transition: background 0.2s;
+		
+		.menu-left {
+			display: flex;
+			align-items: center;
+			gap: 30rpx;
+			.menu-text { font-size: 30rpx; font-weight: 500; color: #1e293b; @media (prefers-color-scheme: dark) { color: #f1f5f9; } }
+		}
+		
+		.menu-icon {
+			width: 80rpx;
+			height: 80rpx;
+			border-radius: 24rpx;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			.material-icons { font-size: 40rpx; }
+		}
+		
+		.arrow-sm { color: #cbd5e1; font-size: 40rpx; }
+	}
+	
+	.divider {
+		height: 1rpx;
+		background: #f1f5f9;
+		margin: 0 40rpx;
+		@media (prefers-color-scheme: dark) { background: rgba(255,255,255,0.05); }
+	}
 }
 
-.avatar-container {
-  position: relative;
-  width: 120rpx;
-  height: 120rpx;
-  margin-right: 24rpx;
-}
+// 菜单配色
+.bg-blue-light { background: #eff6ff; @media (prefers-color-scheme: dark) { background: rgba(59, 130, 246, 0.1); } }
+.color-blue { color: #3b82f6; }
+.bg-purple-light { background: #faf5ff; @media (prefers-color-scheme: dark) { background: rgba(168, 85, 247, 0.1); } }
+.color-purple { color: #a855f7; }
+.bg-orange-light { background: #fff7ed; @media (prefers-color-scheme: dark) { background: rgba(249, 115, 22, 0.1); } }
+.color-orange { color: #f97316; }
+.bg-slate-light { background: #f8fafc; @media (prefers-color-scheme: dark) { background: #0f172a; } }
+.color-slate { color: #64748b; }
 
-.avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 6rpx solid rgba(255, 255, 255, 0.3);
-  background: #ffffff;
-}
+.hover-gray { background-color: #f8fafc !important; @media (prefers-color-scheme: dark) { background-color: #334155 !important; } }
+.mt-4 { margin-top: 32rpx; }
+.safe-area-bottom { height: 240rpx; }
 
-.avatar-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 24rpx;
-  height: 24rpx;
-  background: #ff6b6b;
-  border: 4rpx solid #2d6bff;
-  border-radius: 50%;
-}
-
-.user-basic {
-  flex: 1;
-}
-
-.user-name {
-  display: block;
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 16rpx;
-}
-
-.user-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-}
-
-.tag-item {
-  display: flex;
-  align-items: center;
-  padding: 8rpx 16rpx;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 20rpx;
-  backdrop-filter: blur(10rpx);
-}
-
-.tag-icon {
-  width: 24rpx;
-  height: 24rpx;
-  margin-right: 6rpx;
-}
-
-.tag-text {
-  font-size: 24rpx;
-  color: #ffffff;
-  font-weight: 500;
-}
-
-.right-arrow {
-  width: 24rpx;
-  height: 24rpx;
-}
-
-/* 健康概览 */
-.health-overview {
-  display: flex;
-  justify-content: space-between;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 24rpx;
-  padding: 32rpx 24rpx;
-  backdrop-filter: blur(10rpx);
-  border: 2rpx solid rgba(255, 255, 255, 0.2);
-}
-
-.health-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0 12rpx;
-  position: relative;
-  
-  &:active {
-    opacity: 0.9;
-  }
-}
-
-.health-item + .health-item {
-  border-left: 2rpx solid rgba(255, 255, 255, 0.2);
-}
-
-.health-value {
-  display: flex;
-  align-items: baseline;
-  margin-bottom: 8rpx;
-}
-
-.value-number {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #ffffff;
-  line-height: 1;
-}
-
-.value-unit {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.9);
-  margin-left: 4rpx;
-}
-
-.health-label {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
-}
-
-.trend-icon {
-  position: absolute;
-  top: -8rpx;
-  right: 0;
-  width: 24rpx;
-  height: 24rpx;
-}
-
-/* 主要内容区域 */
-.main-content {
-  height: calc(100vh - 580rpx);
-  padding: 0 32rpx;
-  box-sizing: border-box;
-  overflow-x: hidden !important;
-}
-
-.main-content::-webkit-scrollbar {
-  display: none;
-}
-
-/* 分区样式 */
-.section {
-  margin-bottom: 32rpx;
-}
-
-.section-header {
-  margin-bottom: 24rpx;
-  padding: 0 8rpx;
-}
-
-.section-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #2d3b4e;
-}
-
-/* 菜单列表 */
-.menu-list {
-  background: #ffffff;
-  border-radius: 24rpx;
-  overflow: hidden;
-  box-shadow: 0 6rpx 24rpx rgba(45, 107, 255, 0.08);
-  border: 2rpx solid rgba(77, 142, 255, 0.1);
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  padding: 32rpx 32rpx;
-  position: relative;
-  transition: all 0.3s ease;
-  
-  &:active {
-    background: rgba(77, 142, 255, 0.05);
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    left: 120rpx;
-    right: 32rpx;
-    bottom: 0;
-    height: 2rpx;
-    background: linear-gradient(90deg, transparent 0%, rgba(77, 142, 255, 0.1) 50%, transparent 100%);
-  }
-  
-  &:last-child::after {
-    display: none;
-  }
-}
-
-.menu-icon-container {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 20rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 24rpx;
-  flex-shrink: 0;
-  
-  &.icon-privacy {
-    background: linear-gradient(135deg, rgba(77, 142, 255, 0.15) 0%, rgba(45, 107, 255, 0.1) 100%);
-  }
-  
-  &.icon-export {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
-  }
-  
-  &.icon-clear {
-    background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.1) 100%);
-  }
-  
-  &.icon-settings {
-    background: linear-gradient(135deg, rgba(180, 191, 211, 0.15) 0%, rgba(180, 191, 211, 0.1) 100%);
-  }
-  
-  &.icon-help {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
-  }
-  
-  &.icon-about {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
-  }
-}
-
-.menu-icon {
-  width: 32rpx;
-  height: 32rpx;
-}
-
-.menu-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.menu-title {
-  display: block;
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #2d3b4e;
-  margin-bottom: 8rpx;
-}
-
-.menu-desc {
-  display: block;
-  font-size: 24rpx;
-  color: #87909c;
-}
-
-.menu-right {
-  display: flex;
-  align-items: center;
-  margin-left: 16rpx;
-}
-
-.menu-badge {
-  padding: 6rpx 16rpx;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
-  color: #ffffff;
-  font-size: 22rpx;
-  font-weight: 600;
-  border-radius: 16rpx;
-  min-width: 32rpx;
-  text-align: center;
-  margin-right: 16rpx;
-}
-
-.privacy-status {
-  padding: 6rpx 16rpx;
-  background: rgba(16, 185, 129, 0.1);
-  border-radius: 16rpx;
-  margin-right: 16rpx;
-}
-
-.status-text {
-  font-size: 22rpx;
-  color: #10b981;
-  font-weight: 500;
-}
-
-.version-text {
-  font-size: 24rpx;
-  color: #87909c;
-  margin-right: 16rpx;
-}
-
-.menu-arrow {
-  width: 24rpx;
-  height: 24rpx;
-}
-
-/* 退出登录 */
-.logout-section {
-  margin-top: 48rpx;
-  margin-bottom: 32rpx;
-}
-
-.logout-btn {
-  width: 54%;
-  height: 100rpx;
-  padding: auto;
-  background: linear-gradient(135deg, #2d6bff 0%, #2d6bff 100%);
-  border: 2rpx solid rgba(77, 142, 255, 0.2);
-  border-radius: 50rpx;
-  box-shadow: 0 4rpx 16rpx rgba(45, 107, 255, 0.1);
-  transition: all 0.5s ease;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logout-text {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #fff;
-}
+.material-icons { font-family: 'Material Symbols Outlined'; }
 </style>

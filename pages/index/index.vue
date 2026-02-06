@@ -56,14 +56,17 @@ export default {
 
 <style scoped>
 .page-container {
+  /* 关键：锁定窗口高度，禁止外层滚动 */
   height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden; 
 }
 
 .content {
   flex: 1;
-  overflow-y: hidden;
-  /* padding-bottom: 120rpx; 给导航栏留出空间 */
+  /* 关键：必须设置 overflow: hidden，确保内部子页面能自适应高度 */
+  overflow: hidden; 
+  position: relative;
 }
 </style>

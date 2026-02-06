@@ -14,4 +14,12 @@
 
 <style>
 	/*每个页面公共css */
+	.icon {
+		width: 36rpx;
+		height: 36rpx;
+
+		background-size: cover;
+		background-position: center;
+		background-repeat: no-repeat;
+	}
 </style>

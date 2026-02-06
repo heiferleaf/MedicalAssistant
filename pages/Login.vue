@@ -1,83 +1,62 @@
 <template>
   <view class="login-container">
-    <!-- 背景装饰 -->
-    <view class="background">
-      <view class="back-pic"></view>
-      <view class="back-white"></view>
+    <view class="illustration-box">
+      <image
+        src="../static/Login/image.png"
+        mode="aspectFill" class="bg-image"></image>
+      <view class="mask-gradient"></view>
     </view>
 
-    <!-- 主内容区域 -->
-    <view class="login-content">
-      <!-- 登录表单 -->
-      <view class="form-container" v-if="isLogin">
-        <view class="form-item">
-          <div
-            class="form-label"
-            style="background-image: url(&quot;../static/Login/user.png&quot;)"
-          ></div>
-          <input
-            class="form-input"
-            v-model="loginForm.username"
-            placeholder="请输入账号"
-            placeholder-class="placeholder"
-            type="text"
-            @focus="onInputFocus"
-            @blur="onInputBlur"
-          />
-          <view class="input-border"></view>
+    <view class="form-wrapper">
+      <view class="header-section">
+        <text class="title">欢迎回来</text>
+        <text class="subtitle">请登录您的医疗助手账号</text>
+      </view>
+
+      <view class="form-content">
+        <view class="input-group">
+          <view class="icon-box">
+            <text class="iconfont icon-person"></text>
+          </view>
+          <input class="input-field" type="text" placeholder="请输入账号" v-model="loginForm.username"
+            placeholder-class="placeholder-style" />
         </view>
 
-        <view class="form-item">
-          <div
-            class="form-label"
-            style="background-image: url(&quot;../static/Login/pwd.png&quot;)"
-          ></div>
-          <input
-            class="form-input"
-            v-model="loginForm.password"
-            placeholder="请输入密码"
-            placeholder-class="placeholder"
-            :password="!showLoginPassword"
-            @focus="onInputFocus"
-            @blur="onInputBlur"
-          />
-          <view class="input-border"></view>
-        </view>
-
-        <!-- 记住密码和忘记密码 -->
-        <view class="form-options">
-          <view class="forget-password" @tap="goForgetPassword">
-            <text class="option-text">找回密码</text>
+        <view class="input-group">
+          <view class="icon-box">
+            <text class="iconfont icon-lock"></text>
+          </view>
+          <input class="input-field" :password="!showLoginPassword" placeholder="请输入密码" v-model="loginForm.password"
+            placeholder-class="placeholder-style" />
+          <view class="eye-box" @tap="toggleLoginPassword">
+            <text class="iconfont" :class="showLoginPassword ? 'icon-eye-open' : 'icon-eye-close'"></text>
           </view>
         </view>
 
-        <!-- 登录按钮 -->
-        <button
-          class="submit-btn"
-          :class="{ disabled: !isLoginFormValid }"
-          @tap="handleLogin"
-        >
-          <text v-if="!loading">登录</text>
-          <text v-else class="loading-text">登录中...</text>
-        </button>
+        <view class="action-bar">
+          <view class="remember-me" @tap="toggleRemember">
+            <view class="checkbox" :class="{ 'checked': rememberMe }">
+              <text v-if="rememberMe" class="iconfont icon-check"></text>
+            </view>
+            <text class="remember-text">记住密码</text>
+          </view>
+          <text class="forget-pwd">找回密码</text>
+        </view>
+
+        <view class="btn-section">
+          <button class="login-btn" :loading="loading" :disabled="loading" @tap="handleLogin">
+            登录
+          </button>
+        </view>
       </view>
 
-      <!-- 底部跳转 -->
-      <view class="bottom-link">
-        <text v-if="isLogin">还没有账号？</text>
-        <text v-else>已有账号？</text>
-        <text
-          class="link-text"
-          @tap="
-            uni.navigateTo({
-              url: '/pages/Register',
-            })
-          "
-        >
-          {{ isLogin ? "立即注册" : "立即登录" }}
-        </text>
+      <view class="footer-section">
+        <text class="footer-text">还没有账号？</text>
+        <text class="register-link" @click="uni.navigateTo({ url: 'Register' })">立即注册</text>
       </view>
     </view>
+
+    <view class="bottom-bar"></view>
   </view>
 </template>
 
@@ -88,38 +67,17 @@ import loginAPI from "../api/login.js";
 export default {
   data() {
     return {
-      isLogin: true, // 当前是登录还是注册
-      loading: false, // 加载状态
-
-      // 登录表单
+      isLogin: true,
+      loading: false,
+      rememberMe: false, // 补充了逻辑中用到的变量
       loginForm: {
         username: "",
         password: "",
       },
-      showLoginPassword: false, // 显示登录密码
-      showConfirmPassword: false, // 显示确认密码
+      showLoginPassword: false,
     };
   },
-
   computed: {
-    // 用户名验证（字母、数字、下划线，3-16位）
-    isUsernameValid() {
-      const reg = /^[a-zA-Z0-9_]{3,16}$/;
-      return reg.test(this.registerForm.username);
-    },
-
-    // 密码验证（字母+数字，6-20位）
-    isPasswordValid() {
-      const reg = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,20}$/;
-      return reg.test(this.registerForm.password);
-    },
-
-    // 确认密码验证
-    isConfirmPasswordValid() {
-      return this.registerForm.password === this.registerForm.confirmPassword;
-    },
-
-    // 登录表单验证
     isLoginFormValid() {
       return (
         this.loginForm.username.trim() !== "" &&
@@ -127,14 +85,10 @@ export default {
       );
     },
   },
-
   onLoad() {
-    // 页面加载时检查是否有记住的账号
     this.checkRememberedAccount();
   },
-
   methods: {
-    // 检查记住的账号
     checkRememberedAccount() {
       try {
         const remembered = uni.getStorageSync("rememberedAccount");
@@ -147,55 +101,43 @@ export default {
         console.error("读取记住的账号失败:", e);
       }
     },
-
-    // 切换密码可见性
     toggleLoginPassword() {
       this.showLoginPassword = !this.showLoginPassword;
     },
-
-    toggleConfirmPassword() {
-      this.showConfirmPassword = !this.showConfirmPassword;
-    },
-
-    // 切换记住密码
     toggleRemember() {
       this.rememberMe = !this.rememberMe;
     },
-
-    // 登录
     async handleLogin() {
+      uni.navigateTo({
+        url: "/pages/index/index",
+      });
+      return;
       if (!this.loginForm.username || !this.loginForm.password) {
         uni.showToast({
           title: "请输入用户名和密码",
-          icon: "error",
+          icon: "none",
         });
         return;
       }
-      if (!this.isLoginFormValid || this.loading) return;
+      if (this.loading) return;
 
       this.loading = true;
-
       try {
-        // 调用登录API
         const result = await loginAPI.login({
           username: this.loginForm.username.trim(),
           password: this.loginForm.password,
         });
 
-        // 登录成功处理
         uni.showToast({
           title: "登录成功",
           icon: "success",
         });
 
-        // 保存token
-        console.log("登录返回结果:", result.id);
         uni.setStorageSync("userId", result.id);
         if (result.token) {
           uni.setStorageSync("token", result.token);
         }
 
-        // 记住密码
         if (this.rememberMe) {
           uni.setStorageSync("rememberedAccount", {
             username: this.loginForm.username.trim(),
@@ -205,7 +147,6 @@ export default {
           uni.removeStorageSync("rememberedAccount");
         }
 
-        // 跳转到首页
         setTimeout(() => {
           uni.navigateTo({
             url: "/pages/index/index",
@@ -213,7 +154,6 @@ export default {
         }, 1500);
       } catch (error) {
         console.error("登录失败:", error);
-        // 错误信息已经在API拦截器中处理了
       } finally {
         this.loading = false;
       }
@@ -225,287 +165,194 @@ export default {
 <style lang="scss" scoped>
 .login-container {
   min-height: 100vh;
-  position: relative;
-  overflow: hidden;
-  padding: 40rpx;
+  background-color: #f8fafc;
   display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  flex-direction: column;
 
-.background {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.back-pic {
-  width: 100%;
-  height: 60%;
-  background-image: url("/static/Login/loginback.png");
-  background-size: cover;
-  background-position: center;
-}
-
-.back-white {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 70%;
-  /* 创建渐变消失效果 */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, white 30%);
-  mask-image: linear-gradient(to bottom, transparent 0%, white 30%);
-  background-color: white;
-}
-
-.circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.circle-1 {
-  width: 300rpx;
-  height: 300rpx;
-  top: -150rpx;
-  right: -150rpx;
-}
-
-.circle-2 {
-  width: 200rpx;
-  height: 200rpx;
-  bottom: 100rpx;
-  left: -100rpx;
-}
-
-.circle-3 {
-  width: 150rpx;
-  height: 150rpx;
-  bottom: -75rpx;
-  right: 20%;
-}
-
-.login-content {
-  width: 100%;
-  max-width: 600rpx;
-  margin-top: 400rpx;
-  padding: 60rpx 50rpx;
-  //   position: relative;
-  z-index: 1;
-}
-
-.tab-container {
-  display: flex;
-  margin-bottom: 50rpx;
-  border-bottom: 2rpx solid #eee;
-}
-
-.tab-item {
-  flex: 1;
-  text-align: center;
-  padding: 20rpx 0;
-  font-size: 32rpx;
-  color: #999;
-  position: relative;
-  transition: color 0.3s;
-}
-
-.tab-item.active {
-  color: #667eea;
-  font-weight: bold;
-}
-
-.tab-indicator {
-  position: absolute;
-  bottom: -2rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60rpx;
-  height: 4rpx;
-  background: #667eea;
-  border-radius: 2rpx;
-}
-
-.form-container {
-  margin-bottom: 40rpx;
-}
-
-.form-item {
-  display: flex;
-  margin-bottom: 40rpx;
-  position: relative;
-}
-
-.form-label {
-  width: 64rpx;
-  height: 64rpx;
-  margin: auto;
-
-  background-size: cover;
-}
-
-.form-input {
-  width: 100%;
-  height: 80rpx;
-  border-bottom: solid 4rpx black;
-  padding: 0 30rpx;
-  font-size: 28rpx;
-  color: #333;
-  box-sizing: border-box;
-  transition: all 0.3s;
-}
-
-.form-input:focus {
-  background: #fff;
-  box-shadow: 0 0 0 2rpx rgba(102, 126, 234, 0.2);
-}
-
-.placeholder {
-  color: #aaa;
-  font-size: 28rpx;
-}
-
-.input-border {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 2rpx;
-  background: #000;
-  transition: all 0.3s;
-}
-
-.form-input:focus + .input-border {
-  height: 4rpx;
-  background: #667eea;
-}
-
-.password-toggle {
-  position: absolute;
-  right: 30rpx;
-  top: 55rpx;
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.password-toggle .icon {
-  font-size: 32rpx;
-}
-
-.input-tips {
-  margin-top: 10rpx;
-  padding: 0 10rpx;
-}
-
-.tips-text {
-  font-size: 24rpx;
-  color: #ff4444;
-}
-
-.form-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40rpx;
-}
-
-.remember-me,
-.forget-password {
-  display: flex;
-  align-items: center;
-}
-
-.checkbox {
-  width: 36rpx;
-  height: 36rpx;
-  border: 2rpx solid #ddd;
-  border-radius: 6rpx;
-  margin-right: 10rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s;
-}
-
-.checkbox.checked {
-  background: #667eea;
-  border-color: #667eea;
-}
-
-.checkmark {
-  color: white;
-  font-size: 24rpx;
-}
-
-.option-text {
-  font-size: 26rpx;
-  color: #666;
-}
-
-.forget-password .option-text {
-  color: #666;
-}
-
-.submit-btn {
-  width: 64%;
-  height: 88rpx;
-  background-color: #000;
-  color: white;
-  border-radius: 44rpx;
-  font-size: 32rpx;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20rpx;
-  transition: all 0.3s;
-}
-
-.submit-btn.disabled {
-  //   opacity: 0.9;
-  box-shadow: none;
-}
-
-.loading-text {
-  display: flex;
-  align-items: center;
-}
-
-.loading-text::after {
-  content: "";
-  width: 20rpx;
-  height: 20rpx;
-  border: 2rpx solid white;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-left: 15rpx;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+  /* 暗黑模式适配 */
+  @media (prefers-color-scheme: dark) {
+    background-color: #0f172a;
   }
 }
 
-.bottom-link {
-  text-align: center;
-  font-size: 28rpx;
-  color: #666;
-  margin-top: 40rpx;
+.illustration-box {
+  position: relative;
+  width: 100%;
+  height: 40vh;
+  overflow: hidden;
+
+  .bg-image {
+    width: 100%;
+    height: 100%;
+  }
+
+  .mask-gradient {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(to bottom, transparent, #f8fafc);
+
+    @media (prefers-color-scheme: dark) {
+      background: linear-gradient(to bottom, transparent, #0f172a);
+    }
+  }
 }
 
-.link-text {
-  color: #667eea;
-  font-weight: 500;
-  margin-left: 10rpx;
+.form-wrapper {
+  flex: 1;
+  padding: 0 60rpx;
+  margin-top: -60rpx;
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-section {
+  margin-bottom: 60rpx;
+
+  .title {
+    font-size: 56rpx;
+    font-weight: bold;
+    color: #1e293b;
+    display: block;
+    margin-bottom: 12rpx;
+
+    @media (prefers-color-scheme: dark) {
+      color: #ffffff;
+    }
+  }
+
+  .subtitle {
+    font-size: 28rpx;
+    color: #64748b;
+  }
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  border-bottom: 2rpx solid #e2e8f0;
+  margin-bottom: 40rpx;
+  padding: 20rpx 0;
+  transition: all 0.3s;
+
+  @media (prefers-color-scheme: dark) {
+    border-color: #334155;
+  }
+
+  .icon-box {
+    padding: 0 20rpx;
+    color: #94a3b8;
+  }
+
+  .input-field {
+    flex: 1;
+    font-size: 32rpx;
+    color: #1e293b;
+
+    @media (prefers-color-scheme: dark) {
+      color: #ffffff;
+    }
+  }
+}
+
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 60rpx;
+
+  .remember-me {
+    display: flex;
+    align-items: center;
+
+    .checkbox {
+      width: 32rpx;
+      height: 32rpx;
+      border: 2rpx solid #cbd5e1;
+      border-radius: 6rpx;
+      margin-right: 12rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &.checked {
+        background-color: #6366f1;
+        border-color: #6366f1;
+      }
+    }
+
+    .remember-text {
+      font-size: 26rpx;
+      color: #64748b;
+    }
+  }
+
+  .forget-pwd {
+    font-size: 26rpx;
+    color: #64748b;
+  }
+}
+
+.login-btn {
+  width: 100%;
+  height: 100rpx;
+  line-height: 100rpx;
+  background-color: #0f172a;
+  color: #ffffff;
+  border-radius: 50rpx;
+  font-weight: bold;
+  font-size: 32rpx;
+  box-shadow: 0 10rpx 20rpx rgba(15, 23, 42, 0.2);
+
+  @media (prefers-color-scheme: dark) {
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.footer-section {
+  margin-top: auto;
+  padding-bottom: 60rpx;
+  text-align: center;
+
+  .footer-text {
+    color: #64748b;
+    font-size: 28rpx;
+  }
+
+  .register-link {
+    color: #6366f1;
+    font-weight: 500;
+    margin-left: 10rpx;
+    font-size: 28rpx;
+  }
+}
+
+.bottom-bar {
+  width: 240rpx;
+  height: 8rpx;
+  background-color: #e2e8f0;
+  border-radius: 4rpx;
+  margin: 0 auto 20rpx;
+  opacity: 0.5;
+
+  @media (prefers-color-scheme: dark) {
+    background-color: #334155;
+  }
+}
+
+/* 这里需要你项目中配置了 Iconfont */
+.iconfont {
+  font-family: "Material Icons";
+  /* 如果你用的是原HTML的字体图标 */
+  font-size: 40rpx;
 }
 </style>
