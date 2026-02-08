@@ -1,0 +1,9 @@
+[
+  {"drugname": "ASPIRIN", "reac": "Nausea", "freq": 20},
+  {"drugname": "ASPIRIN", "reac": "Gastrointestinal hemorrhage", "freq": 12},
+  {"drugname": "ASPIRIN", "reac": "Headache", "freq": 10},
+  {"drugname": "IBUPROFEN", "reac": "Dizziness", "freq": 14},
+  {"drugname": "IBUPROFEN", "reac": "Nausea", "freq": 9},
+  {"drugname": "METFORMIN", "reac": "Diarrhoea", "freq": 16},
+  {"drugname": "METFORMIN", "reac": "Abdominal pain", "freq": 8}
+]
