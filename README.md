@@ -17,6 +17,15 @@ app.py            # 应用入口
 - `GET /agent/health` Agent 预留健康检查
 - `GET /ocr/health` OCR 预留健康检查
 
+## 轻量 RAG 模式
+默认开启轻量 RAG（无 Neo4j / 无本地大模型）：
+- 使用本地 JSON 语料做检索
+- 调用云端 LLM API 生成回答
+
+如需关闭轻量模式并切回科研版 RAG：
+- 设置 `RAG_LIGHT_MODE=false`
+- 并提供 `RAG_PROJECT_PATH` 或 `RAG_PROXY_URL`
+
 ## 本地启动
 ```
 pip install -r requirements.txt
