@@ -11,7 +11,9 @@ LLM_API_KEY = os.getenv("LLM_API_KEY", "").strip()
 LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "60"))
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+# 兼容：历史上 embedding 与 chat 共用 OLLAMA_MODEL。
+# 现在建议拆分为 OLLAMA_CHAT_MODEL / OLLAMA_EMBED_MODEL，避免误用。
+OLLAMA_CHAT_MODEL = os.getenv("OLLAMA_CHAT_MODEL") or os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
 OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "120"))
 
 USE_LLM = os.getenv("USE_LLM", "true").lower() == "true"
@@ -107,7 +109,7 @@ def _openai_chat(messages: List[Dict[str, str]]) -> str:
 
 
 def _ollama_chat(messages: List[Dict[str, str]]) -> str:
-    payload = {"model": OLLAMA_MODEL, "messages": messages, "stream": False}
+    payload = {"model": OLLAMA_CHAT_MODEL, "messages": messages, "stream": False}
     resp = requests.post(
         f"{OLLAMA_BASE_URL}/api/chat",
         json=payload,
@@ -207,7 +209,7 @@ def generate_answer(ranking_output: Dict[str, Any]) -> Dict[str, Any]:
         "error": "" if ok else err,
         "meta": {
             "layer": "answer",
-            "llm_model": LLM_MODEL,
+            "llm_model": OLLAMA_CHAT_MODEL if LLM_PROVIDER == "ollama" else LLM_MODEL,
             "llm_used": USE_LLM,
             "llm_success": ok,
             "llm_error": None if ok else err,

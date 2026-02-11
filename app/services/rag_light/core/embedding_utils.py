@@ -7,7 +7,9 @@ EMBEDDING_MODEL_TYPE = os.getenv("EMBEDDING_MODEL_TYPE", "biencoder").lower()
 BIENCODER_MODEL_PATH = os.getenv("BIENCODER_MODEL_PATH", "")
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "nomic-embed-text")
+# 兼容：历史上 embedding 与 chat 共用 OLLAMA_MODEL。
+# 现在建议拆分为 OLLAMA_EMBED_MODEL / OLLAMA_CHAT_MODEL，避免误用。
+OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL") or os.getenv("OLLAMA_MODEL", "nomic-embed-text")
 OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "120"))
 
 _biencoder_model = None
@@ -36,7 +38,7 @@ def embed_ollama(text: str) -> List[float]:
     import requests
 
     url = f"{OLLAMA_BASE_URL}/api/embeddings"
-    payload = {"model": OLLAMA_MODEL, "prompt": text or ""}
+    payload = {"model": OLLAMA_EMBED_MODEL, "prompt": text or ""}
     r = requests.post(url, json=payload, timeout=OLLAMA_TIMEOUT)
     r.raise_for_status()
     data = r.json()
@@ -65,4 +67,4 @@ def embed_text(text: str) -> List[float]:
 def get_current_model_name() -> str:
     if EMBEDDING_MODEL_TYPE == "biencoder":
         return f"biencoder({BIENCODER_MODEL_PATH})"
-    return f"ollama({OLLAMA_MODEL})"
+    return f"ollama({OLLAMA_EMBED_MODEL})"
