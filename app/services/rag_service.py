@@ -4,13 +4,12 @@ from typing import Any, Dict
 
 import requests
 
-from app.services.rag_light.pipeline import LightRagPipeline
+from app.services.rag_light import rag_query
 
 RAG_PROXY_URL = os.getenv("RAG_PROXY_URL", "").strip()
 RAG_PROJECT_PATH = os.getenv("RAG_PROJECT_PATH", "").strip()
 TIMEOUT_SECONDS = float(os.getenv("RAG_TIMEOUT", "120"))
-RAG_LIGHT_MODE = os.getenv("RAG_LIGHT_MODE", "true").lower() == "true"
-RAG_LIGHT_DATA_PATH = os.getenv("RAG_LIGHT_DATA_PATH", "").strip() or None
+RAG_LOCAL_MODE = os.getenv("RAG_LOCAL_MODE", "true").lower() == "true"
 
 rag_query_func = None
 if RAG_PROJECT_PATH:
@@ -26,14 +25,13 @@ except Exception:
 
 class RagService:
     def query(self, *, question: str, with_trace: bool, with_timing: bool) -> Dict[str, Any]:
-        if RAG_LIGHT_MODE:
-            pipeline = LightRagPipeline(data_path=RAG_LIGHT_DATA_PATH)
-            result = pipeline.answer(question)
-            if with_trace:
-                result["trace"] = {"mode": "light", "data_path": RAG_LIGHT_DATA_PATH}
-            if with_timing:
-                result["timings"] = {"total": 0.0}
-            return result
+        if RAG_LOCAL_MODE:
+            return rag_query(
+                question,
+                with_trace=with_trace,
+                with_timing=with_timing,
+                suppress_internal_logs=True,
+            )
 
         # 优先本地调用 rag_query（本地测试）
         if rag_query_func is not None:
