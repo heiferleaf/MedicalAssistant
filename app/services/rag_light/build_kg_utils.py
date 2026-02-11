@@ -54,7 +54,12 @@ class MedicalExtractor(object):
             "CREATE CONSTRAINT reaction_id IF NOT EXISTS FOR (n:Reaction) REQUIRE n.id IS UNIQUE",
             "CREATE CONSTRAINT indication_id IF NOT EXISTS FOR (n:Indication) REQUIRE n.id IS UNIQUE",
             "CREATE CONSTRAINT outcome_id IF NOT EXISTS FOR (n:Outcome) REQUIRE n.id IS UNIQUE",
-            "CREATE INDEX primaryid_idx IF NOT EXISTS FOR (n) ON (n.primaryid)",
+            "CREATE INDEX patient_primaryid IF NOT EXISTS FOR (n:Patient) ON (n.primaryid)",
+            "CREATE INDEX drugset_primaryid IF NOT EXISTS FOR (n:DrugSet) ON (n.primaryid)",
+            "CREATE INDEX drug_primaryid IF NOT EXISTS FOR (n:Drug) ON (n.primaryid)",
+            "CREATE INDEX reaction_primaryid IF NOT EXISTS FOR (n:Reaction) ON (n.primaryid)",
+            "CREATE INDEX indication_primaryid IF NOT EXISTS FOR (n:Indication) ON (n.primaryid)",
+            "CREATE INDEX outcome_primaryid IF NOT EXISTS FOR (n:Outcome) ON (n.primaryid)",
         ]
         for cypher in statements:
             self.graph.run(cypher)

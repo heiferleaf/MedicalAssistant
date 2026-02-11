@@ -28,7 +28,11 @@
 
 2) 使用仓库内脚本导入 Neo4j
   - 脚本位置：`app/services/rag_light/build_kg_utils.py`
-  - 依赖：`py2neo`、`tqdm`（Flask requirements 已包含 py2neo；tqdm 若缺失则 pip 安装）
+  - 依赖：`py2neo`、`tqdm`
+    - 推荐只安装导入所需最小依赖：`pip install -r app/services/rag_light/requirements.kg.txt`
+    - （可选）若你在安装全量 `requirements.txt` 时遇到 pip 的 `AssertionError`，先升级 pip 再重试：
+      - `python -m pip install -U pip setuptools wheel`
+      - 并建议使用 https 的阿里云镜像：`pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com`
   - 运行前设置环境变量（推荐走本机回环，避免公网链路）：
     - `export NEO4J_URI='bolt://127.0.0.1:7687'`
     - `export NEO4J_USER='neo4j'`
