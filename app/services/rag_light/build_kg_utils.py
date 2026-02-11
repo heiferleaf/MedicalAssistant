@@ -157,7 +157,6 @@ class MedicalExtractor(object):
         # 2) DRUG：Drug、CONTAINS_DRUG
         drug_path = self._safe_join(data_path, filename("DRUG"))
         drug_rows: List[Dict] = []
-        to_delete: List[str] = []
         drug_cypher = """
         UNWIND $rows AS row
         MERGE (d:Drug {id: row.drug_id})
@@ -173,7 +172,8 @@ class MedicalExtractor(object):
             ds.caseid = row.caseid
         MERGE (ds)-[:CONTAINS_DRUG]->(d)
         """
-        required_drug_indices = [0, 1, 4, 5]
+        # 注意：FAERS DRUG 表中 prod_ai（fields[5]）常见为空；不应因此把整个 case 作废。
+        required_drug_indices = [0, 1, 4]
         for line in tqdm(self._iter_lines(drug_path, encoding), ncols=100, desc="DRUG -> Drug/CONTAINS_DRUG"):
             fields = line.rstrip("\n").split("$")
             if len(fields) <= max(required_drug_indices):
@@ -182,14 +182,6 @@ class MedicalExtractor(object):
             if primaryid in self.invalid_primaryids:
                 continue
             if any(not fields[i].strip() for i in required_drug_indices):
-                self.invalid_primaryids.add(primaryid)
-                if primaryid in self.valid_primaryids:
-                    self.valid_primaryids.remove(primaryid)
-                if delete_invalid:
-                    to_delete.append(primaryid)
-                    if len(to_delete) >= batch_size:
-                        self._delete_invalid_primaryids(to_delete)
-                        to_delete.clear()
                 continue
 
             caseid = fields[1]
@@ -202,7 +194,7 @@ class MedicalExtractor(object):
                     "primaryid": primaryid,
                     "caseid": caseid,
                     "drugname": drugname,
-                    "prod_ai": fields[5],
+                    "prod_ai": fields[5] if len(fields) > 5 else "",
                     "dose_amt": fields[16] if len(fields) > 16 else "",
                     "dose_unit": fields[17] if len(fields) > 17 else "",
                     "dose_freq": fields[19] if len(fields) > 19 else "",
@@ -212,8 +204,6 @@ class MedicalExtractor(object):
                 self._write_batch(drug_cypher, drug_rows)
                 drug_rows.clear()
         self._write_batch(drug_cypher, drug_rows)
-        if delete_invalid:
-            self._delete_invalid_primaryids(to_delete)
 
         # 3) REAC：Reaction、CAUSES_REACTION
         reac_path = self._safe_join(data_path, filename("REAC"))

@@ -60,10 +60,50 @@
 - 方案A：本地 Ollama（CPU 版本，小模型）
 - 方案B：云端 LLM API（推荐，稳定）
 
+### 6.1 Ollama 安装与“下载加速”（SSH 反向隧道 + 本机 Clash 代理）
+适用场景：云服务器直连下载 Ollama / 模型很慢，但你本机网络正常且已开启 Clash 代理（例如 `127.0.0.1:7897`）。
+
+1) 在你本机（Windows）开启一条 SSH 反向隧道（此命令会“卡住不动”是正常的）
+  - PowerShell：
+    - `ssh -N -R 7897:127.0.0.1:7897 root@<你的服务器IP>`
+
+2) 在云服务器上验证代理是否可用
+  - `curl -I -x http://127.0.0.1:7897 https://ollama.com`
+  - 看到 `HTTP/1.1 200 Connection established` 且后续有 `HTTP/2 200`，说明链路已通。
+
+3) 在云服务器上通过该代理安装/拉取模型（只对当前 shell 生效）
+  - `export http_proxy=http://127.0.0.1:7897`
+  - `export https_proxy=http://127.0.0.1:7897`
+  - `curl -fsSL https://ollama.com/install.sh | sh`
+  - `ollama --version`
+  - 拉取模型示例：
+    - `ollama pull nomic-embed-text`
+    - `ollama pull qwen2.5:3b-instruct`（资源紧张先用 3b）
+    - （可选）`ollama pull qwen2.5:7b-instruct`
+
+4) 代理不用时可取消（避免影响其它下载）
+  - `unset http_proxy https_proxy`
+
+5) 注意事项
+  - 如果你用的是非 root 用户登录，把上面的 `root@...` 换成实际账号即可。
+  - 如果 Clash 端口不是 `7897`，以你本机 Clash Verge 显示的 System Proxy 端口为准。
+  - 这套方法只解决“下载慢”；Ollama 推理速度仍取决于云服务器 CPU/GPU。
+
 ## 7. Flask 接入
 - Flask /rag/query 使用迁移后的 rag_light
 - 设置：Neo4j 与模型环境变量（见 .env.example）
 - 暴露端口（默认 8001）
+
+### 7.1 Path B（本机 Ollama：embedding + chat）推荐环境变量
+- Embedding：
+  - `EMBEDDING_MODEL_TYPE=ollama`
+  - `OLLAMA_BASE_URL=http://127.0.0.1:11434`
+  - `OLLAMA_EMBED_MODEL=nomic-embed-text`
+- 答案生成：
+  - `LLM_PROVIDER=ollama`
+  - `OLLAMA_CHAT_MODEL=qwen2.5:3b-instruct`（或 7b）
+
+兼容说明：历史上 embedding/chat 共用 `OLLAMA_MODEL`。现在建议使用 `OLLAMA_EMBED_MODEL` 与 `OLLAMA_CHAT_MODEL` 分开配置。
 
 ## 8. Spring Boot 接入
 - 配置 ai.rag.base-url 指向 Flask
