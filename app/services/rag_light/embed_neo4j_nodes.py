@@ -27,8 +27,6 @@ from typing import Dict, Iterable, List, Tuple
 from py2neo import Graph
 from tqdm import tqdm
 
-from app.services.rag_light.core.embedding_utils import embed_text, get_current_model_name
-
 
 LABEL_PROP: Dict[str, str] = {
     "Drug": "drugname",
@@ -59,6 +57,8 @@ def _load_env_file(path: str) -> None:
                     continue
                 key, value = line.split("=", 1)
                 key = key.strip()
+                if key.startswith("export "):
+                    key = key[len("export ") :].strip()
                 value = value.strip().strip("\"").strip("'")
                 if not key:
                     continue
@@ -69,12 +69,6 @@ def _load_env_file(path: str) -> None:
 
 
 def _connect_graph() -> Graph:
-    # Convenience: allow running the script without manual `export` by loading
-    # a server-side EnvironmentFile (same style as systemd EnvironmentFile).
-    # You can override the path via NEO4J_ENV_FILE.
-    if not os.getenv("NEO4J_PASSWORD"):
-        _load_env_file(os.getenv("NEO4J_ENV_FILE", "/etc/medicalassistant/flask.env"))
-
     uri = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
     user = os.getenv("NEO4J_USER", "neo4j")
     password = os.getenv("NEO4J_PASSWORD", "")
@@ -117,6 +111,7 @@ def backfill_label(
     graph: Graph,
     label: str,
     *,
+    embed_fn,
     batch_size: int,
     limit: int | None,
     sleep_ms: int,
@@ -129,15 +124,18 @@ def backfill_label(
     total = 0
     ok = 0
     failed = 0
+    first_error: str | None = None
 
     for nid, text in tqdm(list(_iter_missing(graph, label, prop, limit)), ncols=100, desc=f"embed {label}"):
         total += 1
         try:
-            emb = embed_text(text)
+            emb = embed_fn(text)
             pending.append({"nid": nid, "embedding": emb})
             ok += 1
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
             failed += 1
+            if first_error is None:
+                first_error = repr(exc)
 
         if len(pending) >= batch_size:
             _write_batch(graph, label, pending)
@@ -147,7 +145,11 @@ def backfill_label(
 
     _write_batch(graph, label, pending)
 
-    return {"total": total, "ok": ok, "failed": failed}
+    stats: Dict[str, int] = {"total": total, "ok": ok, "failed": failed}
+    if first_error:
+        # Provide one representative failure reason for quick diagnosis.
+        print(f"[embed] {label} first_error={first_error}")
+    return stats
 
 
 def main(argv: List[str]) -> int:
@@ -163,6 +165,11 @@ def main(argv: List[str]) -> int:
     parser.add_argument("--sleep-ms", type=int, default=0, help="每批写入后休眠毫秒数")
     args = parser.parse_args(argv)
 
+    # Load env file early so embedding/ollama settings are visible during imports.
+    _load_env_file(os.getenv("NEO4J_ENV_FILE", "/etc/medicalassistant/flask.env"))
+
+    from app.services.rag_light.core.embedding_utils import embed_text, get_current_model_name
+
     graph = _connect_graph()
     model = get_current_model_name()
     print(f"[embed] embedding_model={model}")
@@ -172,6 +179,7 @@ def main(argv: List[str]) -> int:
         summary[label] = backfill_label(
             graph,
             label,
+            embed_fn=embed_text,
             batch_size=args.batch_size,
             limit=args.limit,
             sleep_ms=args.sleep_ms,
