@@ -65,9 +65,13 @@ def rag_health() -> Any:
         "input_provider": os.getenv("INPUT_PROVIDER", "openai"),
     }
 
-    ok = bool(checks.get("neo4j", {}).get("ok"))
-    status = "ok" if ok else "degraded"
-    http_status = 200 if ok else 503
+    neo4j_ok = bool(checks.get("neo4j", {}).get("ok"))
+    ollama_ok = bool(checks.get("ollama", {}).get("ok"))
+
+    # Keep HTTP semantics: only fail hard if Neo4j is unavailable.
+    # But reflect partial outages in the returned status string.
+    status = "ok" if (neo4j_ok and ollama_ok) else "degraded"
+    http_status = 200 if neo4j_ok else 503
     return jsonify({"status": status, "checks": checks}), http_status
 
 

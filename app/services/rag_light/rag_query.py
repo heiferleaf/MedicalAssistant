@@ -10,6 +10,38 @@ from app.services.rag_light.core.ranking_layer import rank_expansions
 from app.services.rag_light.core.output_layer import generate_answer
 
 
+def _sanitize_trace_inplace(trace: Dict[str, Any]) -> None:
+    """Remove large vector fields from trace to keep API responses small."""
+
+    def strip_query_vector(obj: Any) -> None:
+        if isinstance(obj, dict):
+            if "query_vector" in obj:
+                vec = obj.get("query_vector")
+                dim = len(vec) if isinstance(vec, list) else None
+                obj.pop("query_vector", None)
+                meta = obj.get("meta")
+                if isinstance(meta, dict) and dim is not None:
+                    meta.setdefault("query_vector_dim", dim)
+            for v in obj.values():
+                strip_query_vector(v)
+        elif isinstance(obj, list):
+            for v in obj:
+                strip_query_vector(v)
+
+    def strip_embeddings(obj: Any) -> None:
+        if isinstance(obj, dict):
+            if "embedding" in obj and isinstance(obj.get("embedding"), list):
+                obj.pop("embedding", None)
+            for v in obj.values():
+                strip_embeddings(v)
+        elif isinstance(obj, list):
+            for v in obj:
+                strip_embeddings(v)
+
+    strip_query_vector(trace)
+    strip_embeddings(trace)
+
+
 def rag_query(
     question: str,
     *,
@@ -73,6 +105,7 @@ def rag_query(
         if with_timing:
             result["timings"] = timings
         if with_trace:
+            _sanitize_trace_inplace(trace)
             result["trace"] = trace
         result["raw"] = answer_dict
         return result
