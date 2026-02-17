@@ -1,10 +1,74 @@
+import os
+import time
 from typing import Any, Dict
 
 from flask import Blueprint, jsonify, request
 
 from app.services.rag_service import RagService
 
+
 rag_bp = Blueprint("rag", __name__)
+
+
+@rag_bp.get("/health")
+def rag_health() -> Any:
+    checks: Dict[str, Any] = {}
+
+    # 1) Ollama
+    ollama_base = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+    try:
+        import requests
+
+        t0 = time.time()
+        resp = requests.get(f"{ollama_base}/api/version", timeout=3)
+        latency_ms = int((time.time() - t0) * 1000)
+        checks["ollama"] = {
+            "ok": resp.ok,
+            "status": resp.status_code,
+            "latency_ms": latency_ms,
+            "base_url": ollama_base,
+            "body": resp.json() if resp.ok else resp.text[:2000],
+        }
+    except Exception as exc:  # noqa: BLE001
+        checks["ollama"] = {"ok": False, "error": repr(exc), "base_url": ollama_base}
+
+    # 2) Neo4j
+    neo4j_uri = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
+    neo4j_user = os.getenv("NEO4J_USER", "neo4j")
+    neo4j_password = os.getenv("NEO4J_PASSWORD", "")
+    try:
+        from py2neo import Graph
+
+        t0 = time.time()
+        g = Graph(neo4j_uri, auth=(neo4j_user, neo4j_password))
+        ok_val = g.run("RETURN 1 AS ok").evaluate()
+        latency_ms = int((time.time() - t0) * 1000)
+        checks["neo4j"] = {
+            "ok": ok_val == 1,
+            "latency_ms": latency_ms,
+            "uri": neo4j_uri,
+            "user": neo4j_user,
+        }
+    except Exception as exc:  # noqa: BLE001
+        checks["neo4j"] = {
+            "ok": False,
+            "error": repr(exc),
+            "uri": neo4j_uri,
+            "user": neo4j_user,
+        }
+
+    # 3) Runtime meta
+    checks["rag"] = {
+        "rag_local_mode": os.getenv("RAG_LOCAL_MODE", "true").lower() == "true",
+        "embedding_model_type": os.getenv("EMBEDDING_MODEL_TYPE", "biencoder"),
+        "llm_provider": os.getenv("LLM_PROVIDER", "openai"),
+        "input_provider": os.getenv("INPUT_PROVIDER", "openai"),
+    }
+
+    ok = bool(checks.get("neo4j", {}).get("ok"))
+    status = "ok" if ok else "degraded"
+    http_status = 200 if ok else 503
+    return jsonify({"status": status, "checks": checks}), http_status
 
 
 @rag_bp.post("/query")

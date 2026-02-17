@@ -1,12 +1,21 @@
-from typing import Any, Dict, List, Set
+import os
+from functools import lru_cache
+from typing import Any, Dict, List, Set, Tuple
 
 from py2neo import Graph
 
-NEO4J_URI = __import__("os").getenv("NEO4J_URI", "bolt://localhost:7687")
-NEO4J_USER = __import__("os").getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = __import__("os").getenv("NEO4J_PASSWORD", "")
 
-graph = Graph(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+def _neo4j_settings() -> Tuple[str, str, str]:
+    uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    user = os.getenv("NEO4J_USER", "neo4j")
+    password = os.getenv("NEO4J_PASSWORD", "")
+    return uri, user, password
+
+
+@lru_cache(maxsize=1)
+def _get_graph() -> Graph:
+    uri, user, password = _neo4j_settings()
+    return Graph(uri, auth=(user, password))
 
 LABEL_PROP = {
     "Drug": "drugname",
@@ -30,7 +39,7 @@ def _all_ids_exact(label: str, value: str) -> List[int]:
     WHERE toLower(n.{prop}) = toLower($val)
     RETURN id(n) AS id
     """
-    return [int(r["id"]) for r in graph.run(q, val=value).data()]
+    return [int(r["id"]) for r in _get_graph().run(q, val=value).data()]
 
 
 def _distinct_drugset_count_by_drug_ids(drug_ids: List[int]) -> int:
@@ -41,7 +50,7 @@ def _distinct_drugset_count_by_drug_ids(drug_ids: List[int]) -> int:
     MATCH (ds:DrugSet)-[:CONTAINS_DRUG]->(d:Drug) WHERE id(d)=did
     RETURN count(distinct ds) AS c
     """
-    rec = graph.run(q, ids=drug_ids).evaluate()
+    rec = _get_graph().run(q, ids=drug_ids).evaluate()
     return int(rec or 0)
 
 
@@ -69,7 +78,7 @@ def _distinct_drugset_count_by_other_ids(label: str, ids: List[int]) -> int:
         """
     else:
         return 0
-    rec = graph.run(q, ids=ids).evaluate()
+    rec = _get_graph().run(q, ids=ids).evaluate()
     return int(rec or 0)
 
 
@@ -86,7 +95,7 @@ def _reactions_from_drugs(drug_ids: List[int], k: int):
     ORDER BY freq DESC
     LIMIT $k
     """
-    return graph.run(q, drugIds=drug_ids, k=k).data()
+    return _get_graph().run(q, drugIds=drug_ids, k=k).data()
 
 
 def _drugs_from_reactions(reaction_ids: List[int], k: int):
@@ -102,7 +111,7 @@ def _drugs_from_reactions(reaction_ids: List[int], k: int):
     ORDER BY freq DESC
     LIMIT $k
     """
-    return graph.run(q, reactionIds=reaction_ids, k=k).data()
+    return _get_graph().run(q, reactionIds=reaction_ids, k=k).data()
 
 
 def _indications_from_drugs(drug_ids: List[int], k: int):
@@ -118,7 +127,7 @@ def _indications_from_drugs(drug_ids: List[int], k: int):
     ORDER BY freq DESC
     LIMIT $k
     """
-    return graph.run(q, drugIds=drug_ids, k=k).data()
+    return _get_graph().run(q, drugIds=drug_ids, k=k).data()
 
 
 def _drugs_from_indications(indication_ids: List[int], k: int):
@@ -134,7 +143,7 @@ def _drugs_from_indications(indication_ids: List[int], k: int):
     ORDER BY freq DESC
     LIMIT $k
     """
-    return graph.run(q, indicationIds=indication_ids, k=k).data()
+    return _get_graph().run(q, indicationIds=indication_ids, k=k).data()
 
 
 def _outcomes_from_drugs(drug_ids: List[int], k: int):
@@ -150,7 +159,7 @@ def _outcomes_from_drugs(drug_ids: List[int], k: int):
     ORDER BY freq DESC
     LIMIT $k
     """
-    return graph.run(q, drugIds=drug_ids, k=k).data()
+    return _get_graph().run(q, drugIds=drug_ids, k=k).data()
 
 
 def _drugs_from_outcomes(outcome_ids: List[int], k: int):
@@ -167,7 +176,7 @@ def _drugs_from_outcomes(outcome_ids: List[int], k: int):
     ORDER BY freq DESC
     LIMIT $k
     """
-    return graph.run(q, outcomeIds=outcome_ids, k=k).data()
+    return _get_graph().run(q, outcomeIds=outcome_ids, k=k).data()
 
 
 def _global_top(label: str, k: int):
@@ -205,7 +214,7 @@ def _global_top(label: str, k: int):
         """
     else:
         return []
-    return graph.run(q, k=k).data()
+    return _get_graph().run(q, k=k).data()
 
 
 def aggregate_relations(search_output: Dict[str, Any]) -> Dict[str, Any]:

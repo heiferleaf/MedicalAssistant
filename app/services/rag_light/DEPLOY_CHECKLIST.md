@@ -99,6 +99,8 @@
   - `EMBEDDING_MODEL_TYPE=ollama`
   - `OLLAMA_BASE_URL=http://127.0.0.1:11434`
   - `OLLAMA_EMBED_MODEL=nomic-embed-text`
+- 输入解析：
+  - `INPUT_PROVIDER=ollama`（不依赖 OPENAI_API_KEY）
 - 答案生成：
   - `LLM_PROVIDER=ollama`
   - `OLLAMA_CHAT_MODEL=qwen2.5:3b-instruct`（或 7b）

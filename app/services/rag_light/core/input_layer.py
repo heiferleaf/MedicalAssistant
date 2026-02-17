@@ -3,6 +3,7 @@ import os
 import re
 from typing import Any, Dict, List
 
+import requests
 from openai import OpenAI
 
 from app.services.rag_light.core.embedding_utils import embed_text, get_current_model_name
@@ -10,6 +11,13 @@ from app.services.rag_light.core.embedding_utils import embed_text, get_current_
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo").strip()
+
+# 输入解析层可选择：openai / ollama。
+INPUT_PROVIDER = os.getenv("INPUT_PROVIDER", "openai").strip().lower()
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+OLLAMA_CHAT_MODEL = os.getenv("OLLAMA_CHAT_MODEL") or os.getenv("OLLAMA_MODEL", "qwen2.5:3b-instruct")
+OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "120"))
 
 SYSTEM_EXTRACT = (
     "你是药物安全知识图谱的解析器。图谱只有四类节点：Drug、Reaction、Indication、Outcome。\n"
@@ -40,6 +48,26 @@ def _client() -> OpenAI | None:
     return OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
 
 
+def _ollama_chat(system: str, user: str) -> str:
+    payload = {
+        "model": OLLAMA_CHAT_MODEL,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "stream": False,
+    }
+    resp = requests.post(
+        f"{OLLAMA_BASE_URL}/api/chat",
+        json=payload,
+        timeout=OLLAMA_TIMEOUT,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    content = (data.get("message") or {}).get("content", "")
+    return (content or "").strip()
+
+
 def _extract_json(text: str) -> Dict[str, Any]:
     try:
         match = re.search(r"\{.*\}", text, re.S)
@@ -54,6 +82,13 @@ def _translate_to_en(text: str) -> str:
         return t
     if all(ord(ch) < 128 for ch in t):
         return t
+    if INPUT_PROVIDER == "ollama":
+        try:
+            translated = _ollama_chat(SYSTEM_TRANSLATE, t)
+            return translated or t
+        except Exception:
+            return t
+
     client = _client()
     if client is None:
         return t
@@ -74,20 +109,26 @@ def _translate_to_en(text: str) -> str:
 
 def parse_input(question: str) -> Dict[str, Any]:
     raw = "{}"
-    client = _client()
-    if client is not None:
+    if INPUT_PROVIDER == "ollama":
         try:
-            resp = client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=[
-                    {"role": "system", "content": SYSTEM_EXTRACT},
-                    {"role": "user", "content": question},
-                ],
-                temperature=0.0,
-            )
-            raw = resp.choices[0].message.content.strip()
+            raw = _ollama_chat(SYSTEM_EXTRACT, question)
         except Exception:
             raw = "{}"
+    else:
+        client = _client()
+        if client is not None:
+            try:
+                resp = client.chat.completions.create(
+                    model=OPENAI_MODEL,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_EXTRACT},
+                        {"role": "user", "content": question},
+                    ],
+                    temperature=0.0,
+                )
+                raw = resp.choices[0].message.content.strip()
+            except Exception:
+                raw = "{}"
 
     data = _extract_json(raw)
 
@@ -126,6 +167,7 @@ def parse_input(question: str) -> Dict[str, Any]:
         "query_vector": query_vector,
         "meta": {
             "raw_llm_output": raw,
+            "input_provider": INPUT_PROVIDER,
             "parsed_ok": bool(seeds or intents),
             "embedding_model": get_current_model_name(),
             "query_vector_dim": len(query_vector) if query_vector else None,

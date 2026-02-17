@@ -1,20 +1,25 @@
+import os
 from collections import defaultdict
-from typing import Any, Dict, List
+from functools import lru_cache
+from typing import Any, Dict, List, Tuple
 
 from py2neo import Graph
 from py2neo.errors import ClientError
 
 from app.services.rag_light.core.input_layer import parse_input
 
-NEO4J_URI = "bolt://localhost:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = ""
 
-NEO4J_URI = __import__("os").getenv("NEO4J_URI", NEO4J_URI)
-NEO4J_USER = __import__("os").getenv("NEO4J_USER", NEO4J_USER)
-NEO4J_PASSWORD = __import__("os").getenv("NEO4J_PASSWORD", NEO4J_PASSWORD)
+def _neo4j_settings() -> Tuple[str, str, str]:
+    uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    user = os.getenv("NEO4J_USER", "neo4j")
+    password = os.getenv("NEO4J_PASSWORD", "")
+    return uri, user, password
 
-graph = Graph(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+
+@lru_cache(maxsize=1)
+def _get_graph() -> Graph:
+    uri, user, password = _neo4j_settings()
+    return Graph(uri, auth=(user, password))
 
 LABEL_INFO: Dict[str, Dict[str, str]] = {
     "Drug": {"prop": "drugname", "fulltext": "drug_ft"},
@@ -35,7 +40,7 @@ def _fulltext_query(label: str, term: str, limit: int) -> List[Dict[str, Any]]:
     ORDER BY score DESC
     LIMIT $limit
     """
-    return graph.run(query, index=index_name, term=term, limit=limit).data()
+    return _get_graph().run(query, index=index_name, term=term, limit=limit).data()
 
 
 def _contains_query(label: str, term: str, limit: int) -> List[Dict[str, Any]]:
@@ -48,7 +53,7 @@ def _contains_query(label: str, term: str, limit: int) -> List[Dict[str, Any]]:
     ORDER BY toLower(n.{prop}) ASC
     LIMIT $limit
     """
-    rows = graph.run(query, term=term, limit=limit).data()
+    rows = _get_graph().run(query, term=term, limit=limit).data()
     for r in rows:
         r["score"] = None
     return rows
@@ -63,7 +68,7 @@ def _fallback_all(label: str, limit: int) -> List[Dict[str, Any]]:
     ORDER BY toLower(n.{prop}) ASC
     LIMIT $limit
     """
-    rows = graph.run(query, limit=limit).data()
+    rows = _get_graph().run(query, limit=limit).data()
     for r in rows:
         r["score"] = None
     return rows
