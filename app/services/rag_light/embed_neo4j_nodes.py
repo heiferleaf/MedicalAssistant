@@ -38,12 +38,53 @@ LABEL_PROP: Dict[str, str] = {
 }
 
 
+def _load_env_file(path: str) -> None:
+    """Load KEY=VALUE lines from a .env-like file into os.environ (if absent).
+
+    This is intentionally minimal (no variable expansion).
+    """
+
+    if not path:
+        return
+    if not os.path.exists(path):
+        return
+
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip("\"").strip("'")
+                if not key:
+                    continue
+                os.environ.setdefault(key, value)
+    except Exception:
+        # Best-effort: if env loading fails, we'll surface missing vars later.
+        return
+
+
 def _connect_graph() -> Graph:
+    # Convenience: allow running the script without manual `export` by loading
+    # a server-side EnvironmentFile (same style as systemd EnvironmentFile).
+    # You can override the path via NEO4J_ENV_FILE.
+    if not os.getenv("NEO4J_PASSWORD"):
+        _load_env_file(os.getenv("NEO4J_ENV_FILE", "/etc/medicalassistant/flask.env"))
+
     uri = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
     user = os.getenv("NEO4J_USER", "neo4j")
     password = os.getenv("NEO4J_PASSWORD", "")
     if not password:
-        raise RuntimeError("NEO4J_PASSWORD 未设置")
+        raise RuntimeError(
+            "NEO4J_PASSWORD 未设置。请：\n"
+            "1) export NEO4J_PASSWORD=... 后再运行；或\n"
+            "2) 把 NEO4J_PASSWORD 写入 /etc/medicalassistant/flask.env；或\n"
+            "3) 设置 NEO4J_ENV_FILE 指向你的 env 文件。"
+        )
     return Graph(uri, auth=(user, password))
 
 
