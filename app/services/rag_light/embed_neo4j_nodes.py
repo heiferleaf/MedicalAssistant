@@ -36,7 +36,7 @@ LABEL_PROP: Dict[str, str] = {
 }
 
 
-def _load_env_file(path: str) -> None:
+def _load_env_file(path: str, *, override: bool = False) -> None:
     """Load KEY=VALUE lines from a .env-like file into os.environ (if absent).
 
     This is intentionally minimal (no variable expansion).
@@ -62,7 +62,8 @@ def _load_env_file(path: str) -> None:
                 value = value.strip().strip("\"").strip("'")
                 if not key:
                     continue
-                os.environ.setdefault(key, value)
+                if override or key not in os.environ:
+                    os.environ[key] = value
     except Exception:
         # Best-effort: if env loading fails, we'll surface missing vars later.
         return
@@ -166,7 +167,14 @@ def main(argv: List[str]) -> int:
     args = parser.parse_args(argv)
 
     # Load env file early so embedding/ollama settings are visible during imports.
-    _load_env_file(os.getenv("NEO4J_ENV_FILE", "/etc/medicalassistant/flask.env"))
+    env_file = os.getenv("NEO4J_ENV_FILE", "/etc/medicalassistant/flask.env")
+    _load_env_file(env_file, override=True)
+
+    # Helpful diagnostics: show which embedding config is actually active.
+    print(f"[embed] env_file={env_file}")
+    print(f"[embed] EMBEDDING_MODEL_TYPE={os.getenv('EMBEDDING_MODEL_TYPE')}")
+    print(f"[embed] OLLAMA_BASE_URL={os.getenv('OLLAMA_BASE_URL')}")
+    print(f"[embed] OLLAMA_EMBED_MODEL={os.getenv('OLLAMA_EMBED_MODEL') or os.getenv('OLLAMA_MODEL')}")
 
     from app.services.rag_light.core.embedding_utils import embed_text, get_current_model_name
 
