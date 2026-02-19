@@ -5,6 +5,10 @@ from typing import Any, Dict, List, Set, Tuple
 from py2neo import Graph
 
 
+# 用于线上排查：确认服务是否加载了最新的聚合查询逻辑。
+RELATION_AGG_VERSION = "v3_group_by_text_normalized_2026-02-18"
+
+
 def _neo4j_settings() -> Tuple[str, str, str]:
     uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
     user = os.getenv("NEO4J_USER", "neo4j")
@@ -90,8 +94,15 @@ def _reactions_from_drugs(drug_ids: List[int], k: int):
     MATCH (ds:DrugSet)-[:CONTAINS_DRUG]->(d:Drug) WHERE id(d)=did
     WITH distinct ds
     MATCH (ds)-[:CAUSES_REACTION]->(r:Reaction)
-    WITH r, count(distinct ds) AS freq
-    RETURN id(r) AS id, 'Reaction' AS label, r.reac AS text, r.embedding AS embedding, freq
+    WHERE r.reac IS NOT NULL AND trim(toString(r.reac)) <> ''
+    WITH toLower(trim(toString(r.reac))) AS key,
+         trim(toString(r.reac)) AS text_raw,
+         min(id(r)) AS id,
+         head(collect(r.embedding)) AS embedding,
+         count(distinct ds) AS freq
+    WHERE key <> 'pt'
+    WITH key, id, embedding, freq, min(text_raw) AS text
+    RETURN id AS id, 'Reaction' AS label, text, embedding, freq
     ORDER BY freq DESC
     LIMIT $k
     """
@@ -106,8 +117,14 @@ def _drugs_from_reactions(reaction_ids: List[int], k: int):
     MATCH (ds:DrugSet)-[:CAUSES_REACTION]->(r:Reaction) WHERE id(r)=rid
     WITH distinct ds
     MATCH (ds)-[:CONTAINS_DRUG]->(d:Drug)
-    WITH d, count(distinct ds) AS freq
-    RETURN id(d) AS id, 'Drug' AS label, d.drugname AS text, d.embedding AS embedding, freq
+    WHERE d.drugname IS NOT NULL AND trim(toString(d.drugname)) <> ''
+    WITH toUpper(trim(toString(d.drugname))) AS key,
+         trim(toString(d.drugname)) AS text_raw,
+         min(id(d)) AS id,
+         head(collect(d.embedding)) AS embedding,
+         count(distinct ds) AS freq
+    WITH key, id, embedding, freq, min(text_raw) AS text
+    RETURN id AS id, 'Drug' AS label, text, embedding, freq
     ORDER BY freq DESC
     LIMIT $k
     """
@@ -122,8 +139,14 @@ def _indications_from_drugs(drug_ids: List[int], k: int):
     MATCH (ds:DrugSet)-[:CONTAINS_DRUG]->(d:Drug) WHERE id(d)=did
     WITH distinct ds
     MATCH (ds)-[:TREATS_FOR]->(i:Indication)
-    WITH i, count(distinct ds) AS freq
-    RETURN id(i) AS id, 'Indication' AS label, i.indi AS text, i.embedding AS embedding, freq
+    WHERE i.indi IS NOT NULL AND trim(toString(i.indi)) <> ''
+        WITH toLower(trim(toString(i.indi))) AS key,
+            trim(toString(i.indi)) AS text_raw,
+         min(id(i)) AS id,
+         head(collect(i.embedding)) AS embedding,
+         count(distinct ds) AS freq
+        WITH key, id, embedding, freq, min(text_raw) AS text
+        RETURN id AS id, 'Indication' AS label, text, embedding, freq
     ORDER BY freq DESC
     LIMIT $k
     """
@@ -138,8 +161,14 @@ def _drugs_from_indications(indication_ids: List[int], k: int):
     MATCH (ds:DrugSet)-[:TREATS_FOR]->(i:Indication) WHERE id(i)=iid
     WITH distinct ds
     MATCH (ds)-[:CONTAINS_DRUG]->(d:Drug)
-    WITH d, count(distinct ds) AS freq
-    RETURN id(d) AS id, 'Drug' AS label, d.drugname AS text, d.embedding AS embedding, freq
+    WHERE d.drugname IS NOT NULL AND trim(toString(d.drugname)) <> ''
+        WITH toUpper(trim(toString(d.drugname))) AS key,
+            trim(toString(d.drugname)) AS text_raw,
+         min(id(d)) AS id,
+         head(collect(d.embedding)) AS embedding,
+         count(distinct ds) AS freq
+        WITH key, id, embedding, freq, min(text_raw) AS text
+        RETURN id AS id, 'Drug' AS label, text, embedding, freq
     ORDER BY freq DESC
     LIMIT $k
     """
@@ -154,8 +183,14 @@ def _outcomes_from_drugs(drug_ids: List[int], k: int):
     MATCH (p:Patient)-[:USED_IN_CASE]->(ds:DrugSet)-[:CONTAINS_DRUG]->(d:Drug) WHERE id(d)=did
     WITH distinct p
     MATCH (p)-[:HAS_OUTCOME]->(o:Outcome)
-    WITH o, count(distinct p) AS freq
-    RETURN id(o) AS id, 'Outcome' AS label, o.outccode AS text, o.embedding AS embedding, freq
+    WHERE o.outccode IS NOT NULL AND trim(toString(o.outccode)) <> ''
+        WITH toUpper(trim(toString(o.outccode))) AS key,
+            trim(toString(o.outccode)) AS text_raw,
+         min(id(o)) AS id,
+         head(collect(o.embedding)) AS embedding,
+         count(distinct p) AS freq
+        WITH key, id, embedding, freq, min(text_raw) AS text
+        RETURN id AS id, 'Outcome' AS label, text, embedding, freq
     ORDER BY freq DESC
     LIMIT $k
     """
@@ -171,8 +206,14 @@ def _drugs_from_outcomes(outcome_ids: List[int], k: int):
     WITH distinct p
     MATCH (p)-[:USED_IN_CASE]->(ds:DrugSet)
     MATCH (ds)-[:CONTAINS_DRUG]->(d:Drug)
-    WITH d, count(distinct p) AS freq
-    RETURN id(d) AS id, 'Drug' AS label, d.drugname AS text, d.embedding AS embedding, freq
+    WHERE d.drugname IS NOT NULL AND trim(toString(d.drugname)) <> ''
+        WITH toUpper(trim(toString(d.drugname))) AS key,
+            trim(toString(d.drugname)) AS text_raw,
+         min(id(d)) AS id,
+         head(collect(d.embedding)) AS embedding,
+         count(distinct p) AS freq
+        WITH key, id, embedding, freq, min(text_raw) AS text
+        RETURN id AS id, 'Drug' AS label, text, embedding, freq
     ORDER BY freq DESC
     LIMIT $k
     """
@@ -183,32 +224,57 @@ def _global_top(label: str, k: int):
     if label == "Reaction":
         q = """
         MATCH (ds:DrugSet)-[:CAUSES_REACTION]->(r:Reaction)
-        WITH r, count(distinct ds) AS freq
-        RETURN id(r) AS id, 'Reaction' AS label, r.reac AS text, r.embedding AS embedding, freq
+       WHERE r.reac IS NOT NULL AND trim(toString(r.reac)) <> ''
+       WITH toLower(trim(toString(r.reac))) AS key,
+           trim(toString(r.reac)) AS text_raw,
+             min(id(r)) AS id,
+             head(collect(r.embedding)) AS embedding,
+             count(distinct ds) AS freq
+       WHERE key <> 'pt'
+       WITH key, id, embedding, freq, min(text_raw) AS text
+       RETURN id AS id, 'Reaction' AS label, text, embedding, freq
         ORDER BY freq DESC
         LIMIT $k
         """
     elif label == "Drug":
         q = """
         MATCH (ds:DrugSet)-[:CONTAINS_DRUG]->(d:Drug)
-        WITH d, count(distinct ds) AS freq
-        RETURN id(d) AS id, 'Drug' AS label, d.drugname AS text, d.embedding AS embedding, freq
+        WHERE d.drugname IS NOT NULL AND trim(toString(d.drugname)) <> ''
+       WITH toUpper(trim(toString(d.drugname))) AS key,
+           trim(toString(d.drugname)) AS text_raw,
+             min(id(d)) AS id,
+             head(collect(d.embedding)) AS embedding,
+             count(distinct ds) AS freq
+       WITH key, id, embedding, freq, min(text_raw) AS text
+       RETURN id AS id, 'Drug' AS label, text, embedding, freq
         ORDER BY freq DESC
         LIMIT $k
         """
     elif label == "Indication":
         q = """
         MATCH (ds:DrugSet)-[:TREATS_FOR]->(i:Indication)
-        WITH i, count(distinct ds) AS freq
-        RETURN id(i) AS id, 'Indication' AS label, i.indi AS text, i.embedding AS embedding, freq
+        WHERE i.indi IS NOT NULL AND trim(toString(i.indi)) <> ''
+       WITH toLower(trim(toString(i.indi))) AS key,
+           trim(toString(i.indi)) AS text_raw,
+             min(id(i)) AS id,
+             head(collect(i.embedding)) AS embedding,
+             count(distinct ds) AS freq
+       WITH key, id, embedding, freq, min(text_raw) AS text
+       RETURN id AS id, 'Indication' AS label, text, embedding, freq
         ORDER BY freq DESC
         LIMIT $k
         """
     elif label == "Outcome":
         q = """
         MATCH (p:Patient)-[:HAS_OUTCOME]->(o:Outcome)
-        WITH o, count(distinct p) AS freq
-        RETURN id(o) AS id, 'Outcome' AS label, o.outccode AS text, o.embedding AS embedding, freq
+        WHERE o.outccode IS NOT NULL AND trim(toString(o.outccode)) <> ''
+       WITH toUpper(trim(toString(o.outccode))) AS key,
+           trim(toString(o.outccode)) AS text_raw,
+             min(id(o)) AS id,
+             head(collect(o.embedding)) AS embedding,
+             count(distinct p) AS freq
+       WITH key, id, embedding, freq, min(text_raw) AS text
+       RETURN id AS id, 'Outcome' AS label, text, embedding, freq
         ORDER BY freq DESC
         LIMIT $k
         """
@@ -398,6 +464,7 @@ def aggregate_relations(search_output: Dict[str, Any]) -> Dict[str, Any]:
         "expansions": expansions,
         "meta": {
             "layer": "relation_aggregate",
+            "version": RELATION_AGG_VERSION,
             "previous_meta": search_output.get("meta"),
             "normalization": "Drug seeds upper-cased",
             "embedding_included": True,

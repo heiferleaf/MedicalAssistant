@@ -19,6 +19,8 @@ OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "120"))
 USE_LLM = os.getenv("USE_LLM", "true").lower() == "true"
 MAX_ITEMS = int(os.getenv("MAX_ITEMS", "10"))
 
+ANSWER_LAYER_VERSION = "v3_split_events_fix_text_field_2026-02-18"
+
 OUTCOME_ALIAS = {
     "DE": "死亡",
     "LT": "危及生命",
@@ -58,41 +60,130 @@ def _dedup_and_map(items: List[Dict[str, Any]], intent: str, limit: int) -> List
         key_en, cn_hint = _normalize_text(intent, txt)
         score = float(r.get("score") or 0.0)
         freq = r.get("freq")
+        freq_val = None
+        if isinstance(freq, (int, float)):
+            try:
+                freq_val = int(freq)
+            except Exception:
+                freq_val = None
         if key_en not in buckets:
             buckets[key_en] = {
                 "text_en": key_en,
                 "text_cn_hint": cn_hint,
                 "count": 1,
                 "best_score": score,
-                "freq": freq,
+                "freq": freq_val,
             }
         else:
             buckets[key_en]["count"] += 1
             if score > buckets[key_en]["best_score"]:
                 buckets[key_en]["best_score"] = score
-                buckets[key_en]["freq"] = freq
+            if isinstance(freq_val, int):
+                prev = buckets[key_en].get("freq")
+                if not isinstance(prev, int) or freq_val > prev:
+                    buckets[key_en]["freq"] = freq_val
             if cn_hint and not buckets[key_en]["text_cn_hint"]:
                 buckets[key_en]["text_cn_hint"] = cn_hint
     merged = list(buckets.values())
-    merged.sort(key=lambda x: (x["count"], x["best_score"]), reverse=True)
+    merged.sort(key=lambda x: (x.get("freq") is not None, x.get("freq") or 0, x["best_score"]), reverse=True)
     return merged[:limit]
+
+
+def _split_reaction_rows(rows: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Separate likely adverse reactions from other report events.
+
+    FAERS/ICSR exports can include terms that are not true adverse reactions
+    (e.g., medication errors, product quality issues, diagnoses like COVID-19).
+    We keep them, but move them into a separate bucket to avoid misleading answers.
+    """
+
+    adverse: List[Dict[str, Any]] = []
+    other: List[Dict[str, Any]] = []
+
+    other_keywords = (
+        "dose omission",
+        "medication error",
+        "product quality",
+        "product use",
+        "off label",
+        "wrong",
+        "maladministration",
+        "overdose",
+        "underdose",
+        "incorrect",
+        "accidental",
+        "device",
+    )
+    disease_keywords = (
+        "covid",
+        "sars-cov",
+        "influenza",
+        "pneumonia",
+    )
+
+    for r in rows:
+        text = (r.get("text") or r.get("text_en") or "").strip()
+        t = text.lower()
+        if not t:
+            continue
+
+        is_other = any(k in t for k in other_keywords) or any(k in t for k in disease_keywords)
+        if is_other:
+            other.append(r)
+        else:
+            adverse.append(r)
+
+    return adverse, other
 
 
 def _local_compose_answer(per_intent: Dict[str, List[Dict[str, Any]]], scoring_note: str) -> str:
     parts: List[str] = []
     for intent, rows in per_intent.items():
-        title = _fmt_intent(intent)
-        lines = [f"{title}{scoring_note}："]
-        for i, r in enumerate(rows, 1):
-            en = r["text_en"]
-            cn = r.get("text_cn_hint")
-            cnt = r.get("count", 1)
-            label = f"{cn}（{en}）" if cn else en
-            if cnt > 1:
-                lines.append(f"{i}. {label}（出现{cnt}次）")
-            else:
-                lines.append(f"{i}. {label}")
-        parts.append("\n".join(lines))
+        if intent == "Reaction":
+            adverse, other = _split_reaction_rows(rows)
+            title = _fmt_intent(intent)
+            lines = [f"{title}{scoring_note}："]
+            for i, r in enumerate(adverse, 1):
+                en = r["text_en"]
+                cn = r.get("text_cn_hint")
+                freq = r.get("freq")
+                cnt = r.get("count", 1)
+                label = f"{cn}（{en}）" if cn else en
+                if isinstance(freq, int) and freq > 0:
+                    lines.append(f"{i}. {label}（freq={freq}）")
+                elif cnt > 1:
+                    lines.append(f"{i}. {label}（出现{cnt}次）")
+                else:
+                    lines.append(f"{i}. {label}")
+
+            if other:
+                lines.append("\n其他报告事件（不等同于不良反应，仅供参考）：")
+                for j, r in enumerate(other, 1):
+                    en = r["text_en"]
+                    cn = r.get("text_cn_hint")
+                    freq = r.get("freq")
+                    label = f"{cn}（{en}）" if cn else en
+                    if isinstance(freq, int) and freq > 0:
+                        lines.append(f"- {label}（freq={freq}）")
+                    else:
+                        lines.append(f"- {label}")
+            parts.append("\n".join(lines))
+        else:
+            title = _fmt_intent(intent)
+            lines = [f"{title}{scoring_note}："]
+            for i, r in enumerate(rows, 1):
+                en = r["text_en"]
+                cn = r.get("text_cn_hint")
+                freq = r.get("freq")
+                cnt = r.get("count", 1)
+                label = f"{cn}（{en}）" if cn else en
+                if isinstance(freq, int) and freq > 0:
+                    lines.append(f"{i}. {label}（freq={freq}）")
+                elif cnt > 1:
+                    lines.append(f"{i}. {label}（出现{cnt}次）")
+                else:
+                    lines.append(f"{i}. {label}")
+            parts.append("\n".join(lines))
     return "\n\n".join(parts)
 
 
@@ -128,26 +219,60 @@ def _llm_refine(question: str,
     for intent, rows in per_intent.items():
         zh_title = _fmt_intent(intent)
         scoring_note = "仅语义相关排序" if scoring_mode_by_intent.get(intent) == "uniform_sim" else "综合语义与频次"
-        lists_text.append(f"{zh_title}（{scoring_note}）：")
-        for i, r in enumerate(rows, 1):
-            en = r["text_en"]
-            cn_hint = r.get("text_cn_hint")
-            cnt = r.get("count", 1)
-            item = f"{i}. {cn_hint}（{en}）" if cn_hint else f"{i}. {en}"
-            if cnt > 1:
-                item += f"（出现{cnt}次）"
-            lists_text.append(item)
+        if intent == "Reaction":
+            adverse, other = _split_reaction_rows(rows)
+            lists_text.append(f"{zh_title}（{scoring_note}，优先列出不良反应）：")
+            for i, r in enumerate(adverse, 1):
+                en = r["text_en"]
+                cn_hint = r.get("text_cn_hint")
+                freq = r.get("freq")
+                cnt = r.get("count", 1)
+                item = f"{i}. {cn_hint}（{en}）" if cn_hint else f"{i}. {en}"
+                if isinstance(freq, int) and freq > 0:
+                    item += f"（freq={freq}）"
+                elif cnt > 1:
+                    item += f"（出现{cnt}次）"
+                lists_text.append(item)
+
+            if other:
+                lists_text.append("其他报告事件（不等同于不良反应，不要解释为不良反应）：")
+                for r in other:
+                    en = r["text_en"]
+                    cn_hint = r.get("text_cn_hint")
+                    freq = r.get("freq")
+                    item = f"- {cn_hint}（{en}）" if cn_hint else f"- {en}"
+                    if isinstance(freq, int) and freq > 0:
+                        item += f"（freq={freq}）"
+                    lists_text.append(item)
+        else:
+            lists_text.append(f"{zh_title}（{scoring_note}）：")
+            for i, r in enumerate(rows, 1):
+                en = r["text_en"]
+                cn_hint = r.get("text_cn_hint")
+                freq = r.get("freq")
+                cnt = r.get("count", 1)
+                item = f"{i}. {cn_hint}（{en}）" if cn_hint else f"{i}. {en}"
+                if isinstance(freq, int) and freq > 0:
+                    item += f"（freq={freq}）"
+                elif cnt > 1:
+                    item += f"（出现{cnt}次）"
+                lists_text.append(item)
     context = "\n".join(lists_text)
 
-    prompt = f"""请用简体中文回答下面的问题，并基于给定要点进行归纳：
+    prompt = f"""请用简体中文回答下面的问题，并严格基于给定要点进行归纳：
 要求：
-1. 不编造或扩展未提供的信息；
-2. 合并相近概念，不机械逐条照搬；
-3. 药物名可保留英文，若常见可加中文；
-4. 使用分点或分段，简洁专业；
-5. 不要原样复制"原始要点"列表；
-6. 如果要点很杂，可按类别归组。
-7. 只输出回答内容。
+1. 只基于“原始要点”，不得编造、猜测、延伸未给出的事实；
+2. 不做因果推断/用药建议/剂量推断（例如不要把“dose omission issue”解释为“剂量不足导致XX”）；
+3. 将“用药错误/产品问题/疾病诊断/非不良反应”的条目单独归为“其他报告事件”，不要当作不良反应解释；
+4. 合并相近概念，不机械逐条照搬；
+5. 药物名可保留英文，若常见可加中文；
+6. 使用分点或分段，简洁专业；
+7. 如原始要点里带有 freq，请在条目后保留（表示报告频次，不代表发生率）。
+8. 不要原样复制“原始要点”列表；只输出回答内容。
+
+输出格式建议：
+- 先给出“不良反应（按freq）”的要点列表（3-8条，带freq）；
+- 如存在“其他报告事件”，单独给一小段列出（带freq），并明确说明“不是不良反应”。
 
 用户问题：{question}
 
@@ -164,6 +289,45 @@ def _llm_refine(question: str,
     if LLM_PROVIDER == "ollama":
         return _ollama_chat(messages)
     return _openai_chat(messages)
+
+
+def _is_llm_answer_grounded(answer: str, per_intent: Dict[str, List[Dict[str, Any]]]) -> bool:
+    """Best-effort grounding check.
+
+    We only have reliable *English* surface forms from KG nodes.
+    If LLM output doesn't mention any of them, it is likely hallucinating
+    (or translating freely), so we fall back to deterministic local output.
+    """
+
+    text = (answer or "").strip()
+    if not text:
+        return False
+
+    hay = text.lower()
+
+    # Reaction intent is the most visible; be strict.
+    strict_intents = {"Reaction"}
+
+    for intent, rows in (per_intent or {}).items():
+        if not rows:
+            continue
+
+        # Check top N for each intent.
+        n = 8 if intent in strict_intents else 5
+        candidates = []
+        for r in rows[:n]:
+            en = (r.get("text_en") or "").strip()
+            if en:
+                candidates.append(en.lower())
+
+        if not candidates:
+            continue
+
+        if not any(c in hay for c in candidates):
+            # Not grounded for this intent.
+            return False
+
+    return True
 
 
 def generate_answer(ranking_output: Dict[str, Any]) -> Dict[str, Any]:
@@ -187,8 +351,15 @@ def generate_answer(ranking_output: Dict[str, Any]) -> Dict[str, Any]:
     if USE_LLM:
         try:
             llm_text = _llm_refine(question, per_intent_for_llm, scoring_mode_by_intent)
-            ok = True
-            err = ""
+            if _is_llm_answer_grounded(llm_text, per_intent_for_llm):
+                ok = True
+                err = ""
+            else:
+                ok = False
+                err = "LLM output not grounded; fallback to local enumeration"
+                first_mode = next(iter(scoring_mode_by_intent.values()), "uniform_sim")
+                note = "（仅语义相关排序，LLM输出不可靠回退枚举）" if first_mode == "uniform_sim" else "（综合语义与频次，LLM输出不可靠回退枚举）"
+                llm_text = _local_compose_answer(per_intent_for_llm, note)
         except Exception as exc:  # noqa: BLE001
             ok = False
             err = str(exc)
@@ -209,6 +380,7 @@ def generate_answer(ranking_output: Dict[str, Any]) -> Dict[str, Any]:
         "error": "" if ok else err,
         "meta": {
             "layer": "answer",
+            "answer_version": ANSWER_LAYER_VERSION,
             "llm_model": OLLAMA_CHAT_MODEL if LLM_PROVIDER == "ollama" else LLM_MODEL,
             "llm_used": USE_LLM,
             "llm_success": ok,

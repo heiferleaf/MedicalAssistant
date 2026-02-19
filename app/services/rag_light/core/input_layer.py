@@ -42,6 +42,23 @@ SYSTEM_TRANSLATE = (
 )
 
 
+# 常用药物名的快速映射（减少一次 LLM 翻译耗时，并提升与 FAERS/图谱用词的一致性）。
+# 说明：FAERS 场景里更常见的是 ACETAMINOPHEN（美式），而不是 PARACETAMOL（英式）。
+_DRUG_TRANSLATION_OVERRIDES = {
+    "阿司匹林": "Aspirin",
+    "布洛芬": "Ibuprofen",
+    "对乙酰氨基酚": "Acetaminophen",
+    "扑热息痛": "Acetaminophen",
+    "泰诺": "Acetaminophen",
+}
+
+
+_DRUG_SYNONYM_NORMALIZATION = {
+    "paracetamol": "Acetaminophen",
+    "acetaminophen": "Acetaminophen",
+}
+
+
 def _client() -> OpenAI | None:
     if not OPENAI_API_KEY:
         return None
@@ -80,12 +97,20 @@ def _translate_to_en(text: str) -> str:
     t = (text or "").strip()
     if not t:
         return t
+
+    # Fast-path overrides for common drug names.
+    if t in _DRUG_TRANSLATION_OVERRIDES:
+        return _DRUG_TRANSLATION_OVERRIDES[t]
+
     if all(ord(ch) < 128 for ch in t):
-        return t
+        norm = _DRUG_SYNONYM_NORMALIZATION.get(t.strip().lower())
+        return norm or t
     if INPUT_PROVIDER == "ollama":
         try:
             translated = _ollama_chat(SYSTEM_TRANSLATE, t)
-            return translated or t
+            translated = (translated or t).strip()
+            norm = _DRUG_SYNONYM_NORMALIZATION.get(translated.lower())
+            return norm or translated
         except Exception:
             return t
 
@@ -102,7 +127,9 @@ def _translate_to_en(text: str) -> str:
             temperature=0.0,
         )
         translated = resp.choices[0].message.content.strip()
-        return translated or t
+        translated = translated or t
+        norm = _DRUG_SYNONYM_NORMALIZATION.get(translated.strip().lower())
+        return norm or translated
     except Exception:
         return t
 

@@ -5,6 +5,7 @@ from typing import Any, Dict
 from flask import Blueprint, jsonify, request
 
 from app.services.rag_service import RagService
+from app.services.rag_light.core.relation_aggregate_layer import RELATION_AGG_VERSION
 
 
 rag_bp = Blueprint("rag", __name__)
@@ -63,6 +64,7 @@ def rag_health() -> Any:
         "embedding_model_type": os.getenv("EMBEDDING_MODEL_TYPE", "biencoder"),
         "llm_provider": os.getenv("LLM_PROVIDER", "openai"),
         "input_provider": os.getenv("INPUT_PROVIDER", "openai"),
+        "relation_agg_version": RELATION_AGG_VERSION,
     }
 
     neo4j_ok = bool(checks.get("neo4j", {}).get("ok"))
