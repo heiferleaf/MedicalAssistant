@@ -34,4 +34,14 @@ public class AgentProxyController {
             return Result.error(ResultCode.SYSTEM_ERROR, "Flask /agent/confirm 调用失败: " + e.getMessage());
         }
     }
+
+    @GetMapping({"/health", "/health/"})
+    public Result<Map<String, Object>> health() {
+        try {
+            Map<String, Object> resp = flaskAgentProxyService.health();
+            return Result.success(resp);
+        } catch (Exception e) {
+            return Result.error(ResultCode.SYSTEM_ERROR, "Flask /agent/health 调用失败: " + e.getMessage());
+        }
+    }
 }
