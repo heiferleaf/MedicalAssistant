@@ -163,7 +163,7 @@ public class DynamicTaskScheduler {
 
         // 2. 判断是否已经超时
         LocalDateTime now = LocalDateTime.now();
-        if (timeoutTime. isBefore(now) || timeoutTime.isEqual(now)) {
+        if (timeoutTime.isBefore(now) || timeoutTime.isEqual(now)) {
             // 已经超时，直接标记为漏服
             logger.info("【动态调度】任务ID={} 已超时，直接标记漏服（计划时间：{}，超时时间：{}）",
                     task.getId(), taskTime, timeoutTime);
@@ -181,7 +181,7 @@ public class DynamicTaskScheduler {
         // 4. 创建定时任务
         // Lambda表达式：() -> {...} 相当于 new Runnable() { public void run() {...} }
         ScheduledFuture<?> future = taskScheduler.schedule(
-                () -> markTaskAsMissed(task. getId()),  // 任务内容
+                () -> markTaskAsMissed(task.getId()),  // 任务内容
                 executeTime  // 执行时间
         );
 
