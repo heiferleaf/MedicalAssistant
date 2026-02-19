@@ -7,6 +7,12 @@ flask:
   base-url: http://127.0.0.1:8001
   timeout-ms: 120000
 
+# Compatibility: some components expect ai.rag.*
+ai:
+  rag:
+    base-url: ${flask.base-url}
+    timeout-ms: ${flask.timeout-ms}
+
 # Spring配置
 spring:
   application:
