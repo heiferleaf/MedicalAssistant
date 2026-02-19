@@ -7,7 +7,12 @@ import requests
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-3.5-turbo").strip()
 LLM_API_BASE = os.getenv("LLM_API_BASE", "https://api.openai.com").strip()
-LLM_API_KEY = os.getenv("LLM_API_KEY", "").strip()
+LLM_API_KEY = (
+    os.getenv("LLM_API_KEY", "")
+    or os.getenv("OPENAI_API_KEY", "")
+    or os.getenv("DASHSCOPE_API_KEY", "")
+).strip()
+LLM_CONNECT_TIMEOUT = float(os.getenv("LLM_CONNECT_TIMEOUT", "10"))
 LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "60"))
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
@@ -190,10 +195,15 @@ def _local_compose_answer(per_intent: Dict[str, List[Dict[str, Any]]], scoring_n
 def _openai_chat(messages: List[Dict[str, str]]) -> str:
     if not LLM_API_KEY:
         raise RuntimeError("LLM_API_KEY 未配置")
-    url = LLM_API_BASE.rstrip("/") + "/v1/chat/completions"
+
+    base = LLM_API_BASE.strip().rstrip("/")
+    if base.endswith("/v1"):
+        base = base[: -len("/v1")]
+
+    url = base + "/v1/chat/completions"
     headers = {"Authorization": f"Bearer {LLM_API_KEY}", "Content-Type": "application/json"}
     payload = {"model": LLM_MODEL, "messages": messages, "temperature": 0.2}
-    resp = requests.post(url, json=payload, headers=headers, timeout=LLM_TIMEOUT)
+    resp = requests.post(url, json=payload, headers=headers, timeout=(LLM_CONNECT_TIMEOUT, LLM_TIMEOUT))
     resp.raise_for_status()
     data = resp.json()
     return data["choices"][0]["message"]["content"].strip()
@@ -268,6 +278,7 @@ def _llm_refine(question: str,
 5. 药物名可保留英文，若常见可加中文；
 6. 使用分点或分段，简洁专业；
 7. 如原始要点里带有 freq，请在条目后保留（表示报告频次，不代表发生率）。
+8. 重要：对于原始要点中形如“中文（英文术语）”或“英文术语”的条目，请在输出中保留英文术语原样出现（可放在括号中），不要把英文术语完全翻译/改写掉；至少保留 3 个英文术语原样出现。
 8. 不要原样复制“原始要点”列表；只输出回答内容。
 
 输出格式建议：

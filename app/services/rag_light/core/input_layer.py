@@ -8,9 +8,13 @@ from openai import OpenAI
 
 from app.services.rag_light.core.embedding_utils import embed_text, get_current_model_name
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").strip()
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo").strip()
+OPENAI_API_KEY = (
+    os.getenv("OPENAI_API_KEY", "")
+    or os.getenv("LLM_API_KEY", "")
+    or os.getenv("DASHSCOPE_API_KEY", "")
+).strip()
+OPENAI_BASE_URL = (os.getenv("OPENAI_BASE_URL", "") or os.getenv("LLM_API_BASE", "") or "https://api.openai.com").strip()
+OPENAI_MODEL = (os.getenv("OPENAI_MODEL", "") or os.getenv("LLM_MODEL", "") or "gpt-3.5-turbo").strip()
 
 # 输入解析层可选择：openai / ollama。
 INPUT_PROVIDER = os.getenv("INPUT_PROVIDER", "openai").strip().lower()
@@ -62,7 +66,11 @@ _DRUG_SYNONYM_NORMALIZATION = {
 def _client() -> OpenAI | None:
     if not OPENAI_API_KEY:
         return None
-    return OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
+    base = (OPENAI_BASE_URL or "").strip().rstrip("/")
+    # OpenAI SDK expects base_url like https://host/v1
+    if not base.endswith("/v1"):
+        base = base + "/v1"
+    return OpenAI(api_key=OPENAI_API_KEY, base_url=base)
 
 
 def _ollama_chat(system: str, user: str) -> str:

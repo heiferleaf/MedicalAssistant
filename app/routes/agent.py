@@ -1,5 +1,9 @@
 from typing import Any, Dict
 
+import os
+import socket
+from datetime import datetime, timezone
+
 from flask import Blueprint, jsonify, request
 
 from app.services.agent.orchestrator import AgentOrchestrator
@@ -9,7 +13,17 @@ agent_bp = Blueprint("agent", __name__)
 
 @agent_bp.get("/health")
 def agent_health() -> Any:
-    return jsonify({"status": "ok", "module": "agent"})
+    now_utc = datetime.now(timezone.utc)
+    return jsonify(
+        {
+            "status": "ok",
+            "module": "agent",
+            "hostname": socket.gethostname(),
+            "pid": os.getpid(),
+            "server_time_utc": now_utc.isoformat(),
+            "request_host": request.host,
+        }
+    )
 
 
 @agent_bp.post("/chat")

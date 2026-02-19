@@ -47,6 +47,23 @@ def _bootstrap_env() -> None:
     # Only fill missing env vars; allow systemd/docker env to take precedence.
     _load_env_file(env_file, override=False)
 
+    # One-click profile switching (only fills missing vars).
+    # - AI_PROFILE=local: prefer local Ollama for parsing + answering.
+    # - AI_PROFILE=cloud: prefer OpenAI-compatible HTTP API (e.g., DashScope) for parsing + answering.
+    # Embedding is intentionally not forced here; keep it aligned with existing KG embeddings.
+    profile = (os.getenv("AI_PROFILE") or "local").strip().lower()
+    if profile in {"cloud", "api"}:
+        os.environ.setdefault("LLM_PROVIDER", "openai")
+        os.environ.setdefault("INPUT_PROVIDER", "openai")
+        # DashScope OpenAI-compatible mode (Beijing). Users can override per region.
+        os.environ.setdefault("LLM_API_BASE", os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"))
+        os.environ.setdefault("LLM_MODEL", os.getenv("DASHSCOPE_MODEL", "qwen3.5-plus"))
+        os.environ.setdefault("USE_LLM", "true")
+    elif profile in {"local", "ollama"}:
+        os.environ.setdefault("LLM_PROVIDER", "ollama")
+        os.environ.setdefault("INPUT_PROVIDER", "ollama")
+        os.environ.setdefault("USE_LLM", "true")
+
 
 _bootstrap_env()
 
