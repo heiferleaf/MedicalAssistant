@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from app.services.agent.memory.sqlite_memory import SQLiteMemory
 from app.services.agent.router import RouteDecision, route_message
+from app.services.agent.tools import registry
 from app.services.agent.tools.rag_tool import rag_query_tool
 from app.services.agent.tools.spring_tool import spring_plan_create_tool
 
@@ -14,6 +15,21 @@ AGENT_VERSION = "v1_light_rules_2026-02-19"
 class AgentOrchestrator:
     def __init__(self, *, memory: Optional[SQLiteMemory] = None) -> None:
         self.memory = memory or SQLiteMemory()
+        # Register tools
+        if not registry.has("rag.query"):
+            registry.register(
+                "rag.query",
+                rag_query_tool,
+                description="Query RAG service for medical information",
+                params_schema={"question": "string", "with_trace": "boolean", "with_timing": "boolean"}
+            )
+        if not registry.has("spring.plan.create"):
+            registry.register(
+                "spring.plan.create",
+                spring_plan_create_tool,
+                description="Create medication reminder plan",
+                params_schema={"medicineName": "string", "dosage": "string", "startDate": "string", "endDate": "string", "timePoints": "array", "remark": "string"}
+            )
 
     def chat(
         self,
@@ -64,11 +80,19 @@ class AgentOrchestrator:
 
         if decision.intent == "rag.query":
             t1 = time.time()
-            rag_result = rag_query_tool(
-                question=str(decision.tool_args.get("question") or ""),
-                with_trace=with_trace,
-                with_timing=with_timing,
-            )
+            tool_info = registry.get("rag.query")
+            if tool_info:
+                rag_result = tool_info["function"](
+                    question=str(decision.tool_args.get("question") or ""),
+                    with_trace=with_trace,
+                    with_timing=with_timing,
+                )
+            else:
+                rag_result = rag_query_tool(
+                    question=str(decision.tool_args.get("question") or ""),
+                    with_trace=with_trace,
+                    with_timing=with_timing,
+                )
             _mark_timing("tool.rag.query", time.time() - t1)
 
             assistant_message = (rag_result.get("answer") or "").strip()
@@ -194,7 +218,11 @@ class AgentOrchestrator:
 
         if action_type == "spring.plan.create":
             t0 = time.time()
-            tool_result = spring_plan_create_tool(tool_args)
+            tool_info = registry.get("spring.plan.create")
+            if tool_info:
+                tool_result = tool_info["function"](tool_args)
+            else:
+                tool_result = spring_plan_create_tool(tool_args)
             if with_timing:
                 timings["tool.spring.plan.create"] = time.time() - t0
 
