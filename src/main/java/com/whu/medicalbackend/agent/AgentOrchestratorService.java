@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.whu.medicalbackend.agent.flask.FlaskRagProxyService;
 import com.whu.medicalbackend.agent.memory.AgentMemoryRepository;
 import com.whu.medicalbackend.agent.router.AgentRouter;
+import com.whu.medicalbackend.agent.tools.ToolRegistry;
 import com.whu.medicalbackend.dto.PlanCreateDTO;
 import com.whu.medicalbackend.dto.PlanVO;
 import com.whu.medicalbackend.service.PlanService;
@@ -28,6 +29,7 @@ public class AgentOrchestratorService {
     private final PlanService planService;
     private final ObjectMapper objectMapper;
     private final String flaskBaseUrl;
+    private final ToolRegistry toolRegistry;
 
     public AgentOrchestratorService(
             AgentMemoryRepository memoryRepository,
@@ -41,6 +43,20 @@ public class AgentOrchestratorService {
         this.planService = planService;
         this.objectMapper = objectMapper;
         this.flaskBaseUrl = flaskBaseUrl;
+        this.toolRegistry = new ToolRegistry();
+        
+        // Register tools
+        toolRegistry.register("rag.query", "Query RAG service for medical information", params -> {
+            String question = str(params.get("question"));
+            boolean withTrace = bool(params.get("with_trace"));
+            boolean withTiming = bool(params.get("with_timing"));
+            return flaskRagProxyService.query(question, withTrace, withTiming);
+        });
+        
+        toolRegistry.register("spring.plan.create", "Create medication reminder plan", params -> {
+            // Implementation will be called directly in confirm method
+            return Map.of();
+        });
     }
 
     public Map<String, Object> chat(Map<String, Object> payload) {
@@ -89,7 +105,21 @@ public class AgentOrchestratorService {
 
         if ("rag.query".equals(decision.intent())) {
             String question = str(decision.toolArgs().get("question"));
-            Map<String, Object> ragResp = flaskRagProxyService.query(question, withTrace, withTiming);
+            Map<String, Object> ragResp;
+            
+            // Use tool registry to get and call the rag.query tool
+            ToolRegistry.ToolInfo toolInfo = toolRegistry.get("rag.query");
+            if (toolInfo != null) {
+                Map<String, Object> toolParams = new HashMap<>();
+                toolParams.put("question", question);
+                toolParams.put("with_trace", withTrace);
+                toolParams.put("with_timing", withTiming);
+                ragResp = toolInfo.function().apply(toolParams);
+            } else {
+                // Fallback to direct call
+                ragResp = flaskRagProxyService.query(question, withTrace, withTiming);
+            }
+            
             String assistantMessage = str(ragResp.get("answer")).trim();
             if (assistantMessage.isBlank()) {
                 assistantMessage = "我没能生成回答，请换个问法再试一次。";
