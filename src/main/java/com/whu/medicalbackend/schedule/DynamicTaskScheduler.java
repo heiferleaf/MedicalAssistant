@@ -1,19 +1,33 @@
 package com.whu.medicalbackend. schedule;
 
+import com.whu.medicalbackend.entity.FamilyInviteApply;
 import com.whu. medicalbackend.entity.MedicationTask;
-import com. whu.medicalbackend. mapper.MedicationTaskMapper;
+import com.whu.medicalbackend.entity.Medicine;
+import com.whu.medicalbackend.entity.User;
+import com.whu.medicalbackend.enumField.EventLogEnum;
+import com.whu.medicalbackend.enumField.FamilyEventEnum;
+import com.whu.medicalbackend.enumField.InviteStatus;
+import com.whu.medicalbackend.mapper.*;
+import com.whu.medicalbackend.service.serviceImpl.RedisService;
+import com.whu.medicalbackend.util.RedisKeyBuilderUtil;
+import com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent;
+import io.jsonwebtoken.lang.Assert;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation. Scheduled;
 import org.springframework. stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +47,7 @@ import java.util.concurrent.ScheduledFuture;
  * 3. 策略模式：不同任务有不同的超时时间
  */
 @Component
+@Transactional(rollbackFor = Exception.class)
 public class DynamicTaskScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(DynamicTaskScheduler.class);
@@ -42,6 +57,17 @@ public class DynamicTaskScheduler {
 
     @Autowired
     private MedicationTaskMapper taskMapper;
+
+    @Autowired
+    private FamilyInviteApplyMapper applyMapper;
+
+    @Autowired
+    private RedisService redisService;
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    public static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
      * 存储任务ID与定时器的映射
@@ -55,7 +81,16 @@ public class DynamicTaskScheduler {
      * 2. 取消某个任务的定时器
      * 3. 统计当前活跃的定时器数量
      */
-    private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
+    private final Map<Long, ScheduledFuture<?>> medicationTaskPool = new ConcurrentHashMap<>();
+    private final Map<Long, ScheduledFuture<?>> inviteTaskPool = new ConcurrentHashMap<>();
+    @Autowired
+    private FamilyEventLogMapper familyEventLogMapper;
+    @Autowired
+    private FamilyMemberMapper familyMemberMapper;
+    @Autowired
+    private MedicineMapper medicineMapper;
+    @Autowired
+    private UserMapper userMapper;
 
     /**
      * 应用启动时初始化
@@ -186,7 +221,7 @@ public class DynamicTaskScheduler {
         );
 
         // 5. 保存到Map（用于后续取消）
-        scheduledTasks.put(task.getId(), future);
+        medicationTaskPool.put(task.getId(), future);
 
         logger.debug("【动态调度】任务ID={} 定时器已创建，将在 {} 标记为漏服",
                 task.getId(), timeoutTime);
@@ -203,15 +238,42 @@ public class DynamicTaskScheduler {
      * 1. 定时器到期自动调用
      * 2. 应用启动时发现已超时任务
      */
-    private void markTaskAsMissed(Long taskId) {
+    @Transactional(rollbackFor = Exception.class)
+    protected void markTaskAsMissed(Long taskId) {
         try {
             logger.info("【动态调度】⏰ 超时！标记任务ID={} 为漏服", taskId);
 
             // 1. 更新数据库：status=2（漏服），operate_time=null
             taskMapper.updateStatus(taskId, 2, null);
 
-            // 2. 从Map中移除（任务已完成）
-            scheduledTasks.remove(taskId);
+            MedicationTask task = taskMapper.findById(taskId);
+            if(task != null) {
+                Long userId = task.getUserId();
+                Long groupId = familyMemberMapper.getGroupIdByUserId(userId);
+                Medicine medicine = medicineMapper.findById(task.getMedicineId());
+                if(userId != null && groupId != null && medicine != null) {
+                    familyEventLogMapper.insertLog(groupId, userId, EventLogEnum.ALARM_MISSED.name(), medicine.getName());
+                    String alarmKey = RedisKeyBuilderUtil.getFamilyAlarmKey(groupId, LocalDate.now().toString());
+                    redisService.delete(alarmKey);
+
+                    User user = userMapper.findByUserId(userId);
+                    Assert.notNull(user, "任务所属用户Id为空");
+
+                    // 2. 广播异常数据（alarm_missed）
+                    Map<String, Object> pushData = new HashMap<>();
+                    pushData.put("type", "medicine_alarm");
+                    pushData.put("groupId", groupId);
+                    pushData.put("memberName", user.getNickname());
+                    pushData.put("medicineName", medicine.getName());
+                    pushData.put("alarmTime", LocalDateTime.now().format(formatter));
+
+                    applicationEventPublisher.publishEvent(new FamilyMedicineAlarmEvent(
+                            this, groupId, pushData));
+                }
+            }
+
+            // 3. 从Map中移除（任务已完成）
+            medicationTaskPool.remove(taskId);
 
         } catch (Exception e) {
             logger.error("【动态调度】标记任务失败，ID=" + taskId, e);
@@ -227,7 +289,7 @@ public class DynamicTaskScheduler {
      *
      */
     private void cancelAllTasks() {
-        int count = scheduledTasks.size();
+        int count = medicationTaskPool.size();
 
         if (count == 0) {
             logger. info("【动态调度】没有需要取消的定时器");
@@ -238,13 +300,13 @@ public class DynamicTaskScheduler {
 
         // forEach参数是BiConsumer<K, V>
         // (taskId, future) -> {...} 相当于 new BiConsumer<Long, ScheduledFuture<? >>() {...}
-        scheduledTasks.forEach((taskId, future) -> {
+        medicationTaskPool.forEach((taskId, future) -> {
             // cancel(false)：不中断正在执行的任务
             // cancel(true)：强制中断正在执行的任务
             future.cancel(false);
         });
 
-        scheduledTasks.clear();
+        medicationTaskPool.clear();
 
         logger.info("【动态调度】已取消所有定时器");
     }
@@ -261,10 +323,10 @@ public class DynamicTaskScheduler {
      * @param taskId 任务ID
      */
     public void cancelTaskSchedule(Long taskId) {
-        ScheduledFuture<?> future = scheduledTasks.remove(taskId);
+        ScheduledFuture<?> future = medicationTaskPool.remove(taskId);
 
-        if (future != null) {
-            future.cancel(false);
+        if (future != null && !future.isDone()) {
+            future.cancel(true);
             logger.debug("【动态调度】✓ 取消任务ID={} 的定时器（用户已操作）", taskId);
         }
     }
@@ -287,10 +349,50 @@ public class DynamicTaskScheduler {
         }
     }
 
+    // 取消任务
+    public void cancelInviteExpireTask(Long applyId) {
+        ScheduledFuture<?> future = inviteTaskPool.get(applyId);
+        if (future != null && !future.isDone()) {
+            future.cancel(true);
+            inviteTaskPool.remove(applyId);
+        }
+    }
+
+    public void addInviteExpireTask(Long applyId, LocalDateTime expireTime) {
+        // 如果已经存在先取消
+        cancelInviteExpireTask(applyId);
+
+        Date date = Date.from(expireTime.atZone(ZoneId.systemDefault()).toInstant());
+
+        ScheduledFuture<?> future = taskScheduler.schedule(() -> handleInviteExpriration(applyId), date);
+        inviteTaskPool.put(applyId, future);
+    }
+
+    // 定时处理申请 / 邀请 状态为过时的方法
+    private void handleInviteExpriration(Long applyId) {
+        // 这里锁的目的是防止定时任务和手动处理冲突
+        String lockKey = RedisKeyBuilderUtil.getFamilyApproveLockKey(applyId);
+        if(redisService.tryLock(lockKey, 2, 5)) {
+            try {
+                FamilyInviteApply apply = applyMapper.selectById(applyId);
+                if (apply != null && InviteStatus.pending.equals(apply.getStatus())) {
+                    apply.setStatus(InviteStatus.expired);
+                    apply.setDealTime(LocalDateTime.now());
+                    applyMapper.updateStatus(apply);
+
+                    inviteTaskPool.remove(applyId);
+                    logger.info("邀请/申请记录 {} 已自动过期", applyId);
+                }
+            } finally {
+                redisService.unlock(lockKey);
+            }
+        }
+    }
+
     /**
      * 获取当前活跃的定时器数量（用于监控）
      */
-    public int getActiveTaskCount() {
-        return scheduledTasks.size();
+    private int getActiveTaskCount() {
+        return medicationTaskPool.size();
     }
 }

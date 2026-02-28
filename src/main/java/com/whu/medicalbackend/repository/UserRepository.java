@@ -36,4 +36,11 @@ public class UserRepository{
     public boolean existsByUsername(String username) {
         return userMapper.existsByUsername(username) > 0;
     }
+
+    /**
+     * 检查用户手机是否存在
+     */
+    public boolean existsByUserPhoneNumber(String phoneNumber) {
+        return userMapper.existsByUserPhoneNumber(phoneNumber) > 0;
+    }
 }

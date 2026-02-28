@@ -1,11 +1,15 @@
 package com.whu.medicalbackend.controller;
 
+import com.whu.medicalbackend.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.common.Result;
+import com.whu.medicalbackend.common.ResultCode;
 import com.whu.medicalbackend.dto.UserLoginDto;
 import com.whu.medicalbackend.dto.UserRegisterDto;
 import com.whu.medicalbackend.dto.UserVO;
 import com.whu.medicalbackend.entity.User;
 import com.whu.medicalbackend.service.UserService;
+import com.whu.medicalbackend.util.JwtUtil;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,12 +18,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Resource
+    private RedisService redis;
 
     /**
      * 用户注册接口
@@ -46,12 +57,32 @@ public class UserController {
     @PostMapping("/login")
     public Result<UserVO> login(@Valid @RequestBody UserLoginDto dto) {
         // 1. 调用Service登录
-        User user = userService. login(dto);
+        User user = userService.login(dto);
+        String accessToken = JwtUtil.createAccessToken(user.getId());
+        String refreshToken = UUID.randomUUID().toString();
+
+        redis.setWithExpire("auth:rt" + user.getId(), refreshToken, 7, TimeUnit.DAYS);
 
         // 2. 转换为VO
-        UserVO userVO = new UserVO.Builder().build(user);
+        UserVO userVO = new UserVO.Builder().
+                        setAccessToken(accessToken).
+                        setRefreshToken(refreshToken).
+                        build(user, accessToken, refreshToken);
 
         // 3. 返回成功结果
         return Result.success("登录成功", userVO);
+    }
+
+    @PostMapping("/refresh")
+    public Result<String> refresh(@RequestBody Map<String, String> params) {
+        String userId   = params.get("userId");
+        String appRT    = params.get("refreshToken");
+        String serverRT = redis.get("auth:rt" + userId);
+
+        if(serverRT != null && serverRT.equals(appRT)) {
+            String newAccessToken = JwtUtil.createAccessToken(Long.valueOf(userId));
+            return Result.success("获取新accessToken成功", newAccessToken);
+        }
+        return Result.error(ResultCode.NEED_LOGIN_ERROR);
     }
 }

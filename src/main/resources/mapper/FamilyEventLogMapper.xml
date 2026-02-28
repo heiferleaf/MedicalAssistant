@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.whu.medicalbackend.mapper.FamilyEventLogMapper">
+
+    <insert id="insertLog">
+        INSERT INTO family_event_log (group_id, user_id, event_type, event_content, event_time, is_deleted)
+        VALUES (#{groupId},#{userId},#{eventType},#{eventContent},NOW(),0)
+    </insert>
+
+    <select id="findDailyAlarms" resultType="com.whu.medicalbackend.dto.FamilyAlarmVO">
+        SELECT
+            l.id as alarmId,
+            u.nickname as memberName,
+            l.content as medicineName,
+            DATE_FORMAT(l.create_time, '%Y-%m-%d %H:%i:%s') as alarmTime
+        FROM t_family_event_log l
+                 LEFT JOIN t_user u ON l.user_id = u.id
+        WHERE l.group_id = #{groupId}
+          AND l.event_type = 'ALARM_MISSED'
+          AND l.create_time >= CURDATE()
+        ORDER BY l.create_time DESC
+    </select>
+
+</mapper>

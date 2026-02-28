@@ -71,4 +71,17 @@ public interface MedicationTaskMapper {
      * 查询指定日期所有未完成的任务（用于动态调度）
      */
     List<MedicationTask> findUncompletedTasksByDate(@Param("taskDate") LocalDate taskDate);
+
+    /**
+     * 统计当日特定状态的任务数
+     */
+    int countStatusByDate(@Param("userId") Long userId,
+                          @Param("date") LocalDate date,
+                          @Param("status") Integer status);
+
+    /**
+     * 统计当日总任务数
+     */
+    int countTotalByDate(@Param("userId") Long userId,
+                         @Param("date") LocalDate date);
 }

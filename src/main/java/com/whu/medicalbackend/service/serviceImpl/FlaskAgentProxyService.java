@@ -1,4 +1,4 @@
-package com.whu.medicalbackend.service;
+package com.whu.medicalbackend.service.serviceImpl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

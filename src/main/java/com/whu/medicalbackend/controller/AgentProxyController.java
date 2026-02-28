@@ -2,7 +2,7 @@ package com.whu.medicalbackend.controller;
 
 import com.whu.medicalbackend.common.Result;
 import com.whu.medicalbackend.common.ResultCode;
-import com.whu.medicalbackend.service.FlaskAgentProxyService;
+import com.whu.medicalbackend.service.serviceImpl.FlaskAgentProxyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

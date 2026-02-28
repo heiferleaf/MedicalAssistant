@@ -7,7 +7,6 @@ import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
@@ -20,12 +19,13 @@ public class SchedulingConfig implements SchedulingConfigurer {
     /**
      * 配置TaskScheduler 的Bean
      */
-    @Bean
+    @Bean("taskScheduler")
     public TaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
 
         scheduler.setPoolSize(50);
         scheduler.setThreadNamePrefix("task-scheduler-");
+        // 当线程池中没有空闲线程，有新任务需要安排执行线程时，会由安排创建新任务的线程来执行：Caller run
         scheduler.setRejectedExecutionHandler(
                 new ThreadPoolExecutor.CallerRunsPolicy()
         );

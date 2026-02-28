@@ -20,6 +20,7 @@ public class User implements Serializable {
     private String username;
     private String password;
     private String nickname;
+    private String phoneNumber;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
@@ -35,6 +36,11 @@ public class User implements Serializable {
     public User(String username, String password, String nickname) {
         this(username, password); // 复用上一个构造函数
         this.nickname = nickname;
+    }
+
+    public User(String username, String password, String nickname, String phoneNumber) {
+        this(username, password, nickname); // 复用上一个构造函数
+        this.phoneNumber = phoneNumber;
     }
 
     // 自定义 equals 和 hashCode：仅基于 username

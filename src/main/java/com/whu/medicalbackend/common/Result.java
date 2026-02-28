@@ -1,10 +1,16 @@
 package com.whu.medicalbackend.common;
 
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * 返回结果的包装类 Result
  * 实例的创建交给工厂
  * @param <T>：使用参数化类型，来对各种类型的数据统一处理
  */
+@Getter
+@Setter
 public class Result<T> {
     private int     code;
     private String  message;
@@ -41,7 +47,7 @@ public class Result<T> {
      * 成功响应（自定义消息）
      */
     public static <T> Result<T> success(String message, T data) {
-        return new Result<T>(ResultCode.SUCCESS.getCode(), message, data);
+        return new Result<>(ResultCode.SUCCESS.getCode(), message, data);
     }
 
     /**
@@ -63,30 +69,5 @@ public class Result<T> {
      */
     public static <T> Result<T> error(ResultCode resultCode, String message) {
         return new Result<T>(resultCode.getCode(), message, null);
-    }
-
-    // ============ Getter/Setter ============
-    public int getCode() {
-        return code;
-    }
-
-    public void setCode(int code) {
-        this.code = code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public T getData() {
-        return data;
-    }
-
-    public void setData(T data) {
-        this.data = data;
     }
 }
