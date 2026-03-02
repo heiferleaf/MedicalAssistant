@@ -1,7 +1,0 @@
-__pycache__/
-*.pyc
-.env
-.venv/
-venv/
-checkpoint/
-app/services/predict/resources/pytorch_model/model.safetensors
