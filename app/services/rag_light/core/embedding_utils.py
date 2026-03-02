@@ -50,8 +50,12 @@ def _get_biencoder_model():
         if not BIENCODER_MODEL_PATH:
             raise RuntimeError("BIENCODER_MODEL_PATH 未配置")
         from sentence_transformers import SentenceTransformer
-
-        _biencoder_model = SentenceTransformer(BIENCODER_MODEL_PATH)
+        
+        # 添加 fix_mistral_regex=True 参数修复正则错误
+        _biencoder_model = SentenceTransformer(
+            BIENCODER_MODEL_PATH,
+            tokenizer_kwargs={"fix_mistral_regex": True}
+        )
     return _biencoder_model
 
 

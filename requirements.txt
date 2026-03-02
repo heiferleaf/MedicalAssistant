@@ -4,3 +4,4 @@ openai==1.59.2
 py2neo==2021.2.4
 numpy==1.26.4
 sentence-transformers==3.0.1
+pymysql==1.1.1
