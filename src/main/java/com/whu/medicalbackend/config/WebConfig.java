@@ -27,7 +27,7 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer{
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/user/login", "/user/register", "/auth/refresh");
+                .excludePathPatterns("/api/user/login", "/api/user/register", "/api/auth/refresh");
     }
 
     @Override

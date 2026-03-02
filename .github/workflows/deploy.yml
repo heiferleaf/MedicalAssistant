@@ -1,0 +1,40 @@
+name: 构建并部署
+
+# 触发条件：push 到 main 分支时触发
+on:
+  push:
+    branches: [ backend ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest  # 在 GitHub 提供的 Ubuntu 云服务器上运行
+
+    steps:
+      # 第一步：拉取你的代码到 GitHub 的云服务器上
+      - name: 拉取代码
+        uses: actions/checkout@v3
+
+      # 第二步：登录阿里云镜像仓库
+      - name: 登录阿里云镜像仓库
+        run: |
+          docker login ${{ secrets.ALIYUN_REGISTRY }} \
+            -u ${{ secrets.ALIYUN_USERNAME }} \
+            -p ${{ secrets.ALIYUN_PASSWORD }}
+
+      # 第三步：构建镜像并推送到阿里云
+      - name: 构建并推送镜像
+        run: |
+          docker build -t ${{ secrets.ALIYUN_REGISTRY }}/medicalassistant/medicalassistant:latest .
+          docker push ${{ secrets.ALIYUN_REGISTRY }}/medicalassistant/medicalassistant:latest
+
+      # 第四步：SSH 连接服务器，拉取新镜像并重启
+      - name: 部署到服务器
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            cd /root/backend
+            docker pull ${{ secrets.ALIYUN_REGISTRY }}/medicalassistant/medicalassistant:latest
+            docker compose up -d springboot

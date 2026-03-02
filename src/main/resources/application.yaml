@@ -4,7 +4,7 @@ server:
 
 # Flask AI service (same host)
 flask:
-  base-url: http://127.0.0.1:8001
+  base-url: ${FLASK_URL:http://127.0.0.1:8001}
   timeout-ms: 120000
 
 # Compatibility: some components expect ai.rag.*
@@ -21,20 +21,21 @@ spring:
   # 数据源配置
   datasource:
     # JDBC URL
-    url: jdbc:mysql://localhost:3306/MedicalAssistant?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/${MYSQL_DB:MedicalAssistant}?useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai
     # 数据库用户名
-    username:  root
+    username: ${MYSQL_USER:root}
     # 数据库密码
-    password: 1234
+    password: ${MYSQL_PASSWORD:1234}
     # 驱动类名（MySQL 8.x）
     driver-class-name:  com.mysql.cj.jdbc.Driver
 
   # redis 配置
   data:
     redis:
-      host: localhost
+      host: ${REDIS_HOST:localhost}
       port: 6379
       # 把 java 对象转为 redis 操作的网络包的一个驱动
+      password: ${REDIS_PASSWORD:}
       lettuce:
         # 对连接池做配置
         pool:
