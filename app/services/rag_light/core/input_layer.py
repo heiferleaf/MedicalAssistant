@@ -6,6 +6,9 @@ from typing import Any, Dict, List
 import requests
 from openai import OpenAI
 
+# 控制是否使用向量嵌入
+USE_EMBEDDING = os.getenv("USE_EMBEDDING", "true").lower() == "true"
+
 from app.services.rag_light.core.embedding_utils import embed_text, get_current_model_name
 
 OPENAI_API_KEY = (
@@ -190,7 +193,10 @@ def parse_input(question: str) -> Dict[str, Any]:
         intents = ["Drug", "Reaction", "Indication", "Outcome"]
 
     try:
-        query_vector = embed_text(question)
+        if USE_EMBEDDING:
+            query_vector = embed_text(question)
+        else:
+            query_vector = None
     except Exception:
         query_vector = None
 

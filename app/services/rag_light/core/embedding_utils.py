@@ -50,11 +50,15 @@ def _get_biencoder_model():
         if not BIENCODER_MODEL_PATH:
             raise RuntimeError("BIENCODER_MODEL_PATH 未配置")
         from sentence_transformers import SentenceTransformer
+        import torch
         
-        # 添加 fix_mistral_regex=True 参数修复正则错误
+        # 启用模型量化和硬件加速
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         _biencoder_model = SentenceTransformer(
             BIENCODER_MODEL_PATH,
-            tokenizer_kwargs={"fix_mistral_regex": True}
+            tokenizer_kwargs={"fix_mistral_regex": True},
+            device=device,
+            model_kwargs={"load_in_8bit": True if device == "cuda" else False}
         )
     return _biencoder_model
 
@@ -108,6 +112,9 @@ def embed_biencoder(text: str) -> List[float]:
     return vec.tolist() if hasattr(vec, "tolist") else list(vec)
 
 
+from functools import lru_cache
+
+@lru_cache(maxsize=1000)
 def embed_text(text: str) -> List[float]:
     if not text or not text.strip():
         raise ValueError("输入文本不能为空")
