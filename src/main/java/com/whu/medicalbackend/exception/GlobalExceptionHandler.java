@@ -35,6 +35,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception e) {
         e.printStackTrace();  // 生产环境应使用日志框架
-        return Result.error(ResultCode.SYSTEM_ERROR);
+        return Result.error(ResultCode.SYSTEM_ERROR, e.getMessage());
     }
 }
