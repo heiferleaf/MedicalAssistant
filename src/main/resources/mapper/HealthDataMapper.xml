@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.whu.medicalbackend.mapper.HealthDataMapper">
+
+    <resultMap id="HealthDataMap" type="com.whu.medicalbackend.entity.HealthData">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="group_id" property="groupId"/>
+        <result column="heart_rate" property="heartRate"/>
+        <result column="blood_pressure" property="bloodPressure"/>
+        <result column="measure_time" property="measureTime"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.whu.medicalbackend.entity.HealthData">
+        INSERT INTO health_data (user_id, group_id, heart_rate, blood_pressure, measure_time, created_at)
+        VALUES (#{userId}, #{groupId}, #{heartRate}, #{bloodPressure}, #{measureTime}, NOW())
+    </insert>
+
+    <select id="findLatestByUserId" resultMap="HealthDataMap">
+        SELECT * FROM health_data
+        WHERE user_id = #{userId} AND is_deleted = 0
+        ORDER BY measure_time DESC
+            LIMIT 1
+    </select>
+
+</mapper>

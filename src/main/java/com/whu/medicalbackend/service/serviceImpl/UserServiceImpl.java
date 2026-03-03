@@ -6,6 +6,8 @@ import com.whu.medicalbackend.entity.User;
 import com.whu.medicalbackend.exception.PasswordIncorrectException;
 import com.whu.medicalbackend.exception.UserAlreadyExistsException;
 import com.whu.medicalbackend.exception.UserNotFoundException;
+import com.whu.medicalbackend.exception.UserPhoneAlreadyExistsException;
+import com.whu.medicalbackend.mapper.UserMapper;
 import com.whu.medicalbackend.repository.UserRepository;
 import com.whu.medicalbackend.service.UserService;
 import com.whu.medicalbackend.util.PasswordUtil;
@@ -21,16 +23,20 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public User register(UserRegisterDto dto) {
-        // 1. 检查注册的用户名已经存在
+        // 1. 检查注册的用户名或者手机号已经存在
         if(userRepository.existsByUsername(dto.getUsername())) {
             throw new UserAlreadyExistsException(dto.getUsername());
+        }
+        if(userRepository.existsByUserPhoneNumber(dto.getPhoneNumber())) {
+            throw new UserPhoneAlreadyExistsException(dto.getPhoneNumber());
         }
 
         // 2. 创建用户对象
         User user = new User();
         user.setUsername(dto.getUsername());
         user.setPassword(PasswordUtil.encrypt(dto.getPassword()));
-        user.setNickname(dto.getNickname());  // 新增：设置昵称
+        user.setNickname(dto.getNickname());
+        user.setPhoneNumber(dto.getPhoneNumber());
 
         // 3. 保存用户（MyBatis会自动回填ID）
         return userRepository.save(user);

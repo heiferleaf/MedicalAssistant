@@ -4,22 +4,33 @@ import com. whu.medicalbackend. common.ResultCode;
 import com.whu.medicalbackend.dto.TaskVO;
 import com.whu. medicalbackend.entity.Medicine;
 import com.whu. medicalbackend.entity.MedicationTask;
+import com.whu.medicalbackend.entity.User;
+import com.whu.medicalbackend.enumField.EventLogEnum;
+import com.whu.medicalbackend.enumField.FamilyEventEnum;
 import com.whu. medicalbackend.exception.BusinessException;
-import com.whu.medicalbackend.mapper. MedicationTaskMapper;
-import com.whu.medicalbackend.mapper.MedicineMapper;
+import com.whu.medicalbackend.mapper.*;
 import com.whu.medicalbackend.schedule.DynamicTaskScheduler;
 import com.whu.medicalbackend.service. TaskService;
+import com.whu.medicalbackend.util.RedisKeyBuilderUtil;
+import com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent;
+import com.whu.medicalbackend.ws.event.FamilyMedicineUpdateEvent;
+import com.whu.medicalbackend.ws.event.FamilyPushEvent;
+import io.jsonwebtoken.lang.Assert;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time. LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.whu.medicalbackend.schedule.DynamicTaskScheduler.formatter;
 
 /**
  * 用药任务服务实现类
@@ -40,6 +51,20 @@ public class TaskServiceImpl implements TaskService {
 
     @Autowired
     private DynamicTaskScheduler dynamicTaskScheduler;
+
+    @Autowired
+    private RedisService redisService;
+
+    @Autowired
+    private FamilyMemberMapper memberMapper;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+    @Autowired
+    private FamilyEventLogMapper familyEventLogMapper;
 
     /**
      * 获取今日任务列表
@@ -86,6 +111,9 @@ public class TaskServiceImpl implements TaskService {
             throw new BusinessException(ResultCode.BUSINESS_ERROR.getMessage() + "任务不存在");
         }
 
+        Medicine medicine = medicineMapper.findById(task.getMedicineId());
+        String medicineName = medicine != null ? medicine.getName() : "未知药品";
+
         // 2. 验证权限
         if (!task.getUserId().equals(userId)) {
             throw new BusinessException(ResultCode.BUSINESS_ERROR.getMessage() + "无权操作此任务");
@@ -100,6 +128,16 @@ public class TaskServiceImpl implements TaskService {
         // 4. 根据状态设置operate_time（策略模式）
         LocalDateTime operateTime = calculateOperateTime(status);
 
+        // 获取旧状态，用于判断是否需要进行家庭组-健康数据页面内的更改广播
+        int oldStatus = task.getStatus();
+
+        if(oldStatus == status) {
+            return new TaskVO.TaskVOBuilder().
+                    fromEntity(task, medicineName)
+                    .build();
+        }
+
+
         // 5. 更新状态
         taskMapper.updateStatus(taskId, status, operateTime);
 
@@ -107,10 +145,49 @@ public class TaskServiceImpl implements TaskService {
             dynamicTaskScheduler.cancelTaskSchedule(taskId);
         }
 
+        // 记录事务日志
+        Long groupId = memberMapper.getGroupIdByUserId(userId);
+        if (groupId != null && status != 0) {
+            // 逻辑对齐：根据状态决定 EventType
+            String eventType = (status == 1) ? EventLogEnum.TASK_DONE.name() : EventLogEnum.ALARM_MISSED.name();
+
+            // 插入日志
+            familyEventLogMapper.insertLog(groupId, userId, eventType, medicineName);
+
+            // 如果是标记漏服，需要额外清理告警缓存 (保持一致性)
+            if (status == 2) {
+                String alarmKey = RedisKeyBuilderUtil.getFamilyAlarmKey(groupId, LocalDate.now().toString());
+                redisService.delete(alarmKey);
+            }
+        }
+
+        // 进行广播,条件是标记位已服用，或者原来的状态是已服用
+        if (groupId != null && (oldStatus == 1 || status == 1)) {
+            handleSnapshotAndBroadcast(groupId, userId, task, status);
+        }
+
+        // 进行广播，条件是标记为漏服用
+        if (status == 2) {
+            User user = userMapper.findByUserId(userId);
+            Assert.notNull(user, "任务所属用户Id为空");
+
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("type", "medicine_alarm");
+            pushData.put("groupId", groupId);
+            pushData.put("memberName", user.getNickname());
+            pushData.put("medicineName", medicine.getName());
+            pushData.put("alarmTime", LocalDateTime.now().format(formatter));
+
+            eventPublisher.publishEvent(new FamilyMedicineAlarmEvent(
+                    this, groupId, pushData));
+        }
+
         // 6. 重新查询并返回
         task = taskMapper.findById(taskId);
-        Medicine medicine = medicineMapper.findById(task.getMedicineId());
-        String medicineName = medicine != null ? medicine.getName() : "未知药品";
+
+
+        // 7. 取消定时标记为漏服的任务
+        dynamicTaskScheduler.cancelTaskSchedule(taskId);
 
         return new TaskVO.TaskVOBuilder()
                 .fromEntity(task, medicineName)
@@ -149,32 +226,31 @@ public class TaskServiceImpl implements TaskService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 标记超时任务为漏服（定时任务调用）
-     *
-     * 业务逻辑：
-     * 查询条件：status=0（未服用） AND task_date=今天 AND time_point < 当前时间-30分钟
-     */
-    @Override
-    public void markMissedTasks() {
-        LocalDate today = LocalDate.now();
-        // 当前时间减30分钟（超过计划时间30分钟算漏服）
-        LocalDateTime currentTime = LocalDateTime.now().minusMinutes(30);
+    // ========== 私有辅助方法 ==========
 
-        // 1. 查询需要标记为漏服的任务
-        List<MedicationTask> tasks = taskMapper.findTasksToMarkAsMissed(today, currentTime);
+    private void handleSnapshotAndBroadcast(Long groupId, Long userId, MedicationTask task, Integer newStatus) {
+        String snapshotKey = RedisKeyBuilderUtil.getFamilySnapshotKey(groupId, LocalDate.now().toString());
+        redisService.delete(snapshotKey);
 
-        // 2. 批量更新为漏服
-        if (!tasks.isEmpty()) {
-            List<Long> ids = tasks.stream()
-                    .map(MedicationTask::getId)
-                    .collect(Collectors.toList());
+        Map<String, Object> pushData = new HashMap<>();
+        User user = userMapper.findByUserId(userId);
 
-            taskMapper.batchUpdateToMissed(ids);
-        }
+        pushData.put("type", "medicine_update");
+        pushData.put("memberName", user.getUsername());
+        pushData.put("medicineName", user.getNickname());
+        pushData.put("date", task.getTaskDate().toString());
+        pushData.put("timePoint", task.getTimePoint().toString());
+        pushData.put("status", newStatus);
+
+        eventPublisher.publishEvent(new FamilyMedicineUpdateEvent(
+                this, groupId, pushData
+        ));
     }
 
-    // ========== 私有辅助方法 ==========
+    private String getMedicineName(Long medicineId) {
+        Medicine m = medicineMapper.findById(medicineId);
+        return m != null ? m.getName() : "未知药品";
+    }
 
     /**
      * 批量查询药品（避免N+1查询）

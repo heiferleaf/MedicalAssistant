@@ -26,7 +26,7 @@ public class PlanController {
      * URL: GET /api/plan?userId=1
      */
     @GetMapping
-    public Result<List<PlanVO>> getPlanList(@RequestParam Long userId) {
+    public Result<List<PlanVO>> getPlanList(@RequestAttribute("userId") Long userId) {
         List<PlanVO> plans = planService.getPlanList(userId);
         return Result.success(plans);
     }
@@ -39,7 +39,7 @@ public class PlanController {
      *
      */
     @PostMapping
-    public Result<PlanVO> createPlan(@RequestParam Long userId,
+    public Result<PlanVO> createPlan(@RequestAttribute("userId") Long userId,
                                      @Valid @RequestBody PlanCreateDTO dto) {
         PlanVO plan = planService.createPlan(userId, dto);
         return Result.success("创建成功", plan);
@@ -57,7 +57,7 @@ public class PlanController {
      *   - URL中的{planId}会自动绑定到参数planId
      */
     @PutMapping("/{planId}")
-    public Result<Void> updatePlan(@RequestParam Long userId,
+    public Result<Void> updatePlan(@RequestAttribute("userId") Long userId,
                                    @PathVariable Long planId,
                                    @Valid @RequestBody PlanCreateDTO dto) {
         planService.updatePlan(userId, planId, dto);
@@ -73,7 +73,7 @@ public class PlanController {
      * - @DeleteMapping：处理DELETE请求
      */
     @DeleteMapping("/{planId}")
-    public Result<Void> deletePlan(@RequestParam Long userId,
+    public Result<Void> deletePlan(@RequestAttribute("userId") Long userId,
                                    @PathVariable Long planId) {
         planService.deletePlan(userId, planId);
         return Result.success("删除成功", null);

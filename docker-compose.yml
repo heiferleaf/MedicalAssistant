@@ -1,0 +1,52 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: Root123456      # root 用户密码，自己设置
+      MYSQL_DATABASE: medicalassistant     # 实际的数据库名
+      MYSQL_USER: appuser                  # 给 SpringBoot 用的普通用户
+      MYSQL_PASSWORD: App123456            # 普通用户密码，自己设置
+    volumes:                               # 如果容器挂了，数据就没了，所以需要映射到磁盘
+      - mysql_data:/var/lib/mysql          # 数据持久化
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql  # 自动执行建表
+    networks:
+      - app-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    command: redis-server --requirepass Redis123456   # 自己设置的密码
+    networks:
+      - app-net
+
+  springboot:
+#    build: .                               # 用根目录的 Dockerfile 构建
+    image: crpi-pcte2psh26cec7uk.cn-hangzhou.personal.cr.aliyuncs.com/medicalassistant/medicalassistant:latest
+    container_name: springboot
+    restart: always
+    ports:
+      - "8080:8080"                        # 项目实际端口
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_DB: medicalassistant           # 和上面 MYSQL_DATABASE 保持一致
+      MYSQL_USER: appuser                  # 和上面 MYSQL_USER 保持一致
+      MYSQL_PASSWORD: App123456            # 和上面 MYSQL_PASSWORD 保持一致
+      REDIS_HOST: redis
+      REDIS_PASSWORD: Redis123456          # 和上面 redis 密码保持一致
+      FLASK_URL: http://8.148.94.242:8001         #  Flask
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  mysql_data:

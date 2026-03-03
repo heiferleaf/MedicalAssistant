@@ -28,7 +28,7 @@ public class TaskController {
      * URL: GET /api/task/today? userId=1
      */
     @GetMapping("/today")
-    public Result<List<TaskVO>> getTodayTasks(@RequestParam Long userId) {
+    public Result<List<TaskVO>> getTodayTasks(@RequestAttribute("userId") Long userId) {
         List<TaskVO> tasks = taskService.getTodayTasks(userId);
         return Result.success(tasks);
     }
@@ -44,7 +44,7 @@ public class TaskController {
      * - 完整路径：/api/task/{taskId}/status
      */
     @PutMapping("/{taskId}/status")
-    public Result<TaskVO> updateTaskStatus(@RequestParam Long userId,
+    public Result<TaskVO> updateTaskStatus(@RequestAttribute("userId") Long userId,
                                            @PathVariable Long taskId,
                                            @Valid @RequestBody TaskStatusUpdateDTO dto) {
         TaskVO task = taskService. updateTaskStatus(userId, taskId, dto.getStatus());
@@ -64,7 +64,7 @@ public class TaskController {
      */
     @GetMapping("/history")
     public Result<List<TaskVO>> getHistoryTasks(
-            @RequestParam Long userId,
+            @RequestAttribute("userId") Long userId,
             @RequestParam(name = "start", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @RequestParam(name = "end", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             @RequestParam(required = false) String medicineName,

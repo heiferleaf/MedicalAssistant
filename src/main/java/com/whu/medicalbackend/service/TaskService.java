@@ -32,8 +32,4 @@ public interface TaskService {
     List<TaskVO> getHistoryTasks(Long userId, LocalDate startDate, LocalDate endDate,
                                  String medicineName, Integer status);
 
-    /**
-     * 标记超时任务为漏服（定时任务调用）
-     */
-    void markMissedTasks();
 }

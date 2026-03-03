@@ -29,4 +29,8 @@ public class UserRegisterDto {
     @Pattern(regexp = "^.{6,20}$", message = "昵称长度为6-20位")
     @Pattern(regexp = "^[0-9a-zA-Z_]+$", message = "昵称只能包含大小写字母，数字、以及_")
     private String nickname;
+
+    @NotBlank(message = "电话号码不能为空")
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号码格式不正确")
+    private String phoneNumber;
 }

@@ -28,9 +28,14 @@ Mapper 的xml 文件
         <result column="username" property="username" jdbcType="VARCHAR" javaType="String"/>
         <result column="password" property="password" jdbcType="VARCHAR" javaType="String"/>
         <result column="nickname" property="nickname" jdbcType="VARCHAR" javaType="String"/>
+        <result column="phone_number" property="phoneNumber" jdbcType="VARCHAR" javaType="String"/>
         <result column="create_time" property="createTime" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
         <result column="update_time" property="updateTime" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
     </resultMap>
+
+    <sql id="allProperties">
+        id, username, password, nickname, phone_number, create_time, update_time
+    </sql>
 
     <!--
     插入用户
@@ -41,21 +46,9 @@ Mapper 的xml 文件
     -->
     <insert id="insert" parameterType="com.whu.medicalbackend.entity.User"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO t_user (username, password, nickname, create_time, update_time)
-        VALUES (#{username}, #{password}, #{nickname}, NOW(), NOW())
+        INSERT INTO t_user (username, password, nickname, phone_number, create_time, update_time)
+        VALUES (#{username}, #{password}, #{nickname}, #{phoneNumber}, NOW(), NOW())
     </insert>
-
-    <!--
-    根据用户名查找用户
-    MyBatis知识点：
-    - resultMap：使用上面定义的BaseResultMap映射结果
-    - #{username}：占位符，对应@Param("username")指定的参数名
-    -->
-    <select id="findByUsername" resultMap="BaseResultMap">
-        SELECT id, username, password, nickname, create_time, update_time
-        FROM t_user
-        WHERE username = #{username}
-    </select>
 
     <!--
     检查用户名是否存在
@@ -67,5 +60,35 @@ Mapper 的xml 文件
         SELECT COUNT(*)
         FROM t_user
         WHERE username = #{username}
+    </select>
+
+    <select id="existsByUserPhoneNumber" resultType="int" parameterType="string">
+        SELECT COUNT(*)
+        FROM t_user
+        WHERE phone_number = #{phoneNumber}
+    </select>
+
+    <!--
+    根据用户名查找用户
+    MyBatis知识点：
+    - resultMap：使用上面定义的BaseResultMap映射结果
+    - #{username}：占位符，对应@Param("username")指定的参数名
+    -->
+    <select id="findByUsername" resultMap="BaseResultMap">
+        SELECT <include refid="allProperties"/>
+        FROM t_user
+        WHERE username = #{username}
+    </select>
+
+    <select id="findByUserId" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        SELECT <include refid="allProperties"/>
+        FROM t_user
+        WHERE id = #{userId}
+    </select>
+
+    <select id="findByPhoneNumber" resultMap="BaseResultMap">
+        SELECT <include refid="allProperties"/>
+        FROM t_user
+        WHERE phone_number = #{phoneNumber}
     </select>
 </mapper>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.whu.medicalbackend.mapper.FamilyGroupMapper">
+
+    <!-- 复习点1：ResultMap 配置 -->
+    <resultMap id="FamilyGroupMap" type="com.whu.medicalbackend.entity.FamilyGroup">
+        <id column="id" property="id" />
+        <result column="group_name" property="groupName" />
+        <result column="owner_user_id" property="ownerUserId" />
+        <result column="description" property="description" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="is_deleted" property="isDeleted" />
+    </resultMap>
+
+    <!-- 复习点2：插入与主键回填 -->
+    <!--
+        useGeneratedKeys="true" 表示使用数据库自增主键
+        keyProperty="id" 表示将自增后的值赋值给传入对象的 id 属性
+    -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO family_group (
+            group_name,
+            owner_user_id,
+            description,
+            create_time,
+            update_time,
+            is_deleted
+        ) VALUES (
+                     #{groupName},
+                     #{ownerUserId},
+                     #{description},
+                     #{createTime},
+                     #{updateTime},
+                     0
+                 )
+    </insert>
+
+    <!-- 复习点3：根据 ID 查询（带逻辑删除过滤） -->
+    <select id="selectById" resultMap="FamilyGroupMap">
+        SELECT *
+        FROM family_group
+        WHERE id = #{id}
+          AND is_deleted = 0
+    </select>
+
+    <!-- 复习点4：判断记录是否存在 -->
+    <!--
+        MyBatis 底层会将 SQL 查询结果数字自动映射为 Boolean
+        0 -> false, 非0 -> true
+    -->
+    <select id="existsByOwnerId" resultType="boolean">
+        SELECT COUNT(1)
+        FROM family_group
+        WHERE owner_user_id = #{ownerId}
+          AND is_deleted = 0
+    </select>
+
+</mapper>

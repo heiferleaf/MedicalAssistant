@@ -101,7 +101,7 @@
         UPDATE medication_task
         SET status = #{status},
             operate_time = #{operateTime}
-        WHERE id = #{id}
+        WHERE id = #{id} AND status != #{status}
     </update>
 
     <!-- 删除计划的未来任务 -->
@@ -135,5 +135,18 @@
         WHERE status = 0
         AND task_date = #{taskDate}
         ORDER BY time_point ASC
+    </select>
+
+    <select id="countStatusByDate" resultType="int">
+        SELECT COUNT(*) FROM medication_task
+        WHERE user_id = #{userId}
+          AND task_date = #{date}
+          AND status = #{status}
+    </select>
+
+    <select id="countTotalByDate" resultType="int">
+        SELECT COUNT(*) FROM medication_task
+        WHERE user_id = #{userId}
+          AND task_date = #{date}
     </select>
 </mapper>
