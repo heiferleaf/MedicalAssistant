@@ -145,30 +145,72 @@ def _translate_to_en(text: str) -> str:
         return t
 
 
+def _rule_based_parse(question: str) -> Dict[str, Any]:
+    """基于规则的输入解析，替代LLM调用"""
+    seeds = []
+    intents = ["Drug", "Reaction", "Indication", "Outcome"]
+    
+    # 简单的关键词匹配
+    question_lower = question.lower()
+    
+    # 检查是否包含药物相关关键词
+    drug_keywords = ["药物", "药", "药品", "medication", "drug", "medicine"]
+    if any(keyword in question_lower for keyword in drug_keywords):
+        seeds.append({"type": "Drug", "text": "药物", "normalized": "Drug"})
+    
+    # 检查是否包含不良反应相关关键词
+    reaction_keywords = ["不良反应", "副作用", "副作用", "adverse", "reaction", "side effect"]
+    if any(keyword in question_lower for keyword in reaction_keywords):
+        seeds.append({"type": "Reaction", "text": "不良反应", "normalized": "Reaction"})
+    
+    # 检查是否包含适应症相关关键词
+    indication_keywords = ["适应症", "用途", "适应症", "indication", "use", "purpose"]
+    if any(keyword in question_lower for keyword in indication_keywords):
+        seeds.append({"type": "Indication", "text": "适应症", "normalized": "Indication"})
+    
+    # 检查是否包含结局相关关键词
+    outcome_keywords = ["结局", "结果", "outcome", "result"]
+    if any(keyword in question_lower for keyword in outcome_keywords):
+        seeds.append({"type": "Outcome", "text": "结局", "normalized": "Outcome"})
+    
+    return {
+        "seeds": seeds,
+        "intents": intents,
+        "topk": 10
+    }
+
 def parse_input(question: str) -> Dict[str, Any]:
     raw = "{}"
-    if INPUT_PROVIDER == "ollama":
-        try:
-            raw = _ollama_chat(SYSTEM_EXTRACT, question)
-        except Exception:
-            raw = "{}"
+    
+    # 首先尝试使用规则解析，提高性能
+    rule_based_data = _rule_based_parse(question)
+    
+    # 如果规则解析成功（识别到种子），直接使用规则解析结果
+    if rule_based_data.get('seeds'):
+        data = rule_based_data
     else:
-        client = _client()
-        if client is not None:
+        # 规则解析失败时，使用LLM进行解析
+        if INPUT_PROVIDER == "ollama":
             try:
-                resp = client.chat.completions.create(
-                    model=OPENAI_MODEL,
-                    messages=[
-                        {"role": "system", "content": SYSTEM_EXTRACT},
-                        {"role": "user", "content": question},
-                    ],
-                    temperature=0.0,
-                )
-                raw = resp.choices[0].message.content.strip()
+                raw = _ollama_chat(SYSTEM_EXTRACT, question)
             except Exception:
                 raw = "{}"
-
-    data = _extract_json(raw)
+        else:
+            client = _client()
+            if client is not None:
+                try:
+                    resp = client.chat.completions.create(
+                        model=OPENAI_MODEL,
+                        messages=[
+                            {"role": "system", "content": SYSTEM_EXTRACT},
+                            {"role": "user", "content": question},
+                        ],
+                        temperature=0.0,
+                    )
+                    raw = resp.choices[0].message.content.strip()
+                except Exception:
+                    raw = "{}"
+        data = _extract_json(raw)
 
     seeds_raw = data.get("seeds") or []
     intents_raw = data.get("intents") or []
