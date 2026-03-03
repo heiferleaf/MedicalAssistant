@@ -31,18 +31,65 @@ def _rank_rows(rows: List[Dict[str, Any]], query_vec: List[float], alpha: float)
             },
         }
 
+    # 如果没有查询向量，直接使用所有行，按频率排序
+    if not query_vec:
+        ranked = []
+        for r in rows:
+            freq = r.get("freq", 0) or 0
+            ranked.append(
+                {
+                    "id": r.get("id"),
+                    "label": r.get("label"),
+                    "text": r.get("text"),
+                    "freq": freq,
+                    "sim": 0.0,
+                    "freq_norm": 1.0,
+                    "score": float(freq),
+                    "embedding": r.get("embedding"),
+                }
+            )
+        ranked.sort(key=lambda x: x["score"], reverse=True)
+        return {
+            "ranked": ranked,
+            "stats": {
+                "original_count": len(rows),
+                "used_count": len(rows),
+                "missing_embedding_count": 0,
+                "scoring_mode": "no_query_vector",
+                "freq_mode": "direct",
+                "alpha": alpha,
+            },
+        }
+
     usable = [r for r in rows if isinstance(r.get("embedding"), list)]
     missing_cnt = len(rows) - len(usable)
 
     if not usable:
+        # 如果没有可用的嵌入向量，按频率排序
+        ranked = []
+        for r in rows:
+            freq = r.get("freq", 0) or 0
+            ranked.append(
+                {
+                    "id": r.get("id"),
+                    "label": r.get("label"),
+                    "text": r.get("text"),
+                    "freq": freq,
+                    "sim": 0.0,
+                    "freq_norm": 1.0,
+                    "score": float(freq),
+                    "embedding": r.get("embedding"),
+                }
+            )
+        ranked.sort(key=lambda x: x["score"], reverse=True)
         return {
-            "ranked": [],
+            "ranked": ranked,
             "stats": {
                 "original_count": len(rows),
-                "used_count": 0,
+                "used_count": len(rows),
                 "missing_embedding_count": missing_cnt,
-                "scoring_mode": "all_missing",
-                "freq_mode": "none",
+                "scoring_mode": "no_embeddings",
+                "freq_mode": "direct",
                 "alpha": alpha,
             },
         }

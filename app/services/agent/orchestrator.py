@@ -2,7 +2,7 @@ import time
 import uuid
 from typing import Any, Dict, Optional, Tuple
 
-from app.services.agent.memory.sqlite_memory import SQLiteMemory
+from app.services.agent.memory.mysql_memory import MySQLMemory
 from app.services.agent.router import RouteDecision, route_message
 from app.services.agent.tools import registry
 from app.services.agent.tools.rag_tool import rag_query_tool
@@ -13,8 +13,14 @@ AGENT_VERSION = "v1_light_rules_2026-02-19"
 
 
 class AgentOrchestrator:
-    def __init__(self, *, memory: Optional[SQLiteMemory] = None) -> None:
-        self.memory = memory or SQLiteMemory()
+    def __init__(self, *, memory: Optional[MySQLMemory] = None) -> None:
+        self.memory = memory or MySQLMemory(
+            host="localhost",
+            port=3306,
+            user="root",
+            password="1234",
+            db="MedicalAssistant"
+        )
         # Register tools
         if not registry.has("rag.query"):
             registry.register(

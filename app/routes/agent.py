@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 
 from app.services.agent.orchestrator import AgentOrchestrator
+from app.services.predict import predict_reactions
 
 agent_bp = Blueprint("agent", __name__)
 
@@ -78,3 +79,30 @@ def agent_confirm() -> Any:
 
     status = 200 if result.get("success") else result.get("status", 500)
     return jsonify(result), status
+
+
+@bp.route('/analyze', methods=['POST'])
+def analyze_side_effects():
+    """
+    API 端点：预测不良反应
+    JSON Input: {"text": "..."}
+    """
+    try:
+        data = request.get_json()
+        if not data or 'text' not in data:
+            return jsonify({'error': 'Missing "text" field'}), 400
+
+        text = data['text']
+        # 调用我们在 services 中写好的函数
+        results = predict_reactions(text, top_k=5)
+        
+        return jsonify({
+            'status': 'success',
+            'input_length': len(text),
+            'predictions': results
+        })
+
+    except Exception as e:
+        print(f"Prediction Error: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500

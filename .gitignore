@@ -4,3 +4,4 @@ __pycache__/
 .venv/
 venv/
 checkpoint/
+app/services/predict/resources/pytorch_model/model.safetensors

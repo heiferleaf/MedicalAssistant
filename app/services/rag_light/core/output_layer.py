@@ -359,30 +359,27 @@ def generate_answer(ranking_output: Dict[str, Any]) -> Dict[str, Any]:
         dedup_rows = _dedup_and_map(rows[:topk], intent, MAX_ITEMS)
         per_intent_for_llm[intent] = dedup_rows
 
-    if USE_LLM:
-        try:
-            llm_text = _llm_refine(question, per_intent_for_llm, scoring_mode_by_intent)
-            if _is_llm_answer_grounded(llm_text, per_intent_for_llm):
-                ok = True
-                err = ""
-            else:
-                ok = False
-                err = "LLM output not grounded; fallback to local enumeration"
-                first_mode = next(iter(scoring_mode_by_intent.values()), "uniform_sim")
-                note = "（仅语义相关排序，LLM输出不可靠回退枚举）" if first_mode == "uniform_sim" else "（综合语义与频次，LLM输出不可靠回退枚举）"
-                llm_text = _local_compose_answer(per_intent_for_llm, note)
-        except Exception as exc:  # noqa: BLE001
-            ok = False
-            err = str(exc)
-            first_mode = next(iter(scoring_mode_by_intent.values()), "uniform_sim")
-            note = "（仅语义相关排序，LLM失败回退枚举）" if first_mode == "uniform_sim" else "（综合语义与频次，LLM失败回退枚举）"
-            llm_text = _local_compose_answer(per_intent_for_llm, note)
-    else:
-        ok = False
-        err = "LLM disabled"
-        first_mode = next(iter(scoring_mode_by_intent.values()), "uniform_sim")
-        note = "（仅语义相关排序，本地枚举）" if first_mode == "uniform_sim" else "（综合语义与频次，本地枚举）"
-        llm_text = _local_compose_answer(per_intent_for_llm, note)
+        # 输出固定格式的JSON，不使用LLM
+    ok = True
+    err = ""
+    
+    # 构建固定格式的JSON输出
+    json_output = {}
+    
+    for intent, rows in per_intent_for_llm.items():
+        items = []
+        for row in rows:
+            item = {
+                "text_en": row.get("text_en"),
+                "text_cn_hint": row.get("text_cn_hint"),
+                "freq": row.get("freq"),
+                "count": row.get("count", 1)
+            }
+            items.append(item)
+        json_output[intent] = items
+    
+    # 将JSON对象转换为字符串
+    llm_text = json.dumps(json_output, ensure_ascii=False, indent=2)
 
     return {
         "question": question,

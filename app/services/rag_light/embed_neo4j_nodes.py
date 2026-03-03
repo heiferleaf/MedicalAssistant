@@ -87,7 +87,6 @@ def _iter_missing(graph: Graph, label: str, prop: str, limit: int | None) -> Ite
     q = f"""
     MATCH (n:{label})
     WHERE n.{prop} IS NOT NULL AND trim(toString(n.{prop})) <> ''
-      AND (n.embedding IS NULL OR size(n.embedding) = 0)
     RETURN id(n) AS nid, toString(n.{prop}) AS text
     ORDER BY nid ASC
     {"LIMIT $limit" if limit is not None else ""}
