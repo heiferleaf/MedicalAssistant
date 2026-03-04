@@ -97,18 +97,26 @@ def create_app() -> Flask:
     app.register_blueprint(health_bp)
     app.register_blueprint(rag_bp, url_prefix="/rag")
     
-    # 只有在非测试模式下注册agent和predict蓝图
-    import sys
-    if not any('test_' in arg for arg in sys.argv):
-        try:
-            app.register_blueprint(agent_bp, url_prefix="/agent")
-        except Exception:
-            pass
-        try:
-            app.register_blueprint(predict_bp)
-        except Exception:
-            pass
-    
-    app.register_blueprint(ocr_bp, url_prefix="/ocr")
+    # --- 1. OCR 模块 ---
+    try:
+        from .routes.ocr import ocr_bp
+        # 只有导入成功才注册
+        app.register_blueprint(ocr_bp, url_prefix="/ocr")
+    except Exception as e:
+        print(f"Warning: OCR module import failed, skipping OCR routes. Error: {e}")
+
+    # --- 2. Predict 模块 (同理修改) ---
+    try:
+        from .routes.predict import predict_bp
+        app.register_blueprint(predict_bp, url_prefix="/predict")
+    except Exception as e:
+        print(f"Warning: Predict module import failed, skipping predict routes. Error: {e}")
+        
+    # --- 3. Agent 模块 (同理修改) ---
+    try:
+        from .routes.agent import agent_bp
+        app.register_blueprint(agent_bp, url_prefix="/agent")
+    except Exception as e:
+        print(f"Warning: Agent module import failed, skipping agent routes. Error: {e}")
 
     return app
