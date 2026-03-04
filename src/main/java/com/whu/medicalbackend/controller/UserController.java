@@ -9,6 +9,7 @@ import com.whu.medicalbackend.dto.UserVO;
 import com.whu.medicalbackend.entity.User;
 import com.whu.medicalbackend.service.UserService;
 import com.whu.medicalbackend.util.JwtUtil;
+import com.whu.medicalbackend.util.RedisKeyBuilderUtil;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -61,7 +62,7 @@ public class UserController {
         String accessToken = JwtUtil.createAccessToken(user.getId());
         String refreshToken = UUID.randomUUID().toString();
 
-        redis.setWithExpire("auth:rt" + user.getId(), refreshToken, 7, TimeUnit.DAYS);
+        redis.setWithExpire(RedisKeyBuilderUtil.getAuthRefreshTokenKey(user.getId()), refreshToken, 7, TimeUnit.DAYS);
 
         // 2. 转换为VO
         UserVO userVO = new UserVO.Builder().
@@ -77,7 +78,9 @@ public class UserController {
     public Result<String> refresh(@RequestBody Map<String, String> params) {
         String userId   = params.get("userId");
         String appRT    = params.get("refreshToken");
-        String serverRT = redis.get("auth:rt" + userId);
+
+        String key      = RedisKeyBuilderUtil.getAuthRefreshTokenKey(userId);
+        String serverRT = redis.get(key);
 
         if(serverRT != null && serverRT.equals(appRT)) {
             String newAccessToken = JwtUtil.createAccessToken(Long.valueOf(userId));

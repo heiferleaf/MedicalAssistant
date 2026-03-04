@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.whu.medicalbackend.dto.FamilyMemberVO;
 import com.whu.medicalbackend.entity.User;
+import com.whu.medicalbackend.exception.BusinessException;
 import com.whu.medicalbackend.mapper.FamilyMemberMapper;
 import com.whu.medicalbackend.mapper.UserMapper;
 import com.whu.medicalbackend.util.RedisKeyBuilderUtil; // 引入工具类
@@ -89,12 +90,19 @@ public class FamilyCacheService {
     /**
      * 获取 Redis 缓存中存储的成员信息
      */
-    public List<FamilyMemberVO> getFamilyMembers(Long groupId) {
+    public List<FamilyMemberVO> getFamilyMembers(Long groupId){
         String key = RedisKeyBuilderUtil.getMemberHashKey(groupId);
         Set<Object> memberIds = redisService.keysWithHash(key);
 
         return memberIds.stream()
-                .map(o -> (FamilyMemberVO) redisService.getWithHash(key, (String) o))
+                .map(o -> (String) redisService.getWithHash(key ,(String) o))
+                .map(jsonStr -> {
+                    try {
+                        return objectMapper.readValue(jsonStr, FamilyMemberVO.class);
+                    } catch (JsonProcessingException e) {
+                        throw new BusinessException("读取redis中的家庭成员信息出错");
+                    }
+                })
                 .toList();
     }
 }
