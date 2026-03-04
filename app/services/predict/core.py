@@ -43,8 +43,28 @@ class ReactionPredictor:
                 else:
                     raise KeyError(f"metadata中找不到类别名称，现有键: {list(meta.keys())}")
 
-            # 假设 config 里有 model_name，如果没有则默认用 biobert
-            self.model_name = meta.get('config', {}).get('model_name', 'dmis-lab/biobert-base-cased-v1.1')
+            # --- 修改开始：智能路径适配 ---
+            # 1. 获取原始记录的模型名称/路径
+            raw_model_name = meta.get('config', {}).get('model_name', 'dmis-lab/biobert-base-cased-v1.1')
+            
+            # 2. 判断路径有效性
+            if os.path.exists(raw_model_name):
+                # 如果原路径（如服务器本地绝对路径）存在，直接用
+                self.model_name = raw_model_name
+            else:
+                # 3. 如果原路径不存在（通常是因为换了电脑），尝试在 resources 目录下找同名文件夹
+                # 例如：原路径是 /home/user/.../Bio_ClinicalBERT_local -> 提取 Bio_ClinicalBERT_local
+                folder_name = os.path.basename(raw_model_name.rstrip('/\\'))
+                local_candidate = os.path.join(RESOURCE_DIR, folder_name)
+                
+                if os.path.exists(local_candidate):
+                    print(f"自动定位到本地资源目录: {local_candidate}")
+                    self.model_name = local_candidate
+                else:
+                    print(f"警告: 路径 {raw_model_name} 不存在且 resources 下未找到 {folder_name}。")
+                    print("尝试使用默认在线模型: dmis-lab/biobert-base-cased-v1.1")
+                    self.model_name = 'dmis-lab/biobert-base-cased-v1.1'
+            # --- 修改结束 ---
 
         # 2. 初始化 Tokenizer
         # 注意: 生产环境最好把 tokenizer 也下载到 resources 里加载，防止联网失败
