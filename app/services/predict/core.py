@@ -74,21 +74,37 @@ class ReactionPredictor:
         )
         
         # 4. 加载权重
+        weights_path = None
+        is_safetensors = False
+
         if os.path.isdir(MODEL_PATH):
-             weights_path = os.path.join(MODEL_PATH, 'pytorch_model.bin')
-             if not os.path.exists(weights_path):
-                 # 兼容 safetensors
-                 weights_path = os.path.join(MODEL_PATH, 'model.safetensors')
-                 
-             if not os.path.exists(weights_path):
-                 raise FileNotFoundError(f"在目录 {MODEL_PATH} 中找不到权重文件")
-                 
-             # 根据扩展名选择加载方式，这里简化处理，假设 torch.load 能处理
-             state_dict = torch.load(weights_path, map_location=self.device)
+             bin_path = os.path.join(MODEL_PATH, 'pytorch_model.bin')
+             safe_path = os.path.join(MODEL_PATH, 'model.safetensors')
+             
+             if os.path.exists(bin_path):
+                 weights_path = bin_path
+             elif os.path.exists(safe_path):
+                 weights_path = safe_path
+                 is_safetensors = True
+             else:
+                 raise FileNotFoundError(f"在目录 {MODEL_PATH} 中找不到权重文件 (pytorch_model.bin 或 model.safetensors)")
         else:
              if not os.path.exists(MODEL_PATH):
                  raise FileNotFoundError(f"找不到权重文件: {MODEL_PATH}")
-             state_dict = torch.load(MODEL_PATH, map_location=self.device)
+             weights_path = MODEL_PATH
+             is_safetensors = weights_path.endswith('.safetensors')
+
+        print(f"检测到权重文件: {weights_path}")
+
+        if is_safetensors:
+            try:
+                from safetensors.torch import load_file
+                state_dict = load_file(weights_path, device=str(self.device))
+            except ImportError:
+                print("错误: 检测到 safetensors 文件但未安装库，请运行 pip install safetensors")
+                raise
+        else:
+            state_dict = torch.load(weights_path, map_location=self.device)
              
         self.model.load_state_dict(state_dict, strict=False)
         self.model.to(self.device)
