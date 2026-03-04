@@ -105,10 +105,12 @@ def create_app() -> Flask:
     except Exception as e:
         print(f"Warning: OCR module import failed, skipping OCR routes. Error: {e}")
 
-    # --- 2. Predict 模块 (同理修改) ---
+    # --- 2. Predict 模块 (已修复) ---
     try:
-        from .routes.predict import predict_bp
-        app.register_blueprint(predict_bp, url_prefix="/predict")
+        # 修正: 从 predict 导入 bp，并重命名为 predict_bp
+        from .routes.predict import bp as predict_bp
+        # 修正: 移除 url_prefix，因为 predict.py 中已经定义了 '/api/predict'
+        app.register_blueprint(predict_bp)
     except Exception as e:
         print(f"Warning: Predict module import failed, skipping predict routes. Error: {e}")
         
