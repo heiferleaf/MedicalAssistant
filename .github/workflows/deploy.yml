@@ -38,3 +38,4 @@ jobs:
             cd /root/backend
             docker pull ${{ secrets.ALIYUN_REGISTRY }}/medicalassistant/medicalassistant:latest
             docker compose up -d springboot
+            docker image prune -f
