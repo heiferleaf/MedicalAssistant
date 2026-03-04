@@ -25,7 +25,7 @@ spring:
     # 数据库用户名
     username: ${MYSQL_USER:root}
     # 数据库密码
-    password: ${MYSQL_PASSWORD:1234}
+    password: ${MYSQL_PASSWORD:12345678}
     # 驱动类名（MySQL 8.x）
     driver-class-name:  com.mysql.cj.jdbc.Driver
 
@@ -56,3 +56,13 @@ mybatis:
     map-underscore-to-camel-case: true
     # 打印SQL日志（开发环境）
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 阿里云DashScope配置
+dashscope:
+  api-key: ${DASHSCOPE_API_KEY:}
+  model: qwen3.5-plus
+
+# Agent配置
+agent:
+  llm:
+    enabled: true

@@ -4,12 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.whu.medicalbackend.agent.flask.FlaskRagProxyService;
+import com.whu.medicalbackend.agent.llm.AgentDecision;
+import com.whu.medicalbackend.agent.llm.AgentPromptTemplate;
+import com.whu.medicalbackend.agent.llm.DashScopeApiService;
 import com.whu.medicalbackend.agent.memory.AgentMemoryRepository;
 import com.whu.medicalbackend.agent.router.AgentRouter;
 import com.whu.medicalbackend.agent.tools.ToolRegistry;
 import com.whu.medicalbackend.dto.PlanCreateDTO;
 import com.whu.medicalbackend.dto.PlanVO;
 import com.whu.medicalbackend.service.PlanService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +27,9 @@ import java.util.*;
 @Service
 public class AgentOrchestratorService {
 
-    public static final String AGENT_VERSION = "schemeA_spring_memory_v0_2026-02-19";
+    private static final Logger logger = LoggerFactory.getLogger(AgentOrchestratorService.class);
+
+    public static final String AGENT_VERSION = "schemeA_spring_memory_v1_llm_2026-03-04";
 
     private final AgentMemoryRepository memoryRepository;
     private final FlaskRagProxyService flaskRagProxyService;
@@ -30,19 +37,25 @@ public class AgentOrchestratorService {
     private final ObjectMapper objectMapper;
     private final String flaskBaseUrl;
     private final ToolRegistry toolRegistry;
+    private final DashScopeApiService llmService;
+    private final boolean llmEnabled;
 
     public AgentOrchestratorService(
             AgentMemoryRepository memoryRepository,
             FlaskRagProxyService flaskRagProxyService,
             PlanService planService,
             ObjectMapper objectMapper,
-            @Value("${flask.base-url:http://127.0.0.1:8001}") String flaskBaseUrl
+            DashScopeApiService llmService,
+            @Value("${flask.base-url:http://127.0.0.1:8001}") String flaskBaseUrl,
+            @Value("${agent.llm.enabled:false}") boolean llmEnabled
     ) {
         this.memoryRepository = memoryRepository;
         this.flaskRagProxyService = flaskRagProxyService;
         this.planService = planService;
         this.objectMapper = objectMapper;
         this.flaskBaseUrl = flaskBaseUrl;
+        this.llmService = llmService;
+        this.llmEnabled = llmEnabled;
         this.toolRegistry = new ToolRegistry();
         
         // Register tools
@@ -57,6 +70,8 @@ public class AgentOrchestratorService {
             // Implementation will be called directly in confirm method
             return Map.of();
         });
+
+        logger.info("AgentOrchestratorService initialized, LLM enabled: {}", llmEnabled);
     }
 
     public Map<String, Object> chat(Map<String, Object> payload) {
@@ -75,10 +90,254 @@ public class AgentOrchestratorService {
 
         memoryRepository.appendMessage(sessionId, userId, "user", message);
 
+        // 使用LLM进行意图识别（如果启用）
+        if (llmEnabled && llmService.isConfigured()) {
+            return handleLlmChat(userId, sessionId, message, withTrace, withTiming);
+        }
+
+        // 回退到正则匹配
+        return handleRuleBasedChat(userId, sessionId, message, withTrace, withTiming);
+    }
+
+    private Map<String, Object> handleLlmChat(String userId, String sessionId, String message, boolean withTrace, boolean withTiming) {
+        Map<String, Object> trace = new LinkedHashMap<>();
+        trace.put("agent_version", AGENT_VERSION);
+        trace.put("control", "llm");
+
+        try {
+            List<Map<String, String>> history = getConversationHistory(sessionId, 5);
+
+            String prompt = AgentPromptTemplate.buildIntentRecognitionPrompt(message, history);
+            logger.info("LLM Prompt: {}", prompt);
+            
+            String llmResponse = llmService.chat(AgentPromptTemplate.SYSTEM_PROMPT, message);
+            logger.info("LLM Response: {}", llmResponse);
+
+            AgentDecision decision = parseLlmResponse(llmResponse);
+            logger.info("Parsed Decision: intent={}, toolName={}", decision.getIntentType(), decision.getToolName());
+
+            if (withTrace) {
+                trace.put("llm_decision", decision.getIntentType().name());
+                trace.put("llm_raw_response", llmResponse);
+            }
+
+            return executeDecision(decision, userId, sessionId, message, withTrace, withTiming, trace);
+
+        } catch (Exception e) {
+            logger.error("LLM调用失败，回退到正则匹配", e);
+            return handleRuleBasedChat(userId, sessionId, message, withTrace, withTiming);
+        }
+    }
+
+    private List<Map<String, String>> getConversationHistory(String sessionId, int limit) {
+        List<Map<String, Object>> rows = memoryRepository.getRecentMessages(sessionId, limit);
+        List<Map<String, String>> history = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            history.add(Map.of(
+                    "role", str(row.get("role")),
+                    "content", str(row.get("content"))
+            ));
+        }
+        return history;
+    }
+
+    private AgentDecision parseLlmResponse(String llmResponse) {
+        try {
+            // 尝试解析JSON格式的响应
+            if (llmResponse.contains("{") && llmResponse.contains("}")) {
+                int start = llmResponse.indexOf("{");
+                int end = llmResponse.lastIndexOf("}");
+                String jsonStr = llmResponse.substring(start, end + 1);
+                Map<String, Object> json = objectMapper.readValue(jsonStr, Map.class);
+
+                String intent = str(json.get("intent"));
+                String msg = str(json.get("message"));
+
+                switch (intent) {
+                    case "direct_answer":
+                        return AgentDecision.directAnswer(msg);
+                    case "tool_call":
+                        String toolName = str(json.get("tool_name"));
+                        Map<String, Object> toolArgs = (Map<String, Object>) json.get("tool_args");
+                        return AgentDecision.toolCall(toolName, toolArgs, msg);
+                    case "need_confirm":
+                        Map<String, Object> preview = (Map<String, Object>) json.get("preview");
+                        return AgentDecision.needConfirm(preview, msg);
+                    default:
+                        return AgentDecision.directAnswer(msg);
+                }
+            }
+            // 如果不是JSON格式，直接作为回答返回
+            return AgentDecision.directAnswer(llmResponse);
+        } catch (Exception e) {
+            logger.warn("解析LLM响应失败: {}", e.getMessage());
+            return AgentDecision.directAnswer(llmResponse);
+        }
+    }
+
+    private Map<String, Object> executeDecision(AgentDecision decision, String userId, String sessionId,
+                                                  String message, boolean withTrace, boolean withTiming,
+                                                  Map<String, Object> trace) {
+        switch (decision.getIntentType()) {
+            case DIRECT_ANSWER:
+                return handleDirectAnswer(decision.getMessage(), userId, sessionId, withTrace, withTiming, trace);
+            case TOOL_CALL:
+                return handleToolCall(decision.getToolName(), decision.getToolArgs(), decision.getMessage(),
+                        userId, sessionId, withTrace, withTiming, trace);
+            case NEED_CONFIRM:
+                return handleNeedConfirm(decision.getPreview(), decision.getMessage(),
+                        userId, sessionId, withTrace, withTiming, trace);
+            case CLARIFICATION:
+                return handleClarification(decision.getMessage(), userId, sessionId, withTrace, withTiming, trace);
+            default:
+                return handleDirectAnswer("我暂时无法理解你的请求，请换个说法。",
+                        userId, sessionId, withTrace, withTiming, trace);
+        }
+    }
+
+    private Map<String, Object> handleDirectAnswer(String answer, String userId, String sessionId,
+                                                    boolean withTrace, boolean withTiming, Map<String, Object> trace) {
+        memoryRepository.appendMessage(sessionId, userId, "assistant", answer);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("assistant_message", answer);
+        result.put("need_confirm", false);
+        result.put("actions", List.of());
+
+        if (withTrace) {
+            result.put("trace", trace);
+        }
+        if (withTiming) {
+            result.put("timings", Map.of());
+        }
+        return result;
+    }
+
+    private Map<String, Object> handleToolCall(String toolName, Map<String, Object> toolArgs, String message,
+                                                String userId, String sessionId,
+                                                boolean withTrace, boolean withTiming, Map<String, Object> trace) {
+        if ("rag.query".equals(toolName)) {
+            String question = str(toolArgs.get("question"));
+            
+            String assistantMessage;
+            Map<String, Object> rawData;
+            
+            try {
+                Map<String, Object> ragResp = flaskRagProxyService.query(question, withTrace, withTiming);
+                assistantMessage = str(ragResp.get("answer")).trim();
+                rawData = Map.of("rag", ragResp);
+            } catch (Exception e) {
+                logger.warn("RAG服务调用失败: {}", e.getMessage());
+                assistantMessage = "抱歉，知识库服务暂时不可用。请稍后再试，或尝试其他问题。";
+                rawData = Map.of("rag_error", e.getMessage());
+            }
+            
+            if (assistantMessage.isBlank()) {
+                assistantMessage = "我没能生成回答，请换个问法再试一次。";
+            }
+
+            memoryRepository.appendMessage(sessionId, userId, "assistant", assistantMessage);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", true);
+            result.put("assistant_message", assistantMessage);
+            result.put("need_confirm", false);
+            result.put("actions", List.of());
+            result.put("raw", rawData);
+
+            if (withTrace) {
+                trace.put("tools_called", List.of("rag.query"));
+                result.put("trace", trace);
+            }
+            if (withTiming) {
+                result.put("timings", Map.of());
+            }
+            return result;
+        }
+
+        // 其他工具调用，生成确认
+        return handleNeedConfirm(toolArgs, message, userId, sessionId, withTrace, withTiming, trace);
+    }
+
+    private Map<String, Object> handleNeedConfirm(Map<String, Object> preview, String message,
+                                                   String userId, String sessionId,
+                                                   boolean withTrace, boolean withTiming, Map<String, Object> trace) {
+        String actionId = "act_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+
+        ObjectNode previewNode = objectMapper.createObjectNode();
+        if (preview != null) {
+            for (Map.Entry<String, Object> entry : preview.entrySet()) {
+                previewNode.putPOJO(entry.getKey(), entry.getValue());
+            }
+        }
+
+        JsonNode toolArgs = objectMapper.valueToTree(preview);
+
+        memoryRepository.savePendingAction(
+                actionId,
+                sessionId,
+                userId,
+                "spring.plan.create",
+                previewNode,
+                toolArgs,
+                Duration.ofSeconds(300)
+        );
+
+        String assistantMessage = message != null ? message : "我将为你创建如下用药提醒/计划，请确认是否保存：";
+        memoryRepository.appendMessage(sessionId, userId, "assistant", assistantMessage);
+
+        Map<String, Object> confirm = new LinkedHashMap<>();
+        confirm.put("action_id", actionId);
+        confirm.put("action_type", "spring.plan.create");
+        confirm.put("preview", preview);
+        confirm.put("expires_in_sec", 300);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("assistant_message", assistantMessage);
+        result.put("need_confirm", true);
+        result.put("confirm", confirm);
+        result.put("actions", List.of());
+
+        if (withTrace) {
+            trace.put("tools_called", List.of("spring.plan.create.preview"));
+            result.put("trace", trace);
+        }
+        if (withTiming) {
+            result.put("timings", Map.of());
+        }
+        return result;
+    }
+
+    private Map<String, Object> handleClarification(String message, String userId, String sessionId,
+                                                      boolean withTrace, boolean withTiming, Map<String, Object> trace) {
+        memoryRepository.appendMessage(sessionId, userId, "assistant", message);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("assistant_message", message);
+        result.put("need_confirm", false);
+        result.put("actions", List.of());
+
+        if (withTrace) {
+            result.put("trace", trace);
+        }
+        if (withTiming) {
+            result.put("timings", Map.of());
+        }
+        return result;
+    }
+
+    // 回退到正则匹配的方法（原逻辑）
+    private Map<String, Object> handleRuleBasedChat(String userId, String sessionId, String message,
+                                                     boolean withTrace, boolean withTiming) {
+
         AgentRouter.Decision decision = AgentRouter.routeMessage(message, userId, sessionId);
 
         Map<String, Object> trace = new LinkedHashMap<>();
         trace.put("agent_version", AGENT_VERSION);
+        trace.put("control", "rule");
         if (withTrace) {
             Map<String, Object> d = new LinkedHashMap<>();
             d.put("intent", decision.intent());
@@ -373,6 +632,8 @@ public class AgentOrchestratorService {
         out.put("status", "ok");
         out.put("module", "agent");
         out.put("agent_version", AGENT_VERSION);
+        out.put("control_mode", llmEnabled ? "llm" : "rule");
+        out.put("llm_configured", llmService.isConfigured());
         out.put("memory", Map.of("backend", "spring.jdbc.mysql", "tables", List.of("agent_sessions", "agent_messages", "agent_pending_actions")));
         out.put("rag", Map.of("target", flaskBaseUrl + "/rag/query"));
         out.put("server_time", java.time.OffsetDateTime.now().toString());
