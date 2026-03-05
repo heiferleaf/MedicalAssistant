@@ -5,16 +5,16 @@
 <mapper namespace="com.whu.medicalbackend.mapper.FamilyMemberMapper">
 
     <select id="checkUserInGroup" resultType="java.lang.Boolean">
-        select count(1) from family_member where user_id = #{userId} and status = 'active' and is_delete = '0'
+        select count(1) from family_member where user_id = #{userId} and status = 'active' and is_deleted = '0'
     </select>
 
     <select id="getGroupIdByUserId" resultType="java.lang.Long">
-        select group_id from family_member where user_id = #{userId} and status = 'active' and is_delete = 0 limit 1
+        select group_id from family_member where user_id = #{userId} and status = 'active' and is_deleted = 0 limit 1
     </select>
 
     <insert id="insert" parameterType="FamilyMember" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO family_member(group_id, user_id, role, join_time, status, is_deleted)
-        VALUES(#{groupId}, #{userId}, #{role}, #{joinTime}, #{status}, 0
+        VALUES(#{groupId}, #{userId}, #{role}, #{joinTime}, #{status}, 0)
     </insert>
 
     <select id="findActiveUserIdsByGroupId" resultType="java.lang.Long">
@@ -23,7 +23,7 @@
 
     <update id="updateMemberStatus">
         update family_member set status = #{status}, exit_time = #{exitTime}
-        where group_id = #{groupId} and user_id = #{userId} and is_delete = 0
+        where group_id = #{groupId} and user_id = #{userId} and is_deleted = 0
     </update>
     
     <select id="getRoleInGroup" resultType="string">
