@@ -40,7 +40,7 @@ public class DashScopeApiService {
     }
 
     /**
-     * 带 Function Call 的聊天
+     * 带 Function Call 的聊天（支持联网搜索）
      */
     public FunctionCallResult chatWithFunction(
             String systemPrompt, 
@@ -83,10 +83,15 @@ public class DashScopeApiService {
                 requestBody.set("tools", tools);
                 requestBody.put("tool_choice", "auto");
             }
+            
+            // 启用联网搜索（阿里云 DashScope 内置功能）
+            // 注意：需要使用 qwen-max、qwen3-max 等支持搜索的模型
+            requestBody.put("enable_search", true);
 
             String jsonBody = objectMapper.writeValueAsString(requestBody);
             logger.info("DashScope Request: {}", jsonBody);
             
+            // 使用 OpenAI 兼容 API（支持联网搜索）
             String url = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
             
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();

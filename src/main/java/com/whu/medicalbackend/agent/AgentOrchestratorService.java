@@ -2,13 +2,18 @@ package com.whu.medicalbackend.agent;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.whu.medicalbackend.agent.engine.MultiTurnExecutionEngine;
 import com.whu.medicalbackend.agent.flask.FlaskRagProxyService;
 import com.whu.medicalbackend.agent.llm.AgentDecision;
 import com.whu.medicalbackend.agent.llm.AgentPromptTemplate;
 import com.whu.medicalbackend.agent.llm.DashScopeApiService;
+import com.whu.medicalbackend.agent.llm.FunctionCallResult;
+import com.whu.medicalbackend.agent.llm.ToolDefinition;
 import com.whu.medicalbackend.agent.memory.AgentMemoryRepository;
 import com.whu.medicalbackend.agent.router.AgentRouter;
+import com.whu.medicalbackend.agent.tools.PlanTools;
 import com.whu.medicalbackend.agent.tools.ToolRegistry;
 import com.whu.medicalbackend.dto.PlanCreateDTO;
 import com.whu.medicalbackend.dto.PlanVO;
@@ -37,7 +42,9 @@ public class AgentOrchestratorService {
     private final ObjectMapper objectMapper;
     private final String flaskBaseUrl;
     private final ToolRegistry toolRegistry;
+    private final PlanTools planTools;
     private final DashScopeApiService llmService;
+    private final MultiTurnExecutionEngine multiTurnEngine;
     private final boolean llmEnabled;
 
     public AgentOrchestratorService(
@@ -46,6 +53,7 @@ public class AgentOrchestratorService {
             PlanService planService,
             ObjectMapper objectMapper,
             DashScopeApiService llmService,
+            MultiTurnExecutionEngine multiTurnEngine,
             @Value("${flask.base-url:http://127.0.0.1:8001}") String flaskBaseUrl,
             @Value("${agent.llm.enabled:false}") boolean llmEnabled
     ) {
@@ -55,8 +63,10 @@ public class AgentOrchestratorService {
         this.objectMapper = objectMapper;
         this.flaskBaseUrl = flaskBaseUrl;
         this.llmService = llmService;
+        this.multiTurnEngine = multiTurnEngine;
         this.llmEnabled = llmEnabled;
         this.toolRegistry = new ToolRegistry();
+        this.planTools = new PlanTools(planService, memoryRepository, objectMapper);
         
         // Register tools
         toolRegistry.register("rag.query", "Query RAG service for medical information", params -> {
@@ -100,31 +110,68 @@ public class AgentOrchestratorService {
     }
 
     private Map<String, Object> handleLlmChat(String userId, String sessionId, String message, boolean withTrace, boolean withTiming) {
+        try {
+            // 获取所有工具定义（包括 RAG、PlanCreate、WebSearch 和 Plan 工具）
+            ArrayNode tools = ToolDefinition.getAllTools(objectMapper);
+            // 添加 Plan 相关工具
+            ArrayNode allPlanTools = this.planTools.getAllPlanTools();
+            for (int i = 0; i < allPlanTools.size(); i++) {
+                tools.add(allPlanTools.get(i));
+            }
+            
+            // 使用多轮执行引擎
+            logger.info("使用多轮执行引擎处理请求");
+            return multiTurnEngine.execute(userId, sessionId, message, tools, withTrace, withTiming);
+            
+        } catch (Exception e) {
+            logger.error("多轮执行引擎失败，回退到单轮执行", e);
+            return handleSingleTurnLlmChat(userId, sessionId, message, withTrace, withTiming);
+        }
+    }
+    
+    /**
+     * 单轮 LLM 调用（回退方案）
+     */
+    private Map<String, Object> handleSingleTurnLlmChat(String userId, String sessionId, String message, boolean withTrace, boolean withTiming) {
         Map<String, Object> trace = new LinkedHashMap<>();
         trace.put("agent_version", AGENT_VERSION);
-        trace.put("control", "llm");
+        trace.put("control", "llm_single_turn");
 
         try {
             List<Map<String, String>> history = getConversationHistory(sessionId, 5);
 
-            String prompt = AgentPromptTemplate.buildIntentRecognitionPrompt(message, history);
-            logger.info("LLM Prompt: {}", prompt);
+            // 获取所有工具定义（包括 RAG、PlanCreate、WebSearch 和 Plan 工具）
+            ArrayNode tools = ToolDefinition.getAllTools(objectMapper);
+            // 添加 Plan 相关工具
+            ArrayNode allPlanTools = this.planTools.getAllPlanTools();
+            for (int i = 0; i < allPlanTools.size(); i++) {
+                tools.add(allPlanTools.get(i));
+            }
             
-            String llmResponse = llmService.chat(AgentPromptTemplate.SYSTEM_PROMPT, message);
-            logger.info("LLM Response: {}", llmResponse);
-
-            AgentDecision decision = parseLlmResponse(llmResponse);
-            logger.info("Parsed Decision: intent={}, toolName={}", decision.getIntentType(), decision.getToolName());
+            // 使用 Function Call 调用 LLM
+            FunctionCallResult llmResult = llmService.chatWithFunction(
+                AgentPromptTemplate.SYSTEM_PROMPT, 
+                message, 
+                history,
+                tools
+            );
+            
+            logger.info("LLM FunctionCall Result: {}", llmResult);
 
             if (withTrace) {
-                trace.put("llm_decision", decision.getIntentType().name());
-                trace.put("llm_raw_response", llmResponse);
+                trace.put("llm_result", llmResult.toString());
             }
 
-            return executeDecision(decision, userId, sessionId, message, withTrace, withTiming, trace);
+            // 根据 Function Call 结果执行相应操作
+            if (llmResult.isFunctionCall()) {
+                return handleToolCall(llmResult.getName(), llmResult.getArguments(), null,
+                        userId, sessionId, withTrace, withTiming, trace);
+            } else {
+                return handleDirectAnswer(llmResult.getContent(), userId, sessionId, withTrace, withTiming, trace);
+            }
 
         } catch (Exception e) {
-            logger.error("LLM调用失败，回退到正则匹配", e);
+            logger.error("LLM 调用失败，回退到正则匹配", e);
             return handleRuleBasedChat(userId, sessionId, message, withTrace, withTiming);
         }
     }
@@ -254,6 +301,64 @@ public class AgentOrchestratorService {
                 result.put("timings", Map.of());
             }
             return result;
+        }
+        
+        if ("web_search".equals(toolName)) {
+            String query = str(toolArgs.get("query"));
+            logger.info("执行联网搜索：{}", query);
+            
+            // 注意：由于已经启用了 enable_search=true，LLM 会直接获取搜索结果并生成回答
+            // 这里我们再次调用 LLM，让它基于搜索结果生成最终回答
+            String assistantMessage;
+            try {
+                // 构造搜索提示
+                String searchPrompt = "请搜索\"" + query + "\"并提供详细信息。";
+                
+                // 直接调用 LLM（已经启用搜索功能）
+                FunctionCallResult searchResult = llmService.chatWithFunction(
+                    "你是一个专业的信息搜索助手，请提供准确、详细的信息。",
+                    searchPrompt,
+                    Collections.emptyList(),
+                    null  // 不需要工具，直接让 LLM 搜索并回答
+                );
+                
+                if (searchResult.isFunctionCall()) {
+                    // 如果还返回工具调用，直接回复
+                    assistantMessage = "我正在为您搜索\"" + query + "\"的相关信息...";
+                } else {
+                    assistantMessage = searchResult.getContent();
+                }
+                
+            } catch (Exception e) {
+                logger.warn("联网搜索失败：{}", e.getMessage());
+                assistantMessage = "抱歉，联网搜索服务暂时不可用，请稍后再试。";
+            }
+            
+            memoryRepository.appendMessage(sessionId, userId, "assistant", assistantMessage);
+            
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", true);
+            result.put("assistant_message", assistantMessage);
+            result.put("need_confirm", false);
+            result.put("actions", List.of());
+            result.put("search_query", query);
+            
+            if (withTrace) {
+                trace.put("tools_called", List.of("web_search"));
+                result.put("trace", trace);
+            }
+            if (withTiming) {
+                result.put("timings", Map.of());
+            }
+            return result;
+        }
+
+        // ========== Plan 相关工具 ==========
+        Map<String, Object> planResult = planTools.executeTool(
+            toolName, toolArgs, userId, sessionId, withTrace, withTiming, trace
+        );
+        if (planResult != null) {
+            return planResult;
         }
 
         // 其他工具调用，生成确认
