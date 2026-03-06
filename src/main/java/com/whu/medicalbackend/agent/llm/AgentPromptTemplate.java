@@ -111,9 +111,14 @@ public class AgentPromptTemplate {
    - 如果用户明确说了计划 ID（如"删除计划 123"），直接调用 spring.plan.delete 并传入 planId
    - 如果用户只说了药品名（如"删除阿司匹林"），直接调用 spring.plan.delete 并传入 medicineName，工具会自动匹配
    - 如果用户说"删除所有计划"，先调用 spring.plan.query 查询，然后对每个计划调用 spring.plan.delete
+   - 如果用户说"删除第 N 个计划"，先调用 spring.plan.query 查询所有计划，然后根据计划 ID 删除对应的计划
+   - 如果用户说"删除第二个"，先调用 spring.plan.query 查询所有计划，然后删除第二个计划（通过 planId）
 8. 如果用户询问最新信息、实时新闻或知识库中没有的内容，使用 web_search
 9. 始终以友好、专业的态度与用户交流
 10. 如果无法判断用户意图，可以先调用 rag.query 搜索相关信息
+11. **重要**：当用户要求删除计划时，必须调用 spring.plan.delete 工具，即使查询结果显示没有对应的计划，也要明确告知用户
+12. **重要**：如果用户消息中包含"并且"、"然后"等连接词，说明用户有多个操作意图，必须分步执行，不能只执行第一个操作
+13. **重要**：即使查询结果显示没有用户要删除的计划，也必须调用 spring.plan.delete 工具，然后在工具结果中告知用户计划不存在
 """;
 
     public static String buildIntentRecognitionPrompt(String userMessage, List<Map<String, String>> history) {

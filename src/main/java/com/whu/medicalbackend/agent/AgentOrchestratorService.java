@@ -90,6 +90,11 @@ public class AgentOrchestratorService {
         String message = str(payload.get("message"));
         boolean withTrace = bool(payload.get("with_trace"));
         boolean withTiming = bool(payload.get("with_timing"));
+        
+        // 默认启用 withTrace 以显示多轮调用详情
+        if (payload.get("with_trace") == null) {
+            withTrace = true;
+        }
 
         if (userId.isBlank() || sessionId.isBlank()) {
             return Map.of("success", false, "error", "user_id 和 session_id 不能为空", "status", 400);

@@ -141,7 +141,10 @@ public class PlanTools {
         
         ObjectNode funcDef = objectMapper.createObjectNode();
         funcDef.put("name", "spring_plan_delete");
-        funcDef.put("description", "删除/停用用药计划。可以提供 planId、medicineName 或 deleteAll");
+        funcDef.put("description", "删除/停用用药计划。" +
+            "如果要删除单个计划，请提供 planId 或 medicineName；" +
+            "如果要删除多个计划，请多次调用此工具，每次删除一个计划；" +
+            "不要使用 deleteAll 参数，因为这会一次性删除所有计划，无法体现多轮执行过程");
         
         ObjectNode parameters = objectMapper.createObjectNode();
         parameters.put("type", "object");
@@ -150,17 +153,17 @@ public class PlanTools {
         
         ObjectNode planId = objectMapper.createObjectNode();
         planId.put("type", "integer");
-        planId.put("description", "要删除的计划 ID（与 medicineName、deleteAll 互斥）");
+        planId.put("description", "要删除的计划 ID（与 medicineName 互斥）");
         properties.set("planId", planId);
         
         ObjectNode medicineName = objectMapper.createObjectNode();
         medicineName.put("type", "string");
-        medicineName.put("description", "要删除的药品名称（与 planId、deleteAll 互斥），如'阿司匹林'");
+        medicineName.put("description", "要删除的药品名称（与 planId 互斥），如'阿司匹林'");
         properties.set("medicineName", medicineName);
         
         ObjectNode deleteAll = objectMapper.createObjectNode();
         deleteAll.put("type", "boolean");
-        deleteAll.put("description", "是否删除所有用药计划（true/false，与 planId、medicineName 互斥）");
+        deleteAll.put("description", "是否删除所有用药计划（true/false，不推荐使用）");
         properties.set("deleteAll", deleteAll);
         
         ArrayNode required = objectMapper.createArrayNode();
@@ -285,11 +288,12 @@ public class PlanTools {
             boolean withTiming,
             Map<String, Object> trace
     ) {
-        logger.info("查询用户用药计划");
+        logger.info("查询用户用药计划，userId: {}", userId);
         
         try {
             Long uid = Long.valueOf(userId);
             List<PlanVO> plans = planService.getPlanList(uid);
+            logger.info("查询到 {} 个用药计划", plans.size());
             
             String assistantMessage;
             if (plans.isEmpty()) {
@@ -331,6 +335,13 @@ public class PlanTools {
             result.put("need_confirm", false);
             result.put("actions", List.of());
             result.put("plans_count", plans.size());
+            result.put("plans", plans.stream().map(p -> Map.of(
+                "id", p.getId(),
+                "medicineName", p.getMedicineName(),
+                "dosage", p.getDosage(),
+                "timePoints", p.getTimePoints().stream().map(LocalTime::toString).toList()
+            )).toList());
+            result.put("need_continue", true); // 查询后需要继续，让 LLM 决定下一步操作
             
             if (withTrace) {
                 trace.put("tools_called", List.of("spring_plan_query"));

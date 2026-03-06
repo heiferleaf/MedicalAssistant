@@ -26,14 +26,13 @@ public class AgentMemoryRepository {
     public void touchSession(String sessionId, String userId) {
         LocalDateTime now = LocalDateTime.now();
         jdbcTemplate.update(
-                "INSERT INTO agent_sessions(session_id, user_id, created_at, updated_at, summary_text) " +
-                        "VALUES(?,?,?,?,?) " +
-                        "ON DUPLICATE KEY UPDATE user_id=VALUES(user_id), updated_at=VALUES(updated_at)",
+                "INSERT INTO `agent_sessions`(`session_id`, `user_id`, `created_at`, `updated_at`, `summary_text`) " +
+                        "VALUES(?,?,?,?,NULL) " +
+                        "ON DUPLICATE KEY UPDATE `user_id`=VALUES(`user_id`), `updated_at`=VALUES(`updated_at`)",
                 sessionId,
                 userId,
                 Timestamp.valueOf(now),
-                Timestamp.valueOf(now),
-                null
+                Timestamp.valueOf(now)
         );
     }
 

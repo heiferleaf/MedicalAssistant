@@ -159,6 +159,7 @@ public class MultiTurnExecutionEngine {
                 }
                 
                 // 1. 调用 LLM
+                log.info("=== 第 {} 轮执行开始 ===", turn + 1);
                 FunctionCallResult llmResult = callLLM(context, tools);
                 
                 if (llmResult == null) {
@@ -167,6 +168,7 @@ public class MultiTurnExecutionEngine {
                 }
                 
                 log.info("LLM 响应：{}", llmResult);
+                log.info("LLM 是否调用工具：{}", llmResult.isFunctionCall());
                 
                 if (withTrace) {
                     context.getTrace().put("llm_result_turn_" + turn, llmResult.toString());
@@ -214,8 +216,15 @@ public class MultiTurnExecutionEngine {
                 
                 // 7. 添加工具结果到对话历史（供下一轮 LLM 使用）
                 String toolResultJson = objectMapper.writeValueAsString(toolResult);
+                context.addHistoryMessage("assistant", assistantMessage);
+                context.addHistoryMessage("tool", "工具 " + toolName + " 执行结果：" + toolResultJson);
+                
+                // 同时添加到 memoryRepository（持久化）
+                memoryRepository.appendMessage(sessionId, userId, "assistant", assistantMessage);
                 memoryRepository.appendMessage(sessionId, userId, "tool", 
                     "工具 " + toolName + " 执行结果：" + toolResultJson);
+                
+                log.info("工具调用结果已保存到数据库");
             }
             
             // 超过最大轮数
@@ -233,19 +242,62 @@ public class MultiTurnExecutionEngine {
      */
     private FunctionCallResult callLLM(ExecutionContext context, Object tools) {
         try {
-            // 构建对话历史
-            List<Map<String, String>> history = context.getConversationHistory();
+            // 从数据库中读取最近的对话历史（包括用户消息、assistant 消息、tool 结果）
+            List<Map<String, Object>> recentMessages = memoryRepository.getRecentMessages(context.getSessionId(), 20);
+            
+            // 构建对话历史（只保留 role 和 content）
+            List<Map<String, String>> history = new ArrayList<>();
+            for (Map<String, Object> msg : recentMessages) {
+                String role = (String) msg.get("role");
+                String content = (String) msg.get("content");
+                
+                // OpenAI 兼容 API 要求：role 为 "tool" 的消息必须跟在 "assistant" 且包含 "tool_calls" 的消息之后
+                // 但我们的实现中，assistant 消息可能是文本，也可能是 tool 调用
+                // 所以把 "tool" 角色的消息转换为 "user" 角色的消息
+                if ("tool".equals(role)) {
+                    role = "user";
+                    content = "工具执行结果：" + content;
+                }
+                
+                Map<String, String> historyMsg = new HashMap<>();
+                historyMsg.put("role", role);
+                historyMsg.put("content", content);
+                history.add(historyMsg);
+            }
+            
+            // 如果对话历史为空，添加用户消息
+            if (history.isEmpty()) {
+                log.info("对话历史为空，添加用户消息");
+                history.add(Map.of("role", "user", "content", context.getUserMessage()));
+            } else {
+                log.info("对话历史包含 {} 条消息", history.size());
+            }
             
             // 类型转换为 ArrayNode
             ArrayNode toolsArray = (tools instanceof ArrayNode) ? (ArrayNode) tools : null;
             
             // 调用 LLM
-            return llmService.chatWithFunction(
+            log.info("调用 LLM，用户消息：{}", context.getUserMessage());
+            FunctionCallResult result = llmService.chatWithFunction(
                 AgentPromptTemplate.SYSTEM_PROMPT,
                 context.getUserMessage(),
                 history,
                 toolsArray
             );
+            
+            log.info("LLM 调用结果：{}", result);
+            
+            // 保存 LLM 的 tool 调用决策到数据库
+            if (result != null && result.isFunctionCall()) {
+                String toolCallJson = objectMapper.writeValueAsString(Map.of(
+                    "tool_name", result.getName(),
+                    "tool_arguments", result.getArguments()
+                ));
+                memoryRepository.appendMessage(context.getSessionId(), context.getUserId(), "assistant", 
+                    "LLM 决定调用工具：" + toolCallJson);
+            }
+            
+            return result;
         } catch (Exception e) {
             log.error("调用 LLM 失败", e);
             return null;
@@ -408,6 +460,22 @@ public class MultiTurnExecutionEngine {
      * 丰富响应数据（trace、timing 等）
      */
     private void enrichResponse(Map<String, Object> response, ExecutionContext context) {
+        // Always include tool_calls if any were called
+        if (!context.getToolCalls().isEmpty()) {
+            List<Map<String, Object>> detailedToolCalls = new ArrayList<>();
+            for (int i = 0; i < context.getToolCalls().size(); i++) {
+                String toolName = context.getToolCalls().get(i);
+                Map<String, Object> toolResult = context.getToolResults().get(i);
+                
+                Map<String, Object> detailedCall = new LinkedHashMap<>();
+                detailedCall.put("turn", i + 1);
+                detailedCall.put("tool_name", toolName);
+                detailedCall.put("result", toolResult);
+                detailedToolCalls.add(detailedCall);
+            }
+            response.put("tool_calls", detailedToolCalls);
+        }
+        
         if (context.isWithTrace()) {
             context.getTrace().put("tools_called", context.getToolCalls());
             context.getTrace().put("execution_turns", context.getToolCalls().size());
@@ -461,6 +529,9 @@ public class MultiTurnExecutionEngine {
             this.toolCalls = new ArrayList<>();
             this.toolResults = new ArrayList<>();
             this.conversationHistory = new ArrayList<>();
+            
+            // 添加用户消息到对话历史
+            this.conversationHistory.add(Map.of("role", "user", "content", userMessage));
             
             // 初始化 trace
             this.trace.put("agent_version", "multi_turn_v1_complete");
