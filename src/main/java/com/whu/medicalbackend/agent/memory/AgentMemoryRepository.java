@@ -27,12 +27,13 @@ public class AgentMemoryRepository {
         LocalDateTime now = LocalDateTime.now();
         jdbcTemplate.update(
                 "INSERT INTO agent_sessions(session_id, user_id, created_at, updated_at, summary_text) " +
-                        "VALUES(?,?,?,?,NULL) " +
+                        "VALUES(?,?,?,?,?) " +
                         "ON DUPLICATE KEY UPDATE user_id=VALUES(user_id), updated_at=VALUES(updated_at)",
                 sessionId,
                 userId,
                 Timestamp.valueOf(now),
-                Timestamp.valueOf(now)
+                Timestamp.valueOf(now),
+                null
         );
     }
 
