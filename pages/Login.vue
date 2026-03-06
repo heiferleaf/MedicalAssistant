@@ -108,10 +108,10 @@ export default {
       this.rememberMe = !this.rememberMe;
     },
     async handleLogin() {
-      uni.navigateTo({
-        url: "/pages/index/index",
-      });
-      return;
+      // uni.navigateTo({
+      //   url: "/pages/index/index",
+      // });
+      // return;
       if (!this.loginForm.username || !this.loginForm.password) {
         uni.showToast({
           title: "请输入用户名和密码",
@@ -132,20 +132,14 @@ export default {
           title: "登录成功",
           icon: "success",
         });
+        // console.log(result.accessToken)
 
         uni.setStorageSync("userId", result.id);
-        if (result.token) {
-          uni.setStorageSync("token", result.token);
-        }
+        uni.setStorageSync("accessToken", result.accessToken);
+        uni.setStorageSync("refreshToken", result.refreshToken);
+        uni.setStorageSync("userName", this.loginForm.username.trim());
 
-        if (this.rememberMe) {
-          uni.setStorageSync("rememberedAccount", {
-            username: this.loginForm.username.trim(),
-            password: this.loginForm.password,
-          });
-        } else {
-          uni.removeStorageSync("rememberedAccount");
-        }
+        // console.log("保存的用户名:",this.loginForm.username.trim());
 
         setTimeout(() => {
           uni.navigateTo({

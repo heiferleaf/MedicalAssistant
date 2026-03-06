@@ -65,6 +65,48 @@
 			"style": {
 				"navigationBarTitleText": "Agent"
 			}
+		},
+		{
+			"path": "pages/test/scanner",
+			"style": {
+				"navigationBarTitleText": "测试扫描"
+			}
+		},
+		{
+			"path": "pages/family/index",
+			"style": {
+				"navigationBarTitleText": "家庭管理"
+			}
+		},
+		{
+			"path": "pages/family/create",
+			"style": {
+				"navigationBarTitleText": "创建家庭组"
+			}
+		},
+		{
+			"path": "pages/family/join",
+			"style": {
+				"navigationBarTitleText": "加入家庭组"
+			}
+		},
+		{
+			"path": "pages/family/members",
+			"style": {
+				"navigationBarTitleText": "家庭成员"
+			}
+		},
+		{
+			"path": "pages/family/data",
+			"style": {
+				"navigationBarTitleText": "成员健康信息"
+			}
+		},
+		{
+			"path": "pages/family/invite",
+			"style": {
+				"navigationBarTitleText": "邀请成员"
+			}
 		}
 
 	],

@@ -46,6 +46,23 @@
       </view>
       <view class="input-border"></view>
 
+      <!-- 手机号 -->
+      <view class="form-item">
+        <div class="form-top">
+          <div
+            class="icon"
+            style="background-image: url('../static/Login/user.png')"
+          ></div>
+          <text>手机号</text>
+        </div>
+        <input
+          v-model="formData.phonenumber"
+          placeholder="请输入手机号"
+          class="input-field"
+        />
+      </view>
+      <view class="input-border"></view>
+
       <!-- 密码 -->
       <view class="form-item">
         <div class="form-top">
@@ -128,7 +145,8 @@ export default {
         username: "",
         password: "",
         confirmPassword: "",
-        nickname: ""
+        nickname: "",
+        phonenumber: ""
       },
       PwdAble: false,
       ConPwdAble: false,
@@ -139,6 +157,10 @@ export default {
       // 验证逻辑（示例）
       if (!this.formData.username) {
         uni.showToast({ title: "请输入账号", icon: "none" });
+        return;
+      }
+      if (!this.formData.phonenumber) {
+        uni.showToast({ title: "请输入手机号", icon: "none" });
         return;
       }
       if (!this.formData.password || this.formData.password.length < 8) {
@@ -155,7 +177,8 @@ export default {
         const result = await registerAPI.register({
           username: this.formData.username.trim(),
           password: this.formData.password,
-          nickname: this.formData.nickname
+          nickname: this.formData.nickname,
+          phoneNumber: this.formData.phoneNumber
         });
 
         // 登录成功处理

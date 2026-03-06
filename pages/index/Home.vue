@@ -154,7 +154,7 @@ export default {
 			const routes = {
 				1: "/pages/scan/DrugScan",
 				2: "/pages/medical/Prepare",
-				3: "/pages/family/manage",
+				3: "/pages/family/index",
 				4: "/pages/ai/Assistant",
 			};
 			if (routes[funcId]) uni.navigateTo({ url: routes[funcId] });
