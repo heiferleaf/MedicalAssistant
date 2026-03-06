@@ -181,7 +181,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
         // 基础校验，leader用户是否是每一个家庭组的组长
         Long groupId = memberMapper.getGroupIdByUserId(leaderId);
         if(groupId == null) throw new BusinessException("您不在任何家庭组中，无法发送邀请");
-        String role = memberMapper.getRoleInGroup(leaderId, groupId);
+        String role = memberMapper.getRoleInGroup(groupId, leaderId);
         if(!role.equals("leader")) throw new BusinessException("您不是组长，无法邀请");
 
         String lockKey = RedisKeyBuilderUtil.getFamilyInviteLockKey(inviteePhone, groupId);
