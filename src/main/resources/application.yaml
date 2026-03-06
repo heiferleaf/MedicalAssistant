@@ -25,7 +25,7 @@ spring:
     # 数据库用户名
     username: ${MYSQL_USER:root}
     # 数据库密码
-    password: ${MYSQL_PASSWORD:12345678}
+    password: ${MYSQL_PASSWORD:1234}
     # 驱动类名（MySQL 8.x）
     driver-class-name:  com.mysql.cj.jdbc.Driver
 

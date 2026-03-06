@@ -3,8 +3,10 @@ package com.whu.medicalbackend.dto;
 import com.whu.medicalbackend.entity.FamilyMember;
 import lombok.Data;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Getter
+@Data
+@NoArgsConstructor
 public class FamilyMemberVO{
     private Long   userId;
     private String userName;

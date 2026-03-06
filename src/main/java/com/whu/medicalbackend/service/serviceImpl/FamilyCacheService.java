@@ -100,7 +100,7 @@ public class FamilyCacheService {
                     try {
                         return objectMapper.readValue(jsonStr, FamilyMemberVO.class);
                     } catch (JsonProcessingException e) {
-                        throw new BusinessException("读取redis中的家庭成员信息出错");
+                        throw new BusinessException("读取redis中的家庭成员信息出错" + e.getMessage());
                     }
                 })
                 .toList();
