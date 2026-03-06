@@ -81,7 +81,7 @@ def agent_confirm() -> Any:
     return jsonify(result), status
 
 
-@bp.route('/analyze', methods=['POST'])
+@agent_bp.route('/analyze', methods=['POST'])
 def analyze_side_effects():
     """
     API 端点：预测不良反应

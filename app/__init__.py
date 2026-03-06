@@ -67,9 +67,7 @@ def _bootstrap_env() -> None:
 
 _bootstrap_env()
 
-
-from app.routes.health import health_bp  # noqa: E402
-from app.routes.rag import rag_bp  # noqa: E402
+from app.routes import agent, health, ocr, predict, rag
 
 # 只有在非测试模式下导入agent、predict和ocr模块，避免触发预测模型初始化
 import sys
@@ -94,31 +92,41 @@ else:
 def create_app() -> Flask:
     app = Flask(__name__)
 
-    app.register_blueprint(health_bp)
-    app.register_blueprint(rag_bp, url_prefix="/rag")
-    
-    # --- 1. OCR 模块 ---
+    # --- 1. 基础模块 (Health, RAG) ---
+    # 注意：这里假设 health.py 和 rag.py 中 Blueprint 实例名仍为 'bp'
+    # 如果你也改过它们的名字，请对应修改为 health.health_bp 或 rag.rag_bp
+    try:
+        app.register_blueprint(health.bp)
+        app.register_blueprint(rag.bp, url_prefix="/rag")
+    except AttributeError as e:
+        print(f"Warning: Failed to register base blueprints (health/rag). Check variable names. {e}")
+
+    # --- 2. OCR 模块 ---
     try:
         from .routes.ocr import ocr_bp
-        # 只有导入成功才注册
         app.register_blueprint(ocr_bp, url_prefix="/ocr")
     except Exception as e:
         print(f"Warning: OCR module import failed, skipping OCR routes. Error: {e}")
 
-    # --- 2. Predict 模块 (已修复) ---
+    # --- 3. Predict 模块 ---
     try:
-        # 修正: 从 predict 导入 bp，并重命名为 predict_bp
         from .routes.predict import bp as predict_bp
-        # 修正: 移除 url_prefix，因为 predict.py 中已经定义了 '/api/predict'
         app.register_blueprint(predict_bp)
     except Exception as e:
         print(f"Warning: Predict module import failed, skipping predict routes. Error: {e}")
         
-    # --- 3. Agent 模块 (同理修改) ---
+    # --- 4. Agent 模块 ---
     try:
         from .routes.agent import agent_bp
         app.register_blueprint(agent_bp, url_prefix="/agent")
     except Exception as e:
         print(f"Warning: Agent module import failed, skipping agent routes. Error: {e}")
+
+    # --- 5. Federated 模块 ---
+    try:
+        from .routes import federated
+        app.register_blueprint(federated.bp)
+    except Exception as e:
+         print(f"Warning: Federated module import failed. Error: {e}")
 
     return app
