@@ -24,6 +24,8 @@ public class UserVO {
         this.nickname = builder.nickname;
         this.phoneNumber = builder.phoneNumber;
         this.createTime = builder.createTime;
+        this.accessToken = builder.accessToken;
+        this.refreshToken = builder.refreshToken;
     }
 
     public static class Builder {

@@ -8,7 +8,7 @@ import lombok.Setter;
 
 import java.util.List;
 
-@Setter
+@Data
 public class FamilyDetailVO {
     private GroupInfo group;
     private List<FamilyMemberVO> members;

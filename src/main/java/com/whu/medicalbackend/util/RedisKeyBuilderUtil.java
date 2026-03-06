@@ -23,6 +23,8 @@ public class RedisKeyBuilderUtil {
     public static final String MEMBER_CACHE_KEY_PREFIX     = "family:members:";
     public static final String ONLINE_MEMBER_CACHE_KEY     = "family:online:members";
 
+    public static final String AUTH_REFRESHTOKEN_PREFIX    = "auth:rt:";
+
     // ================= 2. Key 构造方法 =================
 
     /** 完整 Key: lock:family:create:{userId} */
@@ -91,5 +93,13 @@ public class RedisKeyBuilderUtil {
     /** 完整 Key: family:alarm:{groupId}:{date} */
     public static String getFamilyAlarmKey(Long groupId, String date) {
         return FAMILY_ALARM_PREFIX + groupId + ":" + date;
+    }
+
+    public static String getAuthRefreshTokenKey(Long userId) {
+        return AUTH_REFRESHTOKEN_PREFIX + userId;
+    }
+
+    public static String getAuthRefreshTokenKey(String userId) {
+        return AUTH_REFRESHTOKEN_PREFIX + userId;
     }
 }

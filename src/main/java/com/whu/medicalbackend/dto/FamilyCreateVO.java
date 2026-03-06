@@ -2,9 +2,10 @@ package com.whu.medicalbackend.dto;
 
 import com.whu.medicalbackend.entity.FamilyGroup;
 import com.whu.medicalbackend.entity.FamilyMember;
+import lombok.Data;
 import lombok.Getter;
 
-@Getter
+@Data
 public class FamilyCreateVO {
     private Long    groupId;
     private String  groupName;

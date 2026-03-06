@@ -109,12 +109,45 @@ public class ToolDefinition {
     }
 
     /**
-     * 获取所有工具定义
+     * 创建联网搜索工具定义
+     */
+    public static ObjectNode createWebSearchTool(ObjectMapper objectMapper) {
+        ObjectNode function = objectMapper.createObjectNode();
+        function.put("type", "function");
+        
+        ObjectNode funcDef = objectMapper.createObjectNode();
+        funcDef.put("name", "web_search");
+        funcDef.put("description", "搜索互联网获取最新信息，适用于实时新闻、最新研究、当前事件等知识库中没有的信息");
+        
+        ObjectNode parameters = objectMapper.createObjectNode();
+        parameters.put("type", "object");
+        
+        ObjectNode properties = objectMapper.createObjectNode();
+        ObjectNode queryProp = objectMapper.createObjectNode();
+        queryProp.put("type", "string");
+        queryProp.put("description", "搜索关键词，例如'2026 年最新高血压治疗指南'");
+        properties.set("query", queryProp);
+        
+        ArrayNode required = objectMapper.createArrayNode();
+        required.add("query");
+        
+        parameters.set("properties", properties);
+        parameters.set("required", required);
+        
+        funcDef.set("parameters", parameters);
+        function.set("function", funcDef);
+        
+        return function;
+    }
+
+    /**
+     * 获取所有工具定义（包括联网搜索）
      */
     public static ArrayNode getAllTools(ObjectMapper objectMapper) {
         ArrayNode tools = objectMapper.createArrayNode();
         tools.add(createRagQueryTool(objectMapper));
         tools.add(createPlanCreateTool(objectMapper));
+        tools.add(createWebSearchTool(objectMapper));
         return tools;
     }
 }

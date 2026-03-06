@@ -92,29 +92,19 @@ public class FamilyGroupController {
      */
     @GetMapping("/my/apply-records")
     public Result<List<FamilyInviteApplyVO>> getMyApplyRecords(@RequestAttribute("userId") Long userId) {
-        // List<FamilyInviteApplyVO> list = familyGroupService.getMyApplyRecords(userId);
-        // return Result.success(list);
-        return Result.error(500, "Service待实现");
+         List<FamilyInviteApplyVO> list = familyGroupService.getMyApplyRecords(userId);
+         return Result.success(list);
     }
 
     /**
-     * 2.2 查看本人收到的邀请
-     * 需要 Service 补充 getMyInviteRecords 方法
-     */
-    @GetMapping("/my/invite-records")
-    public Result<List<FamilyInviteApplyVO>> getMyInviteRecords(@RequestAttribute("userId") Long userId) {
-        // List<FamilyInviteApplyVO> list = familyGroupService.getMyInviteRecords(userId);
-        return Result.error(500, "Service待实现");
-    }
-
-    /**
-     * 2.3 组长审批待处理列表
+     * 2.2 组长审批待处理列表
      * 需要 Service 补充 getPendingApplies 方法
      */
     @GetMapping("/{groupId}/pending-applies")
-    public Result<List<FamilyInviteApplyVO>> getPendingApplies(@PathVariable Long groupId) {
-        // List<FamilyInviteApplyVO> list = familyGroupService.getPendingApplies(groupId);
-        return Result.error(500, "Service待实现");
+    public Result<List<FamilyInviteApplyVO>> getPendingApplies(@RequestAttribute("userId") Long userId, @PathVariable Long groupId) {
+
+        List<FamilyInviteApplyVO> list = familyGroupService.getPendingApplies(groupId, userId);
+        return Result.success(list);
     }
 
     /**

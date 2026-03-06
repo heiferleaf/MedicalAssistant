@@ -4,6 +4,10 @@
 -- ====================================
 alter table t_user add phone_number VARCHAR(11) not null unique comment "手机号";
 
+-- ====================================
+-- 对邀请表进行修改
+-- ====================================
+alter table family_invite_apply modify inviter_id BIGINT COMMENT '发起方用户ID（组长邀请为组长，申请为申请人）';
 
 -- ====================================
 -- 4. 家庭组表
