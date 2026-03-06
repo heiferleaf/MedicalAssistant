@@ -25,10 +25,12 @@ public class AgentMemoryRepository {
 
     public void touchSession(String sessionId, String userId) {
         LocalDateTime now = LocalDateTime.now();
+        // 使用更兼容的 SQL 语法：先尝试插入，如果主键冲突则更新
         jdbcTemplate.update(
                 "INSERT INTO agent_sessions(session_id, user_id, created_at, updated_at, summary_text) " +
                         "VALUES(?,?,?,?,?) " +
-                        "ON DUPLICATE KEY UPDATE user_id=VALUES(user_id), updated_at=VALUES(updated_at)",
+                        "ON DUPLICATE KEY UPDATE " +
+                        "created_at=VALUES(created_at), updated_at=VALUES(updated_at), summary_text=VALUES(summary_text)",
                 sessionId,
                 userId,
                 Timestamp.valueOf(now),
