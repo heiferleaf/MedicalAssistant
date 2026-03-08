@@ -119,13 +119,6 @@
             <version>${langchain4j.version}</version>
         </dependency>
 
-        <!-- LangChain4j Easy RAG (用于向量存储和检索) -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-easy-rag</artifactId>
-            <version>${langchain4j.version}</version>
-        </dependency>
-
         <!-- 千问模型集成 (Spring Boot Starter) -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
