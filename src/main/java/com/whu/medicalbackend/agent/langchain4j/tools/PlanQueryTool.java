@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,8 +32,8 @@ public class PlanQueryTool {
      * @param userId 用户 ID
      * @return 用药计划列表
      */
-    @Tool(value = "查询用户的用药计划")
-    public Map<String, Object> queryPlans(@P(value = "用户 ID") String userId) {
+    @Tool(value = "Query the user's medication plans. Use this when the user asks about their medication plans, wants to see what plans they have, or requests information about their current medications.")
+    public Map<String, Object> queryPlans(@P(value = "The user ID to query plans for") String userId) {
         logger.info("查询用户用药计划，userId: {}", userId);
         
         try {
@@ -41,27 +42,28 @@ public class PlanQueryTool {
             logger.info("查询到 {} 个用药计划", plans.size());
             
             // 构建结果
-            Map<String, Object> result = Map.of(
-                "success", true,
-                "plans_count", plans.size(),
-                "plans", plans.stream().map(plan -> Map.of(
-                    "id", plan.getId(),
-                    "medicineName", plan.getMedicineName(),
-                    "dosage", plan.getDosage(),
-                    "timePoints", plan.getTimePoints(),
-                    "startDate", plan.getStartDate(),
-                    "endDate", plan.getEndDate(),
-                    "remark", plan.getRemark()
-                )).collect(Collectors.toList())
-            );
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", true);
+            result.put("plans_count", plans.size());
+            result.put("plans", plans.stream().map(plan -> {
+                Map<String, Object> planMap = new LinkedHashMap<>();
+                planMap.put("id", plan.getId());
+                planMap.put("medicineName", plan.getMedicineName());
+                planMap.put("dosage", plan.getDosage());
+                planMap.put("timePoints", plan.getTimePoints());
+                planMap.put("startDate", plan.getStartDate());
+                planMap.put("endDate", plan.getEndDate());
+                planMap.put("remark", plan.getRemark());
+                return planMap;
+            }).collect(Collectors.toList()));
             
             return result;
         } catch (Exception e) {
             logger.error("查询用药计划失败", e);
-            return Map.of(
-                "success", false,
-                "message", "查询用药计划失败: " + e.getMessage()
-            );
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", false);
+            result.put("message", "查询用药计划失败: " + e.getMessage());
+            return result;
         }
     }
 }

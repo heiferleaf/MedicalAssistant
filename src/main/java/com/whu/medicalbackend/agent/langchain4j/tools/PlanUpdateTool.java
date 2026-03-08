@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,47 +40,47 @@ public class PlanUpdateTool {
      * @param remark 备注
      * @return 更新结果
      */
-    @Tool(value = "更新现有的用药计划")
+    @Tool(value = "Update an existing medication plan. Use this when the user wants to modify, change, or adjust an existing medication plan, such as changing dosage, time points, or dates.")
     public Map<String, Object> updatePlan(
-            @P(value = "用户 ID") String userId,
-            @P(value = "计划 ID") Integer planId,
-            @P(value = "药品名称") String medicineName,
-            @P(value = "剂量") String dosage,
-            @P(value = "时间点列表") List<String> timePoints,
-            @P(value = "开始日期，格式：yyyy-MM-dd") String startDate,
-            @P(value = "结束日期，格式：yyyy-MM-dd") String endDate,
-            @P(value = "备注") String remark
+            @P(value = "The user ID who owns the plan") String userId,
+            @P(value = "The ID of the plan to update") Integer planId,
+            @P(value = "The new name of the medicine") String medicineName,
+            @P(value = "The new dosage information (e.g., '1 tablet', '500mg')") String dosage,
+            @P(value = "New list of time points (e.g., ['08:00', '12:00', '18:00'])") List<String> timePoints,
+            @P(value = "New start date in yyyy-MM-dd format") String startDate,
+            @P(value = "New end date in yyyy-MM-dd format (optional)") String endDate,
+            @P(value = "New additional notes or remarks (optional)") String remark
     ) {
         logger.info("更新用药计划，userId: {}, planId: {}", userId, planId);
         
         try {
             // 验证参数
             if (planId == null) {
-                return Map.of(
-                    "success", false,
-                    "message", "缺少必需参数：planId"
-                );
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("success", false);
+                result.put("message", "缺少必需参数：planId");
+                return result;
             }
             if (medicineName == null || medicineName.isBlank()) {
-                return Map.of(
-                    "success", false,
-                    "message", "缺少必需参数：medicineName"
-                );
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("success", false);
+                result.put("message", "缺少必需参数：medicineName");
+                return result;
             }
             if (dosage == null || dosage.isBlank()) {
                 dosage = "按医嘱";
             }
             if (timePoints == null || timePoints.isEmpty()) {
-                return Map.of(
-                    "success", false,
-                    "message", "缺少必需参数：timePoints"
-                );
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("success", false);
+                result.put("message", "缺少必需参数：timePoints");
+                return result;
             }
             if (startDate == null || startDate.isBlank()) {
-                return Map.of(
-                    "success", false,
-                    "message", "缺少必需参数：startDate"
-                );
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("success", false);
+                result.put("message", "缺少必需参数：startDate");
+                return result;
             }
             
             // 解析日期和时间
@@ -102,17 +103,17 @@ public class PlanUpdateTool {
             Long uid = Long.valueOf(userId);
             planService.updatePlan(uid, planId.longValue(), dto);
             
-            return Map.of(
-                "success", true,
-                "message", "用药计划更新成功",
-                "plan_id", planId
-            );
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", true);
+            result.put("message", "用药计划更新成功");
+            result.put("plan_id", planId);
+            return result;
         } catch (Exception e) {
             logger.error("更新用药计划失败", e);
-            return Map.of(
-                "success", false,
-                "message", "更新用药计划失败: " + e.getMessage()
-            );
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", false);
+            result.put("message", "更新用药计划失败: " + e.getMessage());
+            return result;
         }
     }
 }

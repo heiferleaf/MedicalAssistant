@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,12 +34,12 @@ public class PlanDeleteTool {
      * @param deleteAll 是否删除所有
      * @return 删除结果
      */
-    @Tool(value = "删除用药计划")
+    @Tool(value = "Delete a medication plan. Use this when the user wants to remove, cancel, or delete a medication plan. You can delete by plan ID, by medicine name, or delete all plans.")
     public Map<String, Object> deletePlan(
-            @P(value = "用户 ID") String userId,
-            @P(value = "计划 ID") Integer planId,
-            @P(value = "药品名称") String medicineName,
-            @P(value = "是否删除所有，true 表示删除所有") Boolean deleteAll
+            @P(value = "The user ID who owns the plan") String userId,
+            @P(value = "The ID of the plan to delete (optional)") Integer planId,
+            @P(value = "The name of medicine to delete (optional)") String medicineName,
+            @P(value = "Set to true to delete all plans (optional)") Boolean deleteAll
     ) {
         logger.info("删除用药计划，userId: {}, planId: {}, medicineName: {}, deleteAll: {}", 
                 userId, planId, medicineName, deleteAll);
@@ -51,11 +52,11 @@ public class PlanDeleteTool {
                 // 删除所有计划
                 List<PlanVO> plans = planService.getPlanList(uid);
                 if (plans.isEmpty()) {
-                    return Map.of(
-                        "success", true,
-                        "message", "你目前没有任何用药计划，无需删除",
-                        "deleted_count", 0
-                    );
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    result.put("success", true);
+                    result.put("message", "你目前没有任何用药计划，无需删除");
+                    result.put("deleted_count", 0);
+                    return result;
                 }
                 
                 for (PlanVO plan : plans) {
@@ -67,19 +68,19 @@ public class PlanDeleteTool {
                     }
                 }
                 
-                return Map.of(
-                    "success", true,
-                    "message", "已成功删除你所有的 " + deletedCount + " 个用药计划，未来的用药提醒已全部取消",
-                    "deleted_count", deletedCount
-                );
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("success", true);
+                result.put("message", "已成功删除你所有的 " + deletedCount + " 个用药计划，未来的用药提醒已全部取消");
+                result.put("deleted_count", deletedCount);
+                return result;
             } else if (planId != null) {
                 // 根据 planId 删除
                 planService.deletePlan(uid, planId.longValue());
-                return Map.of(
-                    "success", true,
-                    "message", "已成功删除该用药计划，未来的用药提醒已取消",
-                    "deleted_count", 1
-                );
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("success", true);
+                result.put("message", "已成功删除该用药计划，未来的用药提醒已取消");
+                result.put("deleted_count", 1);
+                return result;
             } else if (medicineName != null && !medicineName.isBlank()) {
                 // 根据药品名称删除
                 List<PlanVO> plans = planService.getPlanList(uid);
@@ -89,10 +90,10 @@ public class PlanDeleteTool {
                     .collect(java.util.stream.Collectors.toList());
                 
                 if (matchedPlans.isEmpty()) {
-                    return Map.of(
-                        "success", false,
-                        "message", "未找到名为\"" + medicineName + "\"的用药计划"
-                    );
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    result.put("success", false);
+                    result.put("message", "未找到名为\"" + medicineName + "\"的用药计划");
+                    return result;
                 }
                 
                 for (PlanVO plan : matchedPlans) {
@@ -104,23 +105,23 @@ public class PlanDeleteTool {
                     }
                 }
                 
-                return Map.of(
-                    "success", true,
-                    "message", "已成功删除 " + deletedCount + " 个与\"" + medicineName + "\"相关的用药计划，未来的用药提醒已取消",
-                    "deleted_count", deletedCount
-                );
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("success", true);
+                result.put("message", "已成功删除 " + deletedCount + " 个与\"" + medicineName + "\"相关的用药计划，未来的用药提醒已取消");
+                result.put("deleted_count", deletedCount);
+                return result;
             } else {
-                return Map.of(
-                    "success", false,
-                    "message", "缺少必需参数：planId、medicineName 或 deleteAll"
-                );
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("success", false);
+                result.put("message", "缺少必需参数：planId、medicineName 或 deleteAll");
+                return result;
             }
         } catch (Exception e) {
             logger.error("删除用药计划失败", e);
-            return Map.of(
-                "success", false,
-                "message", "删除用药计划失败: " + e.getMessage()
-            );
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", false);
+            result.put("message", "删除用药计划失败: " + e.getMessage());
+            return result;
         }
     }
 }
