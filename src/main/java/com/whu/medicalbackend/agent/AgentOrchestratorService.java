@@ -1,8 +1,8 @@
 package com.whu.medicalbackend.agent;
 
 import com.whu.medicalbackend.agent.flask.FlaskRagProxyService;
-import com.whu.medicalbackend.agent.langchain4j.MedicalAgent;
-import com.whu.medicalbackend.agent.memory.AgentMemoryRepository;
+import com.whu.medicalbackend.agent.langchain4j.agents.MedicalAgent;
+import com.whu.medicalbackend.agent.core.memory.AgentMemoryRepository;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;

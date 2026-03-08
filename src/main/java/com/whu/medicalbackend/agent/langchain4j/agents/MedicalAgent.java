@@ -1,4 +1,4 @@
-package com.whu.medicalbackend.agent.langchain4j;
+package com.whu.medicalbackend.agent.langchain4j.agents;
 
 import com.whu.medicalbackend.agent.langchain4j.tools.PlanCreateTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.PlanDeleteTool;

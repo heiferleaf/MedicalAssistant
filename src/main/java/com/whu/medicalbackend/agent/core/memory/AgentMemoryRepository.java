@@ -1,4 +1,4 @@
-package com.whu.medicalbackend.agent.memory;
+package com.whu.medicalbackend.agent.core.memory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
