@@ -7,6 +7,7 @@ import com.whu.medicalbackend.agent.langchain4j.tools.plan.PlanUpdateTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryTodayTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskUpdateStatusTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryHistoryTool;
+import com.whu.medicalbackend.agent.langchain4j.tools.predict.PredictTool;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
@@ -38,13 +39,15 @@ public class MedicalAgent {
                         PlanDeleteTool planDeleteTool,
                         TaskQueryTodayTool taskQueryTodayTool,
                         TaskUpdateStatusTool taskUpdateStatusTool,
-                        TaskQueryHistoryTool taskQueryHistoryTool) {
-        
+                        TaskQueryHistoryTool taskQueryHistoryTool,
+                        PredictTool predictTool) {
+
         this.medicalExpert = AiServices.builder(MedicalExpert.class)
                 .chatModel(chatModel)
                 .chatMemoryProvider(memoryId -> MessageWindowChatMemory.withMaxMessages(10))
                 .tools(planQueryTool, planCreateTool, planUpdateTool, planDeleteTool,
-                       taskQueryTodayTool, taskUpdateStatusTool, taskQueryHistoryTool)
+                       taskQueryTodayTool, taskUpdateStatusTool, taskQueryHistoryTool,
+                       predictTool)
                 .build();
     }
 
@@ -70,6 +73,10 @@ public class MedicalAgent {
                 - updateTaskStatus: Update the status of a medication task (0=not taken, 1=taken, 2=missed)
                 - getHistoryTasks: Query historical medication tasks
                 
+                DRUG ADVERSE REACTION PREDICTION TOOLS:
+                - predictAdverseReactions: Predict potential drug adverse reactions based on clinical information
+                - analyzeAdverseReactionRisk: Analyze drug adverse reaction risks based on symptoms and medications
+                
                 When should you use tools:
                 - ALWAYS use queryPlans when the user asks about their medication plans
                 - ALWAYS use createPlan when the user wants to create a new medication plan
@@ -78,6 +85,8 @@ public class MedicalAgent {
                 - ALWAYS use getTodayTasks when the user asks about today's tasks or daily schedule
                 - ALWAYS use updateTaskStatus when the user wants to mark a task as taken or missed
                 - ALWAYS use getHistoryTasks when the user asks about past medication history
+                - ALWAYS use predictAdverseReactions when the user asks about drug safety, side effects, or adverse reactions
+                - ALWAYS use analyzeAdverseReactionRisk when the user wants to assess medication risks
                 
                 Guidelines for tool usage:
                 1. Try to use tools FIRST before answering directly
@@ -85,8 +94,10 @@ public class MedicalAgent {
                 3. After using a tool, summarize the result clearly to the user
                 4. Always provide helpful and friendly responses
                 5. ALWAYS use the provided userId {{userId}} when calling tools, DO NOT make up a userId
+                6. For prediction tools, extract relevant clinical information, patient profile, and medication details from the conversation
+                7. When users ask about drug safety or side effects, always use the prediction tools to provide evidence-based assessments
                 
-                Remember: You are a helpful medical assistant. Use the tools at your disposal to provide the best possible service to users.
+                Remember: You are a helpful medical assistant with drug adverse reaction prediction capabilities. Use all available tools to provide comprehensive medical assistance and medication safety assessments.
                 """)
         String medical(@MemoryId String memoryId, @V("userId") String userId, @UserMessage String userMessage);
     }
