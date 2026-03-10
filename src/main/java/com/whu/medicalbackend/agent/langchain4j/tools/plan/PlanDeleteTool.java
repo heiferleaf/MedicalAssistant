@@ -1,4 +1,4 @@
-package com.whu.medicalbackend.agent.langchain4j.tools;
+package com.whu.medicalbackend.agent.langchain4j.tools.plan;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -12,9 +12,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 用药计划删除工具
- */
 @Component
 public class PlanDeleteTool {
 
@@ -26,14 +23,6 @@ public class PlanDeleteTool {
         this.planService = planService;
     }
 
-    /**
-     * 删除用药计划
-     * @param userId 用户 ID
-     * @param planId 计划 ID
-     * @param medicineName 药品名称
-     * @param deleteAll 是否删除所有
-     * @return 删除结果
-     */
     @Tool(value = "Delete a medication plan. Use this when the user wants to remove, cancel, or delete a medication plan. You can delete by plan ID, by medicine name, or delete all plans.")
     public Map<String, Object> deletePlan(
             @P(value = "The user ID who owns the plan") String userId,
@@ -49,7 +38,6 @@ public class PlanDeleteTool {
             int deletedCount = 0;
             
             if (deleteAll != null && deleteAll) {
-                // 删除所有计划
                 List<PlanVO> plans = planService.getPlanList(uid);
                 if (plans.isEmpty()) {
                     Map<String, Object> result = new LinkedHashMap<>();
@@ -74,7 +62,6 @@ public class PlanDeleteTool {
                 result.put("deleted_count", deletedCount);
                 return result;
             } else if (planId != null) {
-                // 根据 planId 删除
                 planService.deletePlan(uid, planId.longValue());
                 Map<String, Object> result = new LinkedHashMap<>();
                 result.put("success", true);
@@ -82,7 +69,6 @@ public class PlanDeleteTool {
                 result.put("deleted_count", 1);
                 return result;
             } else if (medicineName != null && !medicineName.isBlank()) {
-                // 根据药品名称删除
                 List<PlanVO> plans = planService.getPlanList(uid);
                 List<PlanVO> matchedPlans = plans.stream()
                     .filter(p -> p.getMedicineName().contains(medicineName) || 
