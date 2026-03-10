@@ -1,4 +1,4 @@
-package com.whu.medicalbackend.agent.langchain4j.tools;
+package com.whu.medicalbackend.agent.langchain4j.tools.plan;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -14,9 +14,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 用药计划更新工具
- */
 @Component
 public class PlanUpdateTool {
 
@@ -28,18 +25,6 @@ public class PlanUpdateTool {
         this.planService = planService;
     }
 
-    /**
-     * 更新用药计划
-     * @param userId 用户 ID
-     * @param planId 计划 ID
-     * @param medicineName 药品名称
-     * @param dosage 剂量
-     * @param timePoints 时间点列表
-     * @param startDate 开始日期
-     * @param endDate 结束日期
-     * @param remark 备注
-     * @return 更新结果
-     */
     @Tool(value = "Update an existing medication plan. Use this when the user wants to modify, change, or adjust an existing medication plan, such as changing dosage, time points, or dates.")
     public Map<String, Object> updatePlan(
             @P(value = "The user ID who owns the plan") String userId,
@@ -54,7 +39,6 @@ public class PlanUpdateTool {
         logger.info("更新用药计划，userId: {}, planId: {}", userId, planId);
         
         try {
-            // 验证参数
             if (planId == null) {
                 Map<String, Object> result = new LinkedHashMap<>();
                 result.put("success", false);
@@ -83,14 +67,12 @@ public class PlanUpdateTool {
                 return result;
             }
             
-            // 解析日期和时间
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : null;
             List<LocalTime> times = timePoints.stream()
                     .map(LocalTime::parse)
                     .collect(java.util.stream.Collectors.toList());
             
-            // 创建 DTO
             PlanCreateDTO dto = new PlanCreateDTO();
             dto.setMedicineName(medicineName);
             dto.setDosage(dosage);
@@ -99,7 +81,6 @@ public class PlanUpdateTool {
             dto.setEndDate(end);
             dto.setRemark(remark);
             
-            // 执行更新
             Long uid = Long.valueOf(userId);
             planService.updatePlan(uid, planId.longValue(), dto);
             

@@ -16,11 +16,16 @@ agent/
     │   └── LangChain4jConfig.java       # ChatModel 配置
     ├── agents/                        # 具体 Agent 实现
     │   └── MedicalAgent.java            # 医疗助手 Agent
-    └── tools/                         # 工具集合
-        ├── PlanQueryTool.java            # 查询用药计划
-        ├── PlanCreateTool.java           # 创建用药计划
-        ├── PlanUpdateTool.java           # 更新用药计划
-        └── PlanDeleteTool.java           # 删除用药计划
+    └── tools/                         # 工具集合（按功能分类）
+        ├── plan/                       # 用药计划工具
+        │   ├── PlanQueryTool.java       # 查询用药计划
+        │   ├── PlanCreateTool.java      # 创建用药计划
+        │   ├── PlanUpdateTool.java      # 更新用药计划
+        │   └── PlanDeleteTool.java      # 删除用药计划
+        └── task/                       # 用药任务工具
+            ├── TaskQueryTodayTool.java  # 查询今日任务
+            ├── TaskUpdateStatusTool.java# 更新任务状态
+            └── TaskQueryHistoryTool.java# 查询历史任务
 ```
 
 ## 模块职责
@@ -64,11 +69,18 @@ agent/
 
 ### 添加新的 Tool
 
-1. 在 `langchain4j/tools/` 下创建新的 Tool 类
-2. 使用 `@Component` 注解
-3. 使用 `@Tool` 注解标注工具方法
-4. 使用 `@P` 注解标注参数
-5. 在对应的 Agent 中注入并注册到 AiServices
+1. 在 `langchain4j/tools/` 下创建合适的功能分类文件夹（如 `plan/`, `task/` 等）
+2. 在对应文件夹下创建新的 Tool 类
+3. 使用 `@Component` 注解
+4. 使用 `@Tool` 注解标注工具方法（添加详细的英文描述）
+5. 使用 `@P` 注解标注参数（添加详细的英文描述）
+6. 在对应的 Agent 中注入并注册到 AiServices
+7. 更新 Agent 的系统提示词，说明新工具的使用场景
+
+**工具命名规范**：
+- 文件夹：小写+下划线（如 `family_group/`）
+- 类名：功能+Tool（如 `FamilyGroupQueryTool`）
+- 方法名：动词开头（如 `queryFamilyGroups`）
 
 ### 接入 Flask 的其他服务
 

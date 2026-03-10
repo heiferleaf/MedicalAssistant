@@ -1,4 +1,4 @@
-package com.whu.medicalbackend.agent.langchain4j.tools;
+package com.whu.medicalbackend.agent.langchain4j.tools.plan;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -13,9 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * 用药计划查询工具
- */
 @Component
 public class PlanQueryTool {
 
@@ -27,11 +24,6 @@ public class PlanQueryTool {
         this.planService = planService;
     }
 
-    /**
-     * 查询用户的用药计划
-     * @param userId 用户 ID
-     * @return 用药计划列表
-     */
     @Tool(value = "Query the user's medication plans. Use this when the user asks about their medication plans, wants to see what plans they have, or requests information about their current medications.")
     public Map<String, Object> queryPlans(@P(value = "The user ID to query plans for") String userId) {
         logger.info("查询用户用药计划，userId: {}", userId);
@@ -41,7 +33,6 @@ public class PlanQueryTool {
             List<PlanVO> plans = planService.getPlanList(uid);
             logger.info("查询到 {} 个用药计划", plans.size());
             
-            // 构建结果
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);
             result.put("plans_count", plans.size());
