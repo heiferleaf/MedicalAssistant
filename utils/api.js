@@ -1,5 +1,5 @@
 // API基础配置
-const BASE_URL = "http://localhost:8080/api"; // 请替换为您的实际API地址
+const BASE_URL = "http://10.135.15.4:8080/api"; // 请替换为您的实际API地址
 
 // 请求拦截器
 const requestInterceptor = (config) => {
@@ -98,7 +98,7 @@ async function handleRefreshToken() {
   if (!userId || !refreshToken) return false;
   return new Promise((resolve) => {
     uni.request({
-      url: BASE_URL + "/auth/refresh",
+      url: BASE_URL + "/user/refresh",
       method: "POST",
       data: { userId, refreshToken },
       success: (res) => {

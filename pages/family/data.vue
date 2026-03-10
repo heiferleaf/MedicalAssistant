@@ -44,11 +44,14 @@
 </template>
 
 <script>
+import familyApi from '../../api/family';
+
 export default {
     data() {
         return {
             userId: '',
             userName: '',
+            groupId: -1,
             selectedDate: '', // 默认当天
             medicineList: [], // 对应 medicine_status 字段解析
             healthValue: {},  // 对应 health_value 字段解析
@@ -59,6 +62,7 @@ export default {
         // 从 members 页面跳转传参
         this.userId = options.userId;
         this.userName = options.userName || '成员';
+        this.groupId = options.groupId;
         this.selectedDate = this.getTodayDate();
 
         // 监听 WebSocket 推送的正常服药消息，实时刷新 UI
@@ -89,43 +93,46 @@ export default {
             this.loading = true;
             try {
                 // 调用 API 获取 health_data 表中对应 user_id 和 record_date 的数据 [cite: 51, 52]
-                const res = {
-                    code: 200,
-                    message: "操作成功",
-                    data: {
-                        id: 3001,
-                        user_id: 2,
-                        group_id: 1001,
-                        record_date: "2026-03-20",
+                const res = await familyApi.getGroupHealthData(this.groupId);
+                if (res.data == null) {
+                    res = {
+                        code: 200,
+                        message: "操作成功",
+                        data: {
+                            id: 3001,
+                            user_id: 2,
+                            group_id: 1001,
+                            record_date: "2026-03-20",
 
-                        // ⚠️ 注意是字符串格式（后端数据库就是这样）
-                        medicine_status: JSON.stringify([
-                            {
-                                name: "降压药A",
-                                timePoint: "08:00",
-                                dosage: "1片",
-                                status: 1   // 1=已服 2=漏服
-                            },
-                            {
-                                name: "降糖药B",
-                                timePoint: "12:00",
-                                dosage: "1片",
-                                status: 2
-                            },
-                            {
-                                name: "维生素C",
-                                timePoint: "20:00",
-                                dosage: "2片",
-                                status: 1
-                            }
-                        ]),
+                            // ⚠️ 注意是字符串格式（后端数据库就是这样）
+                            medicine_status: JSON.stringify([
+                                {
+                                    name: "降压药A",
+                                    timePoint: "08:00",
+                                    dosage: "1片",
+                                    status: 1   // 1=已服 2=漏服
+                                },
+                                {
+                                    name: "降糖药B",
+                                    timePoint: "12:00",
+                                    dosage: "1片",
+                                    status: 2
+                                },
+                                {
+                                    name: "维生素C",
+                                    timePoint: "20:00",
+                                    dosage: "2片",
+                                    status: 1
+                                }
+                            ]),
 
-                        health_value: JSON.stringify({
-                            bloodPressure: "120/80",
-                            bloodSugar: "6.3"
-                        })
-                    }
-                };
+                            health_value: JSON.stringify({
+                                bloodPressure: "120/80",
+                                bloodSugar: "6.3"
+                            })
+                        }
+                    };
+                }
 
                 if (res.data) {
                     // 解析存储在 JSON 字段中的服药和指标数据 [cite: 52]
@@ -133,6 +140,7 @@ export default {
                     this.healthValue = JSON.parse(res.data.health_value || '{}');
                 }
             } catch (e) {
+                console.error(e);
                 uni.showToast({ title: '加载失败', icon: 'none' });
             } finally {
                 this.loading = false;

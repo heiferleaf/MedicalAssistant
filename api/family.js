@@ -36,18 +36,6 @@ const approveApply = (groupId, data) => {
   return httpRequest(`/family/groups/${groupId}/approve`, 'POST', data)
 }
 
-// 1.6 被邀请成员同意
-// POST /family/groups/{groupId}/accept
-const acceptInvite = (groupId) => {
-  return httpRequest(`/family/groups/${groupId}/accept`, 'POST')
-}
-
-// 被邀请成员拒绝
-// POST /family/groups/{groupId}/reject
-const rejectInvite = (groupId) => {
-  return httpRequest(`/family/groups/${groupId}/reject`, 'POST')
-}
-
 // 1.7 成员主动退出
 // POST /family/groups/{groupId}/quit
 const quitGroup = (groupId) => {
@@ -66,11 +54,11 @@ const getMyApplyRecords = (params) => {
   return httpRequest('/family/groups/my/apply-records', 'GET', params)
 }
 
-// 2.2 查看本人收到的邀请
-// GET /family/groups/my/invite-records
-const getMyInviteRecords = (params) => {
-  return httpRequest('/family/groups/my/invite-records', 'GET', params)
-}
+// // 2.2 查看本人收到的邀请
+// // GET /family/groups/my/invite-records
+// const getMyInviteRecords = (params) => {
+//   return httpRequest('/family/groups/my/invite-records', 'GET', params)
+// }
 
 // 2.3 组长查询待审批申请
 // GET /family/groups/{groupId}/pending-applies
@@ -113,13 +101,11 @@ export default {
   applyJoinGroup,
   inviteMember,
   approveApply,
-  acceptInvite,
-  rejectInvite,
   quitGroup,
 
   // 记录
   getMyApplyRecords,
-  getMyInviteRecords,
+  // getMyInviteRecords,
   getPendingApplies,
 
   // 健康

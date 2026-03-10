@@ -66,9 +66,7 @@ export default {
             showCancel: false,
             success: () => {
               // 提交成功后，跳转到“我的消息”页面查看处理进度
-              uni.redirectTo({
-                url: '/pages/message/list'
-              });
+              uni.navigateBack();
             }
           });
         } else {
@@ -80,6 +78,7 @@ export default {
           });
         }
       } catch (e) {
+        console.error(e);
         uni.showToast({ title: '网络繁忙', icon: 'none' });
       } finally {
         this.submitting = false;

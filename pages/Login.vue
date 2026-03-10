@@ -63,7 +63,7 @@
 <script>
 // 引入API模块
 import loginAPI from "../api/login.js";
-
+import { connect } from '../config/config';
 export default {
   data() {
     return {
@@ -138,6 +138,8 @@ export default {
         uni.setStorageSync("accessToken", result.accessToken);
         uni.setStorageSync("refreshToken", result.refreshToken);
         uni.setStorageSync("userName", this.loginForm.username.trim());
+
+        connect(); 
 
         // console.log("保存的用户名:",this.loginForm.username.trim());
 
