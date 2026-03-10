@@ -239,8 +239,8 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
 
         try {
             FamilyInviteApply apply = applyMapper.selectById(applyId);
-            if (apply == null || !"pending".equals(apply.getStatus())) {
-                throw new BusinessException("该申请不存在或已被处理");
+            if (apply == null || (!InviteStatus.pending.equals(apply.getStatus()) && !InviteStatus.expired.equals(apply.getStatus()))) {
+                throw new BusinessException("该申请不存在或已过期或已被处理");
             }
 
             if ("reject".equals(opType)) {

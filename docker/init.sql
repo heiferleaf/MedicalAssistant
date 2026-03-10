@@ -1,4 +1,62 @@
-use medicalassistant;
+create table if not exists agent_messages
+(
+    id         bigint auto_increment
+    primary key,
+    session_id varchar(64)                        not null,
+    user_id    varchar(64)                        not null,
+    role       varchar(32)                        not null comment 'user|assistant|tool',
+    content    text                               not null,
+    created_at datetime default CURRENT_TIMESTAMP not null
+    )
+    comment 'agent 消息表' collate = utf8mb4_unicode_ci;
+
+create index idx_agent_messages_session_id_id
+    on agent_messages (session_id, id);
+
+create index idx_agent_messages_user_id
+    on agent_messages (user_id);
+
+create table if not exists agent_pending_actions
+(
+    action_id      varchar(64)                        not null
+    primary key,
+    session_id     varchar(64)                        not null,
+    user_id        varchar(64)                        not null,
+    action_type    varchar(64)                        not null,
+    preview_json   text                               not null,
+    tool_args_json text                               not null,
+    status         varchar(16)                        not null comment 'pending|done|failed|canceled',
+    result_json    text                               null,
+    created_at     datetime default CURRENT_TIMESTAMP not null,
+    expires_at     datetime                           not null
+    )
+    comment 'agent 待确认动作表' collate = utf8mb4_unicode_ci;
+
+create index idx_agent_pending_actions_expires_at
+    on agent_pending_actions (expires_at);
+
+create index idx_agent_pending_actions_session_id
+    on agent_pending_actions (session_id);
+
+create index idx_agent_pending_actions_user_id_status
+    on agent_pending_actions (user_id, status);
+
+create table if not exists agent_sessions
+(
+    session_id   varchar(64)                        not null
+    primary key,
+    user_id      varchar(64)                        not null,
+    created_at   datetime default CURRENT_TIMESTAMP not null,
+    updated_at   datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
+    summary_text text                               null
+    )
+    comment 'agent 会话表' collate = utf8mb4_unicode_ci;
+
+create index idx_agent_sessions_updated_at
+    on agent_sessions (updated_at);
+
+create index idx_agent_sessions_user_id
+    on agent_sessions (user_id);
 
 create table if not exists family_event_log
 (
@@ -31,7 +89,7 @@ create table if not exists family_invite_apply
     id          bigint auto_increment comment '申请/邀请记录唯一ID，自增主键'
     primary key,
     group_id    bigint                             not null comment '家庭组ID，关联family_group.id',
-    inviter_id  bigint                             not null comment '发起方用户ID（组长邀请为组长，申请为申请人）',
+    inviter_id  bigint                             null comment '发起方用户ID（组长邀请为组长，申请为申请人）',
     invitee_id  bigint                             not null comment '被邀请/申请用户ID',
     type        varchar(8)                         not null comment '类型：invite=邀请，apply=申请',
     status      varchar(16)                        not null comment '状态：pending=待处理，accepted=同意，rejected=拒绝，expired=过期，canceled=撤销',
