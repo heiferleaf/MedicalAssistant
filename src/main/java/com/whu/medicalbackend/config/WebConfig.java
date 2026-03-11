@@ -34,7 +34,8 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer{
                     "/api/agent/health",
                     "/api/agent/chat",
                     "/api/agent/confirm",
-                    "/api/predict/**"
+                    "/api/predict/**",
+                    "/api/rag/**"
                 );
     }
 
