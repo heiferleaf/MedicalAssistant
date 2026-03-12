@@ -6,7 +6,6 @@ import com.whu. medicalbackend.entity.Medicine;
 import com.whu. medicalbackend.entity.MedicationTask;
 import com.whu.medicalbackend.entity.User;
 import com.whu.medicalbackend.enumField.EventLogEnum;
-import com.whu.medicalbackend.enumField.FamilyEventEnum;
 import com.whu. medicalbackend.exception.BusinessException;
 import com.whu.medicalbackend.mapper.*;
 import com.whu.medicalbackend.schedule.DynamicTaskScheduler;
@@ -14,7 +13,6 @@ import com.whu.medicalbackend.service. TaskService;
 import com.whu.medicalbackend.util.RedisKeyBuilderUtil;
 import com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent;
 import com.whu.medicalbackend.ws.event.FamilyMedicineUpdateEvent;
-import com.whu.medicalbackend.ws.event.FamilyPushEvent;
 import io.jsonwebtoken.lang.Assert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -141,10 +139,6 @@ public class TaskServiceImpl implements TaskService {
         // 5. 更新状态
         taskMapper.updateStatus(taskId, status, operateTime);
 
-        if(status == 1 || status == 2) {
-            dynamicTaskScheduler.cancelTaskSchedule(taskId);
-        }
-
         // 记录事务日志
         Long groupId = memberMapper.getGroupIdByUserId(userId);
         if (groupId != null && status != 0) {
@@ -167,7 +161,7 @@ public class TaskServiceImpl implements TaskService {
         }
 
         // 进行广播，条件是标记为漏服用
-        if (status == 2) {
+        if (groupId != null && status == 2) {
             User user = userMapper.findByUserId(userId);
             Assert.notNull(user, "任务所属用户Id为空");
 

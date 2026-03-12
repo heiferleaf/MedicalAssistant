@@ -230,7 +230,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
      * 1.4 处理申请/邀请
      */
     @Override
-    public void approveApply(Long applyId, String opType, String remark){
+    public void approveApply(Long applyId, Long userId, String opType, String remark){
         // 使用工具类构建审批锁 Key
         String lockKey = RedisKeyBuilderUtil.getFamilyApproveLockKey(applyId);
         if (!redisService.tryLock(lockKey, 5, 10)) {
@@ -241,6 +241,11 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
             FamilyInviteApply apply = applyMapper.selectById(applyId);
             if (apply == null || (!InviteStatus.pending.equals(apply.getStatus()) && !InviteStatus.expired.equals(apply.getStatus()))) {
                 throw new BusinessException("该申请不存在或已过期或已被处理");
+            }
+
+            // 自己同意自己的申请
+            if(apply.getInviteeId().equals(userId)) {
+                throw new BusinessException("无法同意自己的申请");
             }
 
             if ("reject".equals(opType)) {

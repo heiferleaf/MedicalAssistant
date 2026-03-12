@@ -51,7 +51,7 @@ public class RedisService{
     }
 
     public Boolean hasMember(String memberKey) {
-        return redisTemplate.opsForHash().hasKey(RedisKeyBuilderUtil.ONLINE_MEMBER_CACHE_KEY, memberKey);
+        return redisTemplate.opsForHash().hasKey(RedisKeyBuilderUtil.ONLINE_MEMBER_CACHE_PREFIX, memberKey);
     }
 
     public void delete(String key) {
