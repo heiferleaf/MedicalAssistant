@@ -13,11 +13,8 @@ import com.whu.medicalbackend.agent.langchain4j.tools.plan.PlanUpdateTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryTodayTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskUpdateStatusTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryHistoryTool;
-<<<<<<< HEAD
-=======
 import com.whu.medicalbackend.agent.langchain4j.tools.predict.PredictTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.rag.RagTool;
->>>>>>> 3533432c78b3d0a888a4729a91e5c8e407aada62
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
@@ -43,21 +40,6 @@ public class MedicalAgent {
 
     @Autowired
     public MedicalAgent(ChatModel chatModel,
-<<<<<<< HEAD
-            PlanQueryTool planQueryTool,
-            PlanCreateTool planCreateTool,
-            PlanUpdateTool planUpdateTool,
-            PlanDeleteTool planDeleteTool,
-            TaskQueryTodayTool taskQueryTodayTool,
-            TaskUpdateStatusTool taskUpdateStatusTool,
-            TaskQueryHistoryTool taskQueryHistoryTool,
-            FamilyQueryTool familyQueryTool,
-            FamilyHealthSnapshotTool familyHealthSnapshotTool,
-            FamilyAlarmTool familyAlarmTool,
-            FamilyInviteTool familyInviteTool,
-            MedicineQueryTool medicineQueryTool,
-            MedicineAddTool medicineAddTool) {
-=======
                         PlanQueryTool planQueryTool,
                         PlanCreateTool planCreateTool,
                         PlanUpdateTool planUpdateTool,
@@ -65,22 +47,23 @@ public class MedicalAgent {
                         TaskQueryTodayTool taskQueryTodayTool,
                         TaskUpdateStatusTool taskUpdateStatusTool,
                         TaskQueryHistoryTool taskQueryHistoryTool,
+                        FamilyQueryTool familyQueryTool,
+                        FamilyHealthSnapshotTool familyHealthSnapshotTool,
+                        FamilyAlarmTool familyAlarmTool,
+                        FamilyInviteTool familyInviteTool,
+                        MedicineQueryTool medicineQueryTool,
+                        MedicineAddTool medicineAddTool,
                         PredictTool predictTool,
                         RagTool ragTool) {
->>>>>>> 3533432c78b3d0a888a4729a91e5c8e407aada62
 
         this.medicalExpert = AiServices.builder(MedicalExpert.class)
                 .chatModel(chatModel)
                 .chatMemoryProvider(memoryId -> MessageWindowChatMemory.withMaxMessages(10))
                 .tools(planQueryTool, planCreateTool, planUpdateTool, planDeleteTool,
-<<<<<<< HEAD
-                        taskQueryTodayTool, taskUpdateStatusTool, taskQueryHistoryTool,
-                        familyQueryTool, familyHealthSnapshotTool, familyAlarmTool, familyInviteTool,
-                        medicineQueryTool, medicineAddTool)
-=======
                        taskQueryTodayTool, taskUpdateStatusTool, taskQueryHistoryTool,
+                       familyQueryTool, familyHealthSnapshotTool, familyAlarmTool, familyInviteTool,
+                       medicineQueryTool, medicineAddTool,
                        predictTool, ragTool)
->>>>>>> 3533432c78b3d0a888a4729a91e5c8e407aada62
                 .build();
     }
 
@@ -105,7 +88,6 @@ public class MedicalAgent {
                 - getTodayTasks: Get today's medication tasks
                 - updateTaskStatus: Update the status of a medication task (0=not taken, 1=taken, 2=missed)
                 - getHistoryTasks: Query historical medication tasks
-<<<<<<< HEAD
 
                 FAMILY GROUP TOOLS:
                 - queryMyFamilyGroup: Query the user's family group and member information
@@ -117,8 +99,6 @@ public class MedicalAgent {
                 - queryMyMedicines: Query all medicines saved by the user
                 - addMedicine: Add a new medicine to the user's medicine library
 
-=======
-                
                 DRUG ADVERSE REACTION PREDICTION TOOLS:
                 - predictAdverseReactions: Predict potential drug adverse reactions based on clinical information
                 - analyzeAdverseReactionRisk: Analyze drug adverse reaction risks based on symptoms and medications
@@ -126,7 +106,6 @@ public class MedicalAgent {
                 MEDICAL KNOWLEDGE BASE TOOLS:
                 - queryMedicalKnowledge: Query medical knowledge base using RAG for professional medical information
                 
->>>>>>> 3533432c78b3d0a888a4729a91e5c8e407aada62
                 When should you use tools:
                 - ALWAYS use queryPlans when the user asks about their medication plans
                 - ALWAYS use createPlan when the user wants to create a new medication plan
@@ -135,24 +114,12 @@ public class MedicalAgent {
                 - ALWAYS use getTodayTasks when the user asks about today's tasks or daily schedule
                 - ALWAYS use updateTaskStatus when the user wants to mark a task as taken or missed
                 - ALWAYS use getHistoryTasks when the user asks about past medication history
-<<<<<<< HEAD
                 - ALWAYS use queryMyFamilyGroup when the user asks about their family group or family members
                 - ALWAYS use getFamilyHealthSnapshot when the user asks about family health or medication status
                 - ALWAYS use getFamilyAlarms when the user asks about family alarms or reminders
                 - ALWAYS use inviteFamilyMember when the user wants to invite someone to the family group
                 - ALWAYS use queryMyMedicines when the user asks about their medicine library
                 - ALWAYS use addMedicine when the user wants to add a medicine to their library
-
-                Guidelines for tool usage:
-                1. Try to use tools FIRST before answering directly
-                2. If you are unsure whether a tool is needed, ask the user for clarification
-                3. After using a tool, summarize the result clearly to the user
-                4. Always provide helpful and friendly responses
-                5. ALWAYS use the provided userId {{userId}} when calling tools, DO NOT make up a userId
-                6. ALWAYS give a clear summary to the user after completing any tool operations, DO NOT return an empty response
-
-                Remember: You are a helpful medical assistant. Use the tools at your disposal to provide the best possible service to users.
-=======
                 - ALWAYS use predictAdverseReactions when the user asks about drug safety, side effects, or adverse reactions
                 - ALWAYS use analyzeAdverseReactionRisk when the user wants to assess medication risks
                 - ALWAYS use queryMedicalKnowledge when the user asks general medical questions, symptoms, diseases, treatments, or needs professional medical information
@@ -168,14 +135,13 @@ public class MedicalAgent {
                 8. When users ask about drug safety or side effects, always use the prediction tools to provide evidence-based assessments
                 9. For general medical knowledge questions, use queryMedicalKnowledge to provide accurate, professional information
                 
-                Remember: You are a helpful medical assistant with comprehensive capabilities including medication management, drug safety prediction, and access to professional medical knowledge. Use all available tools to provide the best possible medical assistance.
->>>>>>> 3533432c78b3d0a888a4729a91e5c8e407aada62
+                Remember: You are a helpful medical assistant with comprehensive capabilities including medication management, family health monitoring, drug safety prediction, and access to professional medical knowledge. Use all available tools to provide the best possible medical assistance.
                 """)
         String medical(@MemoryId String memoryId, @V("userId") String userId, @UserMessage String userMessage);
     }
 
     public String chat(String sessionId, String userId, String userMessage) {
-        logger.info("执行医疗助手对话: sessionId={}, userId={}, message={}", sessionId, userId, userMessage);
+        logger.info("执行医疗助手对话：sessionId={}, userId={}, message={}", sessionId, userId, userMessage);
         return medicalExpert.medical(sessionId, userId, userMessage);
     }
 
@@ -185,7 +151,7 @@ public class MedicalAgent {
 
             String response = chat(sessionId, userId, userMessage);
 
-            logger.info("Agent 执行结果: {}", response);
+            logger.info("Agent 执行结果：{}", response);
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);
