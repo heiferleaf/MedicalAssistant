@@ -1,5 +1,5 @@
 // config.js
-const WS_BASE_URL = "ws://10.135.15.4:8080/ws";
+const WS_BASE_URL = "ws://localhost:8080/ws";
 let socketTask = null;
 let heartbeatInterval = null;
 

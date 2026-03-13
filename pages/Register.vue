@@ -56,7 +56,7 @@
           <text>手机号</text>
         </div>
         <input
-          v-model="formData.phonenumber"
+          v-model="formData.phoneNumber"
           placeholder="请输入手机号"
           class="input-field"
         />
@@ -146,7 +146,7 @@ export default {
         password: "",
         confirmPassword: "",
         nickname: "",
-        phonenumber: ""
+        phoneNumber: ""
       },
       PwdAble: false,
       ConPwdAble: false,
@@ -159,7 +159,7 @@ export default {
         uni.showToast({ title: "请输入账号", icon: "none" });
         return;
       }
-      if (!this.formData.phonenumber) {
+      if (!this.formData.phoneNumber) {
         uni.showToast({ title: "请输入手机号", icon: "none" });
         return;
       }
