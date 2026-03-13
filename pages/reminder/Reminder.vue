@@ -390,7 +390,6 @@ export default {
         const res = await reminderApi.getTodayTasks(this.userId);
         if (res && res.code === 200) {
           // 假设 api 返回结构里 data 才是数组，或者根据你的封装 res 直接是数组
-          [cite_start]; // 根据文档 [cite: 92]，res.data 才是数组
           const list = res.data || [];
           this.taskList = list.sort((a, b) =>
             a.timePoint.localeCompare(b.timePoint),

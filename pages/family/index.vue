@@ -1,42 +1,61 @@
 <template>
-    <view class="container">
-        <view v-if="loading" class="loading-status">
-            <text>正在获取家庭组状态...</text>
+    <view class="page-container">
+        <view class="header">
+            <view class="back-btn" @click="uni.navigateBack()">
+                <image class="icon-sm" src="../../static/Register/back.png" mode="aspectFit"></image>
+            </view>
+            <text class="header-title">欢迎</text>
+            <view class="placeholder"></view>
         </view>
 
-        <view v-else>
-            <view v-if="userStatus !== null" class="in-group-section">
-                <view class="status-card">
-                    <text class="role-tag">{{ userStatus === 1 ? '家庭组长' : '家庭成员' }}</text>
-                    <text class="info">您已加入家庭组，正在为您跳转管理页面...</text>
+        <scroll-view scroll-y class="main-content">
+
+            <view class="hero-section">
+                <view class="icon-wrapper">
+                    <image class="icon-xl" src="../../static/family/family_restroom.svg" mode="aspectFit"></image>
                 </view>
+                <text class="main-title">欢迎来到家庭健康组</text>
+                <text class="sub-title">与您的家人联系，共同管理健康。创建一个新的家庭组或加入现有家庭组。</text>
             </view>
 
-            <view v-else class="no-group-section">
-                <view class="welcome-card">
-                    <text class="title">欢迎使用健康家庭组</text>
-                    <text class="subtitle">您可以创建一个新家庭组或加入现有小组</text>
+            <view class="action-section">
+                <button class="btn-primary" hover-class="btn-primary-hover" @click="navigateTo('create')">
+                    <image class="icon-md mr-2" src="../../static/Health/plus-circle.svg" mode="aspectFit"></image>
+                    <text>创建家庭组</text>
+                </button>
+                <button class="btn-outline" hover-class="btn-outline-hover" @click="navigateTo('join')">
+                    <image class="icon-md mr-2" src="../../static/family/group_add.svg" mode="aspectFit"></image>
+                    <text>加入家庭组</text>
+                </button>
+            </view>
+
+            <view class="invite-section">
+                <view class="section-header" v-if="inviteList.length > 0">
+                    <text class="section-title">收到的邀请</text>
+                    <view class="badge"><text class="badge-text">{{ inviteList.length }} 新</text></view>
                 </view>
 
-                <button class="btn primary-btn" @click="navigateTo('create')">创建家庭组</button>
-                <button class="btn secondary-btn" @click="navigateTo('join')">申请加入家庭组</button>
-
-                <view v-if="inviteList.length > 0" class="invite-section">
-                    <view class="section-title">收到的邀请</view>
-                    <view v-for="item in inviteList" :key="item.inviteId" class="invite-item">
+                <view class="invite-card" v-for="invite in inviteList" :key="invite.id">
+                    <view class="card-top">
+                        <view class="avatar">
+                            <image class="avatar-img" src="../../static/avatars/avatar2.svg" mode="aspectFill"></image>
+                        </view>
                         <view class="invite-info">
-                            <text class="group-name">{{ item.groupName }}</text>
-                            <text class="inviter">邀请人：{{ item.inviterNickname }}</text>
-                            <text class="remark" v-if="item.remark">"{{ item.remark }}"</text>
+                            <text class="info-label">邀请来自</text>
+                            <text class="inviter-name">{{ invite.inviterNickname }}</text>
+                            <text class="invite-quote">{{ invite.remark }}</text>
                         </view>
-                        <view class="invite-ops">
-                            <button class="op-btn reject" @click="handleInvite(item, 'reject')">拒绝</button>
-                            <button class="op-btn approve" @click="handleInvite(item, 'accept')">同意</button>
-                        </view>
+                    </view>
+
+                    <view class="card-actions">
+                        <button class="btn-reject" hover-class="btn-reject-hover" @click="handleInvite(invite, 'reject')">拒绝</button>
+                        <button class="btn-accept" hover-class="btn-accept-hover" @click="handleInvite(invite, 'accept')">同意</button>
                     </view>
                 </view>
             </view>
-        </view>
+
+            <view class="bottom-spacer"></view>
+        </scroll-view>
     </view>
 </template>
 
@@ -60,7 +79,7 @@ export default {
             try {
                 // 1. 获取当前组状态
                 let res = await familyApi.getMyGroup();
-                
+
                 if (res && res.group) {
                     // 根据逻辑判断身份 (此处沿用你的逻辑，有 ownerNickname 则视为组长)
                     this.userStatus = res.group.ownerUserNickname ? 1 : 0;
@@ -72,7 +91,7 @@ export default {
                 }
             } catch (e) {
                 console.error("获取状态失败", e);
-                    await this.fetchInvites();
+                await this.fetchInvites();
             } finally {
                 this.loading = false;
             }
@@ -83,6 +102,7 @@ export default {
                 const inviteRes = await familyApi.getMyApplyRecords();
                 // 过滤出 pending 状态的记录
                 this.inviteList = (inviteRes || []).filter(item => item.status === 'pending' && item.type === 'invite');
+                console.log("待处理邀请列表：", JSON.stringify(this.inviteList));
             } catch (e) {
                 console.error("获取邀请列表失败", e);
             }
@@ -95,17 +115,17 @@ export default {
          */
         async handleInvite(invite, type) {
             uni.showLoading({ title: '处理中...' });
-            console.log("邀请ID:",JSON.stringify(invite));
+            console.log("邀请ID:", JSON.stringify(invite));
             try {
                 // opType 根据后端定义，通常 approve 为同意，reject 为拒绝
                 // const applyId = uni.getStorageSync("userId");
                 await familyApi.approveApply(invite.groupId, {
                     applyId: invite.applyId,
-                    opType: type 
+                    opType: type
                 });
-                
+
                 uni.showToast({ title: type === 'approve' ? '已加入家庭' : '已拒绝' });
-                
+
                 // 处理完成后重新刷新整体状态
                 this.checkUserFamilyStatus();
             } catch (e) {
@@ -132,54 +152,344 @@ export default {
     }
 };
 </script>
+<style lang="scss" scoped>
+/* 全局变量 */
+$primary: #4d88ff;
+$bg-color: #f5f6f8;
+$card-bg: #ffffff;
+$text-main: #0f172a;
+$text-sub: #64748b;
+$border-color: #e2e8f0;
 
-<style scoped>
-.container {
-    padding: 40rpx;
-    background-color: #fcfcfc;
-    min-height: 100vh;
+/* 图标尺寸工具 */
+.icon-sm {
+    width: 40rpx;
+    height: 40rpx;
+    flex-shrink: 0;
 }
 
-/* 欢迎卡片样式保持 */
-.welcome-card { text-align: center; margin: 60rpx 0; }
-.title { font-size: 44rpx; font-weight: bold; margin-bottom: 16rpx; display: block; }
-.subtitle { font-size: 26rpx; color: #888; }
+.icon-md {
+    width: 48rpx;
+    height: 48rpx;
+    flex-shrink: 0;
+}
 
-/* 按钮样式 */
-.btn { margin-top: 24rpx; font-size: 30rpx; height: 90rpx; line-height: 90rpx; }
-.primary-btn { background-color: #007AFF; color: white; }
-.secondary-btn { background-color: #fff; color: #333; border: 1px solid #eee; }
+.icon-xl {
+    width: 80rpx;
+    height: 80rpx;
+    flex-shrink: 0;
+}
 
-/* 申请记录样式 */
-.apply-history {
-    margin-top: 80rpx;
+.icon-tab {
+    width: 48rpx;
+    height: 48rpx;
+    flex-shrink: 0;
+    margin-bottom: 8rpx;
 }
-.section-title {
-    font-size: 32rpx;
-    font-weight: bold;
-    margin-bottom: 20rpx;
-    color: #333;
+
+.mr-2 {
+    margin-right: 16rpx;
 }
-.record-card {
-    background: #fff;
-    padding: 30rpx;
-    border-radius: 16rpx;
-    margin-bottom: 20rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
-}
-.record-header {
+
+.page-container {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16rpx;
+    flex-direction: column;
+    height: 100vh;
+    background-color: $bg-color;
+    font-family: 'Inter', sans-serif;
 }
-.group-name { font-size: 30rpx; font-weight: 500; }
-.status-tag { font-size: 22rpx; padding: 4rpx 16rpx; border-radius: 8rpx; }
-.status-tag.pending { background: #fff8e1; color: #f57f17; }
-.status-tag.rejected { background: #ffebee; color: #c62828; }
 
-.record-body .detail { font-size: 24rpx; color: #666; display: block; margin-top: 4rpx; }
-.record-body .time { font-size: 22rpx; color: #999; display: block; margin-top: 10rpx; }
+/* 顶部导航 */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20rpx 32rpx;
+    background-color: $card-bg;
+    border-bottom: 2rpx solid $border-color;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 
-.role-tag { background: #e1f5fe; color: #01579b; padding: 10rpx 30rpx; border-radius: 40rpx; font-size: 24rpx; }
+    .back-btn {
+        width: 80rpx;
+        height: 80rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+
+        &:active {
+            background-color: #f1f5f9;
+        }
+    }
+
+    .header-title {
+        font-size: 36rpx;
+        font-weight: bold;
+        color: $text-main;
+        flex: 1;
+        text-align: center;
+    }
+
+    .placeholder {
+        width: 80rpx;
+    }
+}
+
+/* 主内容区 */
+.main-content {
+    flex: 1;
+    height: 0;
+}
+
+/* 头部欢迎区 */
+.hero-section {
+    padding: 80rpx 48rpx 64rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+
+    .icon-wrapper {
+        width: 160rpx;
+        height: 160rpx;
+        background-color: rgba($primary, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 48rpx;
+    }
+
+    .main-title {
+        font-size: 56rpx;
+        font-weight: bold;
+        color: $text-main;
+        margin-bottom: 24rpx;
+    }
+
+    .sub-title {
+        font-size: 32rpx;
+        color: $text-sub;
+        line-height: 1.5;
+        max-width: 600rpx;
+    }
+}
+
+/* 操作按钮区 */
+.action-section {
+    padding: 0 48rpx;
+    display: flex;
+    flex-direction: column;
+    gap: 24rpx;
+
+    .btn-primary,
+    .btn-outline {
+        width: 100%;
+        height: 112rpx;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 24rpx;
+        font-size: 32rpx;
+        font-weight: bold;
+
+        &::after {
+            border: none;
+        }
+    }
+
+    .btn-primary {
+        background-color: $primary;
+        color: #ffffff;
+        box-shadow: 0 8rpx 24rpx rgba($primary, 0.2);
+    }
+
+    .btn-primary-hover {
+        background-color: #3b76eb;
+        transform: scale(0.99);
+    }
+
+    .btn-outline {
+        background-color: $card-bg;
+        color: $text-main;
+        border: 4rpx solid $border-color;
+    }
+
+    .btn-outline-hover {
+        border-color: rgba($primary, 0.5);
+        background-color: #f8fafc;
+    }
+}
+
+/* 邀请通知区 */
+.invite-section {
+    padding: 96rpx 48rpx 48rpx;
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 32rpx;
+
+        .section-title {
+            font-size: 36rpx;
+            font-weight: bold;
+            color: $text-main;
+        }
+
+        .badge {
+            background-color: rgba($primary, 0.1);
+            padding: 8rpx 16rpx;
+            border-radius: 999rpx;
+
+            .badge-text {
+                color: $primary;
+                font-size: 24rpx;
+                font-weight: bold;
+            }
+        }
+    }
+
+    .invite-card {
+        background-color: $card-bg;
+        border-radius: 32rpx;
+        padding: 40rpx;
+        border: 2rpx solid $border-color;
+        box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.02);
+
+        .card-top {
+            display: flex;
+            gap: 32rpx;
+            margin-bottom: 40rpx;
+
+            .avatar {
+                width: 96rpx;
+                height: 96rpx;
+                border-radius: 50%;
+                background-color: #f1f5f9;
+                overflow: hidden;
+                flex-shrink: 0;
+
+                .avatar-img {
+                    width: 100%;
+                    height: 100%;
+                }
+            }
+
+            .invite-info {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+
+                .info-label {
+                    font-size: 28rpx;
+                    color: $text-sub;
+                }
+
+                .inviter-name {
+                    font-size: 32rpx;
+                    font-weight: bold;
+                    color: $text-main;
+                    margin-top: 4rpx;
+                }
+
+                .invite-quote {
+                    font-size: 24rpx;
+                    color: #94a3b8;
+                    font-style: italic;
+                    margin-top: 8rpx;
+                    line-height: 1.4;
+                }
+            }
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 24rpx;
+
+            .btn-reject,
+            .btn-accept {
+                flex: 1;
+                height: 88rpx;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 16rpx;
+                font-size: 30rpx;
+                font-weight: 600;
+
+                &::after {
+                    border: none;
+                }
+            }
+
+            .btn-reject {
+                background-color: #f1f5f9;
+                color: #475569;
+            }
+
+            .btn-reject-hover {
+                background-color: #fee2e2;
+                color: #dc2626;
+            }
+
+            .btn-accept {
+                background-color: $primary;
+                color: #ffffff;
+            }
+
+            .btn-accept-hover {
+                box-shadow: 0 4rpx 12rpx rgba($primary, 0.3);
+                opacity: 0.9;
+            }
+        }
+    }
+}
+
+.bottom-spacer {
+    height: 160rpx;
+}
+
+/* 底部导航栏 */
+.custom-tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(20px);
+    border-top: 2rpx solid $border-color;
+    padding: 16rpx 32rpx 8rpx;
+    z-index: 20;
+
+    &.pb-safe {
+        padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+    }
+
+    .tab-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        .tab-text {
+            font-size: 20rpx;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2rpx;
+            color: $text-sub;
+            margin-top: 4rpx;
+        }
+
+        &.active {
+            .tab-text {
+                color: $primary;
+            }
+        }
+    }
+}
 </style>

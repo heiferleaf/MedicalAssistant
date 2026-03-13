@@ -1,5 +1,4 @@
-// API基础配置
-const BASE_URL = "http://localhost:8080/api"; // 请替换为您的实际API地址
+import { BASE_URL } from "../config/config";
 
 // 请求拦截器
 const requestInterceptor = (config) => {
@@ -12,12 +11,6 @@ const requestInterceptor = (config) => {
     };
   }
 
-  // 可以在这里添加loading效果
-  uni.showLoading({
-    title: "加载中...",
-    mask: true,
-  });
-
   return config;
 };
 
@@ -26,7 +19,8 @@ const responseInterceptor = async (response, resolve, reject) => {
   uni.hideLoading();
 
   const { statusCode, data } = response;
-  if (statusCode === 200) {
+  console.log("HTTP 响应:", statusCode, data);
+  if (data.code === 200) {
     if (data.code === 0 || data.code === 200) {
       resolve(data.data || data);
     } else {
@@ -36,20 +30,24 @@ const responseInterceptor = async (response, resolve, reject) => {
       });
       reject(data);
     }
-  } else if (statusCode === 402) {
+  } else if (data.code === 402) {
+    console.log("Token 过期，尝试刷新...");
     const isOk = await handleRefreshToken();
     if (isOk) {
       // 换票成功，携带新票重新发起本次请求
+      console.log("Token 刷新成功，重试请求...");
       resolve(retryRes);
     } else {
+      console.log("Token 刷新失败，强制退出...");
+      handleLogout();
       reject(response);
     }
-  } else if (statusCode === 403) {
+  } else if (data.code === 403) {
     handleLogout();
     reject(response);
   } else {
     uni.showToast({
-      title: `网络错误: ${statusCode}`,
+      title: `网络错误: ${data.code || statusCode}`,
       icon: "none",
     });
     reject(response);
@@ -127,7 +125,7 @@ function handleLogout() {
     showCancel: false,
 
     success: () => {
-      uni.reLaunch({ url: "/pages/login/login" });
+      uni.reLaunch({ url: "/pages/Login" });
     },
   });
 }

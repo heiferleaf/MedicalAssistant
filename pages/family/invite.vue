@@ -1,27 +1,70 @@
 <template>
-  <view class="invite-container">
-    <view class="card">
-      <view class="title">添加家庭成员</view>
-      <view class="subtitle">通过手机号邀请对方加入您的家庭组</view>
-
-      <view class="input-group">
-        <text class="label">手机号码</text>
-        <input class="custom-input" type="number" v-model="phoneNumber" placeholder="请输入对方绑定的手机号"
-          placeholder-style="color:#ccc" />
+  <view class="page-container">
+    <view class="header">
+      <view class="back-btn" @click="uni.navigateBack()">
+        <image class="icon-sm" src="../../static/Register/back.png" mode="aspectFit"></image>
       </view>
+      <text class="header-title">添加家庭成员</text>
+      <view class="placeholder"></view> </view>
 
-      <view class="input-group">
-        <text class="label">备注信息</text>
-        <textarea class="custom-textarea" v-model="remark" placeholder="例如：我是你的孩子，快通过我的申请吧~"
-          placeholder-style="color:#ccc" />
+    <scroll-view scroll-y class="main-content">
+      <view class="content-wrapper">
+        
+        <view class="hero-section">
+          <view class="icon-wrapper">
+            <image class="icon-lg" src="../../static/family/person_add_blue.svg" mode="aspectFit"></image>
+          </view>
+          <text class="hero-title">邀请成员</text>
+          <text class="hero-desc">与您的家人联系，共同管理健康并分享设备访问权限。</text>
+        </view>
+
+        <view class="form-section">
+          <view class="form-group">
+            <text class="label">手机号码</text>
+            <view class="input-wrapper">
+              <image class="input-icon" src="../../static/family/call.svg" mode="aspectFit"></image>
+              <input 
+                class="custom-input" 
+                type="number" 
+                maxlength="11"
+                v-model="phoneNumber"
+                placeholder="请输入手机号码" 
+                placeholder-class="placeholder-text"
+              />
+            </view>
+          </view>
+
+          <view class="form-group">
+            <text class="label">备注信息</text>
+            <view class="input-wrapper">
+              <image class="textarea-icon" src="../../static/DrugScan/note.svg" mode="aspectFit"></image>
+              <textarea 
+                class="custom-textarea" 
+                v-model="remark"
+                placeholder="例如：配偶、孩子、长辈" 
+                placeholder-class="placeholder-text"
+              ></textarea>
+            </view>
+          </view>
+
+          <view class="btn-container">
+            <button class="submit-btn" hover-class="submit-btn-hover" @click="handleInvite">
+              <text>发送邀请</text>
+              <image class="icon-md ml-2" src="../../static/ai/send.svg" mode="aspectFit"></image>
+            </button>
+          </view>
+        </view>
+
+        <view class="info-box">
+          <image class="icon-sm shrink-0 mt-1" src="../../static/Mine/info.svg" mode="aspectFit"></image>
+          <text class="info-text">邀请将通过短信发送。您的家人将收到下载应用的链接，并自动加入您的家庭组。</text>
+        </view>
+        
       </view>
+    </scroll-view>
 
-      <button class="submit-btn" @click="handleInvite">发送邀请</button>
-    </view>
-
-    <view class="footer-tips">
-      <text>· 对方将在“我的消息”中收到您的邀请</text>
-      <text>· 只有对方同意后才会正式进入家庭组</text>
+    <view class="footer pb-safe">
+      <text class="footer-text">由 FAMILYSYNC 提供安全保障</text>
     </view>
   </view>
 </template>
@@ -81,93 +124,233 @@ export default {
 };
 </script>
 
-<style scoped>
-.invite-container {
-  padding: 40rpx;
-  background-color: #f8f9fb;
-  min-height: 100vh;
+<style lang="scss" scoped>
+/* 全局变量 */
+$primary: #4d88ff;
+$bg-color: #f5f6f8;
+$card-bg: #ffffff;
+$text-main: #0f172a;
+$text-sub: #64748b;
+$border-color: #e2e8f0;
+
+/* 图标基础尺寸 */
+.icon-sm { width: 40rpx; height: 40rpx; flex-shrink: 0; }
+.icon-md { width: 48rpx; height: 48rpx; flex-shrink: 0; }
+.icon-lg { width: 64rpx; height: 64rpx; flex-shrink: 0; }
+.ml-2 { margin-left: 16rpx; }
+.shrink-0 { flex-shrink: 0; }
+.mt-1 { margin-top: 4rpx; }
+
+.page-container {
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  background-color: $bg-color;
+  font-family: 'Inter', sans-serif;
 }
 
-.card {
-  background-color: #fff;
+/* 顶部导航 */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 32rpx;
+  background-color: rgba(245, 246, 248, 0.9);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  
+  .back-btn {
+    width: 80rpx;
+    height: 80rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    &:active { background-color: rgba($primary, 0.1); }
+  }
+  
+  .header-title {
+    font-size: 36rpx;
+    font-weight: bold;
+    color: $text-main;
+  }
+  
+  .placeholder { width: 80rpx; }
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1;
+  height: 0;
+  
+  .content-wrapper {
+    padding: 64rpx 48rpx 96rpx;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* 头部说明 */
+.hero-section {
+  margin-bottom: 64rpx;
+  
+  .icon-wrapper {
+    width: 128rpx;
+    height: 128rpx;
+    background-color: rgba($primary, 0.1);
+    border-radius: 32rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 48rpx;
+  }
+  
+  .hero-title {
+    font-size: 48rpx;
+    font-weight: bold;
+    color: $text-main;
+    display: block;
+    margin-bottom: 16rpx;
+  }
+  
+  .hero-desc {
+    font-size: 30rpx;
+    color: $text-sub;
+    line-height: 1.5;
+    display: block;
+  }
+}
+
+/* 表单区域 */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 48rpx;
+  margin-bottom: 80rpx;
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16rpx;
+    
+    .label {
+      font-size: 28rpx;
+      font-weight: 600;
+      color: #334155;
+      margin-left: 8rpx;
+    }
+    
+    .input-wrapper {
+      position: relative;
+      width: 100%;
+      
+      .input-icon {
+        position: absolute;
+        left: 32rpx;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44rpx;
+        height: 44rpx;
+        opacity: 0.5;
+        z-index: 1;
+      }
+      
+      .textarea-icon {
+        position: absolute;
+        left: 32rpx;
+        top: 32rpx;
+        width: 44rpx;
+        height: 44rpx;
+        opacity: 0.5;
+        z-index: 1;
+      }
+      
+      .custom-input, .custom-textarea {
+        width: 100%;
+        box-sizing: border-box;
+        background-color: $card-bg;
+        border: 2rpx solid $border-color;
+        border-radius: 24rpx;
+        color: $text-main;
+        font-size: 32rpx;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        
+        &:focus {
+          border-color: $primary;
+          box-shadow: 0 0 0 4rpx rgba($primary, 0.1);
+        }
+      }
+      
+      .custom-input {
+        height: 112rpx;
+        padding: 0 32rpx 0 96rpx; /* 左侧留出图标空间 */
+      }
+      
+      .custom-textarea {
+        height: 240rpx;
+        padding: 32rpx 32rpx 32rpx 96rpx; /* 左侧留出图标空间 */
+      }
+      
+      .placeholder-text { color: #94a3b8; }
+    }
+  }
+  
+  .btn-container {
+    padding-top: 16rpx;
+    
+    .submit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 112rpx;
+      background-color: $primary;
+      color: #ffffff;
+      font-size: 32rpx;
+      font-weight: bold;
+      border-radius: 24rpx;
+      box-shadow: 0 8rpx 24rpx rgba($primary, 0.2);
+      border: none;
+      &::after { border: none; }
+    }
+    .submit-btn-hover { background-color: #3b76eb; transform: scale(0.99); }
+  }
+}
+
+/* 底部提示盒子 */
+.info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 24rpx;
+  padding: 32rpx;
+  background-color: rgba($primary, 0.05);
+  border: 2rpx solid rgba($primary, 0.1);
   border-radius: 24rpx;
-  padding: 40rpx;
-  box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.05);
-
-  margin-top: auto;
-  margin-bottom: auto;
+  
+  .info-text {
+    font-size: 26rpx;
+    line-height: 1.6;
+    color: #475569;
+  }
 }
 
-.title {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 8rpx;
-}
-
-.subtitle {
-  font-size: 24rpx;
-  color: #999;
-  margin-bottom: 40rpx;
-}
-
-.input-group {
-  margin-bottom: 30rpx;
-}
-
-.label {
-  font-size: 28rpx;
-  color: #666;
-  font-weight: 500;
-  margin-bottom: 16rpx;
-  display: block;
-}
-
-.custom-input {
-  background-color: #f5f6f7;
-  height: 90rpx;
-  border-radius: 12rpx;
-  padding: 0 30rpx;
-  font-size: 30rpx;
-}
-
-.custom-textarea {
-  background-color: #f5f6f7;
-  width: auto;
-  height: 200rpx;
-  border-radius: 12rpx;
-  padding: 24rpx 30rpx;
-  font-size: 28rpx;
-  line-height: 1.5;
-}
-
-.submit-btn {
-  margin-top: 40rpx;
-  background-color: #007AFF;
-  color: #fff;
-  border-radius: 50rpx;
-  height: 90rpx;
-  line-height: 90rpx;
-  font-size: 32rpx;
-  border: none;
-}
-
-.submit-btn:active {
-  opacity: 0.8;
-}
-
-.footer-tips {
-  margin-top: auto;
-  padding-bottom: 60rpx;
+/* 底部版权说明 */
+.footer {
   text-align: center;
-}
-
-.footer-tips text {
-  display: block;
-  font-size: 22rpx;
-  color: #bbb;
-  line-height: 1.8;
+  padding: 48rpx;
+  
+  &.pb-safe {
+    padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  }
+  
+  .footer-text {
+    font-size: 20rpx;
+    font-weight: 500;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 4rpx;
+  }
 }
 </style>

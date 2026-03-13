@@ -16,7 +16,7 @@
 						:class="{ 'icon-active': current === index }"
 					></image>
 				</view>
-				<text class="nav-text">{{ item.text }}</text>
+				<!-- <text class="nav-text">{{ item.text }}</text> -->
 			</view>
 		</view>
 	</view>
@@ -89,7 +89,7 @@ export default {
 
 	.nav-container {
 		background: #1e293b; /* 对应原有的深蓝黑色 */
-		border-radius: 65rpx;
+		border-radius: 48rpx;
 		height: 130rpx;
 		display: flex;
 		justify-content: space-around;
@@ -111,21 +111,24 @@ export default {
 		transition: all 0.3s ease;
 
 		.nav-icon-wrapper {
-			width: 60rpx;
-			height: 60rpx;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			border-radius: 30rpx;
-			transition: all 0.3s ease;
+            width: 60rpx;
+            height: 60rpx;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 30rpx;
+            transition: all 0.3s ease;
 
-			.nav-icon {
-				width: 44rpx;
-				height: 44rpx;
-				/* 如果是普通的黑白图标，可以增加亮度滤镜来配合深色底 */
-				filter: brightness(0) invert(0.8);
-			}
-		}
+            .nav-icon {
+                width: 44rpx;
+                height: 44rpx;
+                /* 默认状态（灰色 #94a3b8） */
+                /* 如果你的原图是黑色的，用 invert 配合 opacity 调成灰色 */
+                opacity: 0.5;
+                filter: invert(1); /* 如果原图是白色的，这行去掉 */
+                transition: all 0.3s ease;
+            }
+        }
 
 		.nav-text {
 			font-size: 20rpx;
@@ -135,22 +138,19 @@ export default {
 		}
 
 		&.active {
-			.nav-icon-wrapper {
-				background: rgba(99, 102, 241, 0.15); /* 主色背景透明度 */
-				width: 100rpx;
-				height: 70rpx;
-				
-				.nav-icon {
-					/* 激活状态图标变为主色调 #6366F1 */
-					filter: none; 
-					// 如果需要通过 CSS 强制改变图标颜色（针对黑白SVG）可以使用 drop-shadow 技巧
-				}
-			}
-			.nav-text {
-				color: #6366f1;
-				font-weight: bold;
-			}
-		}
+            .nav-icon-wrapper {
+                background: rgba(99, 102, 241, 0.8); /* 主色背景，调高透明度让白色图标更明显 */
+                width: 100rpx;
+                height: 70rpx;
+                
+                .nav-icon {
+                    /* 激活状态（白色） */
+                    opacity: 1;
+                    /* 如果原图是黑色的，invert(1) 就是白色。如果是白色的，去掉这行 */
+                    filter: invert(1) brightness(200%); 
+                }
+            }
+        }
 
 		&:active {
 			transform: scale(0.9);

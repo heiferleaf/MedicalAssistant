@@ -132,9 +132,12 @@ export default {
           title: "登录成功",
           icon: "success",
         });
-        // console.log(result.accessToken)
+        console.log("登录结果:", result);
 
         uni.setStorageSync("userId", result.id);
+        uni.setStorageSync("username", result.username);
+        uni.setStorageSync("nickname", result.nickname);
+        uni.setStorageSync("phoneNumber", result.phoneNumber);
         uni.setStorageSync("accessToken", result.accessToken);
         uni.setStorageSync("refreshToken", result.refreshToken);
         uni.setStorageSync("userName", this.loginForm.username.trim());

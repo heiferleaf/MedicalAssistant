@@ -1,5 +1,25 @@
 // config.js
-const WS_BASE_URL = "ws://10.135.15.4:8080/ws";
+
+let BASE_URL = "";
+let WS_BASE_URL = "";
+
+const USE_SIMULATOR = false; // 是否使用模拟器
+
+if (process.env.NODE_ENV === "production") {
+  // 开发环境：点击“运行”时生效
+  // 可以是 localhost，也可以是局域网 IP
+  BASE_URL = "http://8.148.94.242:8080/api";
+  WS_BASE_URL = "ws://8.148.94.242:8080/ws";
+} else if (process.env.NODE_ENV === "development" && USE_SIMULATOR) {
+  // 生产环境：点击“发行”打包时自动生效
+  BASE_URL = "http://10.135.2.86:8080/api";
+  WS_BASE_URL = "ws://10.135.2.86:8080/ws";
+} else {
+  BASE_URL = "http://localhost:8080/api";
+  WS_BASE_URL = "ws://localhost:8080/ws";
+}
+
+export { BASE_URL, WS_BASE_URL };
 let socketTask = null;
 let heartbeatInterval = null;
 
@@ -22,7 +42,7 @@ export function connect() {
   // 3. 监听消息接收 [cite: 325]
   uni.onSocketMessage((res) => {
     console.log("WS 收到消息:", res.data);
-    if(res.data != 'pong') {
+    if (res.data != "pong") {
       const pushData = JSON.parse(res.data);
       handleMessage(pushData);
     }
@@ -88,7 +108,7 @@ function handleMessage(pushData) {
   if (content) {
     plus.push.createMessage(content, JSON.stringify(pushData), {
       title: title,
-      cover: false // 建议设为 false，这样多条消息不会互相覆盖，用户可以滑动手按序查看
+      cover: false, // 建议设为 false，这样多条消息不会互相覆盖，用户可以滑动手按序查看
     });
   }
   // #endif
@@ -96,9 +116,9 @@ function handleMessage(pushData) {
   // 3. 处理业务逻辑 (保持原有 emit 逻辑)
   // 你可以将逻辑合并到上面的 switch 中，或者保持独立
   const businessLogic = {
-    "medicine_update": () => uni.$emit("REFRESH_HEALTH_DATA", pushData),
-    "join_success": () => uni.$emit("REFRESH_MEMBER_LIST", pushData),
-    "member_leave": () => uni.$emit("REFRESH_MEMBER_LIST", pushData),
+    medicine_update: () => uni.$emit("REFRESH_HEALTH_DATA", pushData),
+    join_success: () => uni.$emit("REFRESH_MEMBER_LIST", pushData),
+    member_leave: () => uni.$emit("REFRESH_MEMBER_LIST", pushData),
   };
 
   if (businessLogic[type]) businessLogic[type]();
@@ -111,13 +131,13 @@ function handleMessage(pushData) {
       // 提醒健康数据页面刷新，并把最新的数据 pushData 传过去
       uni.$emit("REFRESH_HEALTH_DATA", pushData);
       break;
-      
+
     case "join_success":
     case "member_leave":
       // 提醒家庭成员列表页面刷新
       uni.$emit("REFRESH_MEMBER_LIST", pushData);
       break;
-      
+
     default:
       console.log("未定义处理逻辑的消息类型:", type);
   }

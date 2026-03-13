@@ -1,303 +1,330 @@
 <template>
-    <view class="data-container">
-        <view class="user-header">
-            <view class="user-info">
-                <text class="user-name">{{ userName }} 的健康看板</text>
-                <text class="date-display">{{ selectedDate }}</text>
-            </view>
-            <picker mode="date" :value="selectedDate" @change="onDateChange">
-                <button class="date-btn">切换日期</button>
-            </picker>
-        </view>
-
-        <view class="section-title">药品服用情况</view>
-        <view class="medicine-list">
-            <view v-if="medicineList.length === 0" class="empty-tip">暂无服药记录</view>
-            <view v-for="(med, index) in medicineList" :key="index" class="med-item" :class="statusClass(med.status)">
-                <view class="med-main">
-                    <text class="med-name">{{ med.name }}</text>
-                    <text class="med-time">{{ med.timePoint }} · {{ med.dosage }}</text>
-                </view>
-                <view class="med-status">
-                    <text class="status-tag">{{ statusText(med.status) }}</text>
-                </view>
-            </view>
-        </view>
-
-        <view class="section-title">生理指标</view>
-        <view class="health-grid">
-            <view class="health-card">
-                <text class="label">血压 (mmHg)</text>
-                <text class="value">{{ healthValue.bloodPressure || '--' }}</text>
-            </view>
-            <view class="health-card">
-                <text class="label">血糖 (mmol/L)</text>
-                <text class="value">{{ healthValue.bloodSugar || '--' }}</text>
-            </view>
-        </view>
-
-        <view class="footer-link" @click="goToLogs">
-            <text>查看该成员历史异常日志</text>
-            <text class="arrow">></text>
-        </view>
+  <view class="page-container">
+    <view class="header">
+      <view class="icon-btn" @click="goBack">
+        <image class="icon" src="../../static/Register/back.png" mode="aspectFit"></image>
+      </view>
+      <text class="header-title">健康看板</text>
+      <view class="icon-btn" @click="goNotifications">
+        <image class="icon" src="../../static/Home/warning.svg" mode="aspectFit"></image>
+      </view>
     </view>
+
+    <scroll-view scroll-y class="main-content">
+      
+      <view class="section">
+        <text class="section-title">药品服用情况</text>
+        <view class="empty-card">
+          <view class="empty-icon-wrapper">
+            <image class="icon-huge" src="../../static/Health/pill-active.svg" mode="aspectFit"></image>
+          </view>
+          <text class="empty-title">暂无记录</text>
+          <text class="empty-desc">您还没有添加任何药品服用记录</text>
+          <button class="btn-add" hover-class="btn-add-hover" @click="addRecord">
+            <image class="icon-sm mr-1" src="../../static/Health/plus-circle.svg" mode="aspectFit"></image>
+            <text>添加记录</text>
+          </button>
+        </view>
+      </view>
+
+      <view class="section">
+        <text class="section-title">生理指标</text>
+        <view class="grid-container">
+          
+          <view class="indicator-card" @click="viewDetail('blood_pressure')">
+            <view class="card-header">
+              <view class="icon-box bg-red-light">
+                <image class="icon" src="../../static/Home/heart.svg" mode="aspectFit"></image>
+              </view>
+              <image class="icon-sm chevron" src="../../static/Home/right-arrow.svg" mode="aspectFit"></image>
+            </view>
+            <text class="card-label">血压</text>
+            <view class="card-value-box">
+              <text class="value">120/80</text>
+              <text class="unit">mmHg</text>
+            </view>
+            <view class="card-status">
+              <view class="dot bg-green"></view>
+              <text class="status-text text-green">正常范围</text>
+            </view>
+          </view>
+
+          <view class="indicator-card" @click="viewDetail('blood_sugar')">
+            <view class="card-header">
+              <view class="icon-box bg-blue-light">
+                <image class="icon" src="../../static/Prepare/blood-sugar.svg" mode="aspectFit"></image>
+              </view>
+              <image class="icon-sm chevron" src="../../static/Home/right-arrow.svg" mode="aspectFit"></image>
+            </view>
+            <text class="card-label">血糖</text>
+            <view class="card-value-box">
+              <text class="value">5.6</text>
+              <text class="unit">mmol/L</text>
+            </view>
+            <view class="card-status">
+              <view class="dot bg-green"></view>
+              <text class="status-text text-green">空腹正常</text>
+            </view>
+          </view>
+
+        </view>
+      </view>
+      
+      <view class="bottom-spacer"></view>
+    </scroll-view>
+  </view>
 </template>
 
-<script>
-import familyApi from '../../api/family';
+<script setup>
+// 路由与交互方法
+const goBack = () => {
+  uni.navigateBack({ delta: 1, fail: () => uni.switchTab({ url: '/pages/index/index' }) });
+};
 
-export default {
-    data() {
-        return {
-            userId: '',
-            userName: '',
-            groupId: -1,
-            selectedDate: '', // 默认当天
-            medicineList: [], // 对应 medicine_status 字段解析
-            healthValue: {},  // 对应 health_value 字段解析
-            loading: false
-        };
-    },
-    onLoad(options) {
-        // 从 members 页面跳转传参
-        this.userId = options.userId;
-        this.userName = options.userName || '成员';
-        this.groupId = options.groupId;
-        this.selectedDate = this.getTodayDate();
+const goNotifications = () => {
+  uni.showToast({ title: '消息通知', icon: 'none' });
+};
 
-        // 监听 WebSocket 推送的正常服药消息，实时刷新 UI
-        uni.$on('refreshHealthData', (data) => {
-            if (data.memberName === this.userName) {
-                this.fetchHealthData();
-            }
-        });
-    },
-    onShow() {
-        this.fetchHealthData();
-    },
-    onUnload() {
-        uni.$off('refreshHealthData');
-    },
-    methods: {
-        getTodayDate() {
-            return new Date().toISOString().split('T')[0];
-        },
+const addRecord = () => {
+  uni.showToast({ title: '添加药品记录', icon: 'none' });
+};
 
-        // 切换日期重新拉取 API 数据 [cite: 75, 76]
-        onDateChange(e) {
-            this.selectedDate = e.detail.value;
-            this.fetchHealthData();
-        },
+const viewDetail = (type) => {
+  console.log('查看详情:', type);
+  uni.showToast({ title: `查看${type === 'blood_pressure' ? '血压' : '血糖'}详情`, icon: 'none' });
+};
 
-        async fetchHealthData() {
-            this.loading = true;
-            try {
-                // 调用 API 获取 health_data 表中对应 user_id 和 record_date 的数据 [cite: 51, 52]
-                const res = await familyApi.getGroupHealthData(this.groupId);
-                if (res.data == null) {
-                    res = {
-                        code: 200,
-                        message: "操作成功",
-                        data: {
-                            id: 3001,
-                            user_id: 2,
-                            group_id: 1001,
-                            record_date: "2026-03-20",
-
-                            // ⚠️ 注意是字符串格式（后端数据库就是这样）
-                            medicine_status: JSON.stringify([
-                                {
-                                    name: "降压药A",
-                                    timePoint: "08:00",
-                                    dosage: "1片",
-                                    status: 1   // 1=已服 2=漏服
-                                },
-                                {
-                                    name: "降糖药B",
-                                    timePoint: "12:00",
-                                    dosage: "1片",
-                                    status: 2
-                                },
-                                {
-                                    name: "维生素C",
-                                    timePoint: "20:00",
-                                    dosage: "2片",
-                                    status: 1
-                                }
-                            ]),
-
-                            health_value: JSON.stringify({
-                                bloodPressure: "120/80",
-                                bloodSugar: "6.3"
-                            })
-                        }
-                    };
-                }
-
-                if (res.data) {
-                    // 解析存储在 JSON 字段中的服药和指标数据 [cite: 52]
-                    this.medicineList = JSON.parse(res.data.medicine_status || '[]');
-                    this.healthValue = JSON.parse(res.data.health_value || '{}');
-                }
-            } catch (e) {
-                console.error(e);
-                uni.showToast({ title: '加载失败', icon: 'none' });
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        statusText(status) {
-            const map = { 0: '待服用', 1: '已服用', 2: '漏服' };
-            return map[status] || '未知';
-        },
-
-        statusClass(status) {
-            const map = { 0: 'status-wait', 1: 'status-done', 2: 'status-miss' };
-            return map[status];
-        },
-
-        goToLogs() {
-            uni.navigateTo({
-                url: `/pages/health/abnormal?userId=${this.userId}`
-            });
-        }
-    }
+// 底部导航切换
+const switchTab = (tabName) => {
+  console.log('切换到:', tabName);
+  // uni.switchTab({ url: `/pages/${tabName}/index` });
 };
 </script>
 
-<style scoped>
-.data-container {
-    padding: 30rpx;
-    background-color: #f8f9fa;
-    min-height: 100vh;
+<style lang="scss" scoped>
+/* 全局变量 */
+$primary: #4d88ff;
+$bg-color: #f5f6f8;
+$card-bg: #ffffff;
+$text-main: #0f172a;
+$text-sub: #64748b;
+$border-color: #f1f5f9;
+
+/* 通用图标尺寸 */
+.icon { width: 48rpx; height: 48rpx; flex-shrink: 0; }
+.icon-sm { width: 36rpx; height: 36rpx; flex-shrink: 0; }
+.icon-huge { width: 120rpx; height: 120rpx; flex-shrink: 0; opacity: 0.4; }
+.icon-tab { width: 48rpx; height: 48rpx; flex-shrink: 0; margin-bottom: 8rpx; }
+.mr-1 { margin-right: 8rpx; }
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: $bg-color;
+  font-family: 'Inter', sans-serif;
 }
 
-.user-header {
+/* 顶部导航 */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 32rpx;
+  background-color: $card-bg;
+  border-bottom: 2rpx solid $border-color;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  
+  .icon-btn {
+    width: 80rpx;
+    height: 80rpx;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    background: white;
-    padding: 40rpx;
-    border-radius: 20rpx;
-    margin-bottom: 30rpx;
-}
-
-.user-name {
+    justify-content: center;
+    border-radius: 50%;
+    &:active { background-color: #f8fafc; }
+  }
+  
+  .header-title {
     font-size: 36rpx;
     font-weight: bold;
-    display: block;
+    color: $text-main;
+  }
 }
 
-.date-display {
-    font-size: 26rpx;
-    color: #666;
-    margin-top: 10rpx;
+/* 主内容区 */
+.main-content {
+  flex: 1;
+  height: 0;
 }
 
-.date-btn {
-    font-size: 24rpx;
-    background: #e3f2fd;
-    color: #007AFF;
-    border: none;
-}
-
-.section-title {
-    font-size: 30rpx;
-    font-weight: bold;
-    margin: 30rpx 10rpx 20rpx;
-    color: #333;
-}
-
-/* 药品列表样式 */
-.med-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: white;
-    padding: 30rpx;
-    border-radius: 16rpx;
-    margin-bottom: 20rpx;
-    border-left: 10rpx solid #ccc;
-}
-
-.med-name {
-    font-size: 32rpx;
-    font-weight: 500;
-    display: block;
-}
-
-.med-time {
-    font-size: 24rpx;
-    color: #999;
-    margin-top: 6rpx;
-}
-
-.status-tag {
-    font-size: 24rpx;
-    font-weight: bold;
-}
-
-/* 不同服药状态颜色 [cite: 65, 69] */
-.status-wait {
-    border-left-color: #ffa726;
-}
-
-.status-wait .status-tag {
-    color: #ffa726;
-}
-
-.status-done {
-    border-left-color: #66bb6a;
-}
-
-.status-done .status-tag {
-    color: #66bb6a;
-}
-
-.status-miss {
-    border-left-color: #ef5350;
-}
-
-.status-miss .status-tag {
-    color: #ef5350;
-}
-
-/* 指标卡片 */
-.health-grid {
-    display: flex;
-    gap: 20rpx;
-}
-
-.health-card {
-    flex: 1;
-    background: white;
-    padding: 30rpx;
-    border-radius: 16rpx;
-    text-align: center;
-}
-
-.health-card .label {
-    font-size: 24rpx;
-    color: #999;
-    display: block;
-}
-
-.health-card .value {
+.section {
+  padding: 32rpx;
+  
+  .section-title {
     font-size: 40rpx;
     font-weight: bold;
-    color: #007AFF;
-    margin-top: 10rpx;
+    color: $text-main;
+    display: block;
+    margin-bottom: 32rpx;
+  }
 }
 
-.footer-link {
-    margin-top: 50rpx;
+/* 药品空状态卡片 */
+.empty-card {
+  background-color: $card-bg;
+  border-radius: 32rpx;
+  padding: 64rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid $border-color;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.02);
+  
+  .empty-icon-wrapper {
+    width: 320rpx;
+    height: 200rpx;
+    background-color: rgba($primary, 0.05);
+    border-radius: 24rpx;
     display: flex;
-    justify-content: space-between;
-    padding: 30rpx;
-    background: #fff;
-    border-radius: 16rpx;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 48rpx;
+  }
+  
+  .empty-title {
+    font-size: 36rpx;
+    font-weight: bold;
+    color: $text-main;
+    margin-bottom: 12rpx;
+  }
+  
+  .empty-desc {
     font-size: 28rpx;
-    color: #666;
+    color: $text-sub;
+    text-align: center;
+    margin-bottom: 48rpx;
+  }
+  
+  .btn-add {
+    background-color: $primary;
+    color: #ffffff;
+    font-size: 28rpx;
+    font-weight: 600;
+    height: 80rpx;
+    padding: 0 64rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999rpx;
+    &::after { border: none; }
+  }
+  .btn-add-hover { background-color: #3b76eb; }
+}
+
+/* 生理指标网格 */
+.grid-container {
+  display: flex;
+  gap: 24rpx;
+}
+
+.indicator-card {
+  flex: 1;
+  background-color: $card-bg;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  border: 2rpx solid $border-color;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.02);
+  &:active { background-color: #f8fafc; }
+  
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24rpx;
+    
+    .icon-box {
+      width: 64rpx;
+      height: 64rpx;
+      border-radius: 16rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bg-red-light { background-color: #fee2e2; }
+    .bg-blue-light { background-color: #e0e7ff; }
+    
+    .chevron { opacity: 0.4; }
+  }
+  
+  .card-label {
+    font-size: 24rpx;
+    font-weight: 500;
+    color: $text-sub;
+    margin-bottom: 8rpx;
+    display: block;
+  }
+  
+  .card-value-box {
+    display: flex;
+    align-items: baseline;
+    gap: 8rpx;
+    
+    .value { font-size: 48rpx; font-weight: bold; color: $text-main; }
+    .unit { font-size: 24rpx; color: $text-sub; }
+  }
+  
+  .card-status {
+    margin-top: 24rpx;
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+    
+    .dot { width: 16rpx; height: 16rpx; border-radius: 50%; }
+    .bg-green { background-color: #22c55e; }
+    
+    .status-text { font-size: 20rpx; font-weight: 500; }
+    .text-green { color: #22c55e; }
+  }
+}
+
+.bottom-spacer { height: 160rpx; }
+
+/* 底部导航栏 */
+.custom-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 2rpx solid $border-color;
+  padding: 16rpx 32rpx 8rpx;
+  z-index: 20;
+  
+  &.pb-safe { padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); }
+  
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    
+    .tab-text {
+      font-size: 20rpx;
+      font-weight: 500;
+      color: $text-sub;
+      margin-top: 4rpx;
+    }
+    
+    &.active {
+      .tab-text { font-weight: bold; color: $primary; }
+    }
+  }
 }
 </style>

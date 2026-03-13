@@ -9,19 +9,16 @@
       <view v-else-if="currentTab === 1">
         <HealthPage></HealthPage>
       </view>
-	  <view v-else-if="currentTab === 2">
-		<MedicinePage></MedicinePage>
-	  </view>
+      <view v-else-if="currentTab === 2">
+        <MedicinePage></MedicinePage>
+      </view>
       <view v-else>
         <MinePage></MinePage>
       </view>
     </view>
-    
+
     <!-- 导航栏固定在底部 -->
-    <app-navbar 
-      :current="currentTab" 
-      @change="handleTabChange"
-    />
+    <app-navbar :current="currentTab" @change="handleTabChange" />
   </view>
 </template>
 
@@ -36,10 +33,10 @@ import MinePage from "./Mine.vue"
 export default {
   components: {
     AppNavbar,
-	HomePage,
-	HealthPage,
-	MedicinePage,
-	MinePage
+    HomePage,
+    HealthPage,
+    MedicinePage,
+    MinePage
   },
   data() {
     return {
@@ -60,13 +57,13 @@ export default {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 .content {
   flex: 1;
   /* 关键：必须设置 overflow: hidden，确保内部子页面能自适应高度 */
-  overflow: hidden; 
+  overflow: hidden;
   position: relative;
 }
 </style>
