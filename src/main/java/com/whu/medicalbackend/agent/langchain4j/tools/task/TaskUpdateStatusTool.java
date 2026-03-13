@@ -26,10 +26,9 @@ public class TaskUpdateStatusTool {
     public Map<String, Object> updateTaskStatus(
             @P(value = "The user ID who owns the task") String userId,
             @P(value = "The ID of the task to update") Integer taskId,
-            @P(value = "The new status: 0=not taken, 1=taken, 2=missed") Integer status
-    ) {
+            @P(value = "The new status: 0=not taken, 1=taken, 2=missed") Integer status) {
         logger.info("更新任务状态，userId: {}, taskId: {}, status: {}", userId, taskId, status);
-        
+
         try {
             if (taskId == null) {
                 Map<String, Object> result = new LinkedHashMap<>();
@@ -49,10 +48,10 @@ public class TaskUpdateStatusTool {
                 result.put("message", "状态值无效，必须是 0（未服用）、1（已服用）或 2（漏服）");
                 return result;
             }
-            
+
             Long uid = Long.valueOf(userId);
             TaskVO taskVO = taskService.updateTaskStatus(uid, taskId.longValue(), status);
-            
+
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);
             result.put("message", "任务状态更新成功");
@@ -68,14 +67,19 @@ public class TaskUpdateStatusTool {
             return result;
         }
     }
-    
+
     private String getStatusText(Integer status) {
-        if (status == null) return "未知";
+        if (status == null)
+            return "未知";
         switch (status) {
-            case 0: return "未服用";
-            case 1: return "已服用";
-            case 2: return "漏服";
-            default: return "未知";
+            case 0:
+                return "未服用";
+            case 1:
+                return "已服用";
+            case 2:
+                return "漏服";
+            default:
+                return "未知";
         }
     }
 }

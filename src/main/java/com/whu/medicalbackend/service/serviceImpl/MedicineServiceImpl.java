@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class MedicineServiceImpl implements MedicineService{
@@ -39,8 +41,13 @@ public class MedicineServiceImpl implements MedicineService{
         medicine.setDefaultDosage(defaultDosage);
 
         // 4. 插入数据库（主键会自动回填）
-        medicineMapper. insert(medicine);
+        medicineMapper.insert(medicine);
 
         return medicine;
+    }
+
+    @Override
+    public List<Medicine> getMedicinesByUserId(Long userId) {
+        return medicineMapper.findByUserId(userId);
     }
 }

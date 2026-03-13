@@ -55,6 +55,23 @@ public class AgentMemoryRepository {
         return rows;
     }
 
+    public List<Map<String, Object>> getUserSessions(String userId) {
+        return jdbcTemplate.queryForList(
+                "SELECT session_id, user_id, created_at, updated_at, summary_text " +
+                "FROM agent_sessions WHERE user_id=? ORDER BY updated_at DESC",
+                userId
+        );
+    }
+
+    public void deleteSession(String sessionId) {
+        jdbcTemplate.update("DELETE FROM agent_messages WHERE session_id=?", sessionId);
+        jdbcTemplate.update("DELETE FROM agent_sessions WHERE session_id=?", sessionId);
+    }
+
+    public void deleteSessionMessages(String sessionId) {
+        jdbcTemplate.update("DELETE FROM agent_messages WHERE session_id=?", sessionId);
+    }
+
     public void savePendingAction(
             String actionId,
             String sessionId,

@@ -27,12 +27,12 @@ public class PlanQueryTool {
     @Tool(value = "Query the user's medication plans. Use this when the user asks about their medication plans, wants to see what plans they have, or requests information about their current medications.")
     public Map<String, Object> queryPlans(@P(value = "The user ID to query plans for") String userId) {
         logger.info("查询用户用药计划，userId: {}", userId);
-        
+
         try {
             Long uid = Long.valueOf(userId);
             List<PlanVO> plans = planService.getPlanList(uid);
             logger.info("查询到 {} 个用药计划", plans.size());
-            
+
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);
             result.put("plans_count", plans.size());
@@ -47,7 +47,7 @@ public class PlanQueryTool {
                 planMap.put("remark", plan.getRemark());
                 return planMap;
             }).collect(Collectors.toList()));
-            
+
             return result;
         } catch (Exception e) {
             logger.error("查询用药计划失败", e);

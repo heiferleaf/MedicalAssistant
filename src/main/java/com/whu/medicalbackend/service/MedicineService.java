@@ -1,6 +1,8 @@
 package com.whu.medicalbackend.service;
 
-import com. whu.medicalbackend. entity.Medicine;
+import com.whu.medicalbackend.entity.Medicine;
+
+import java.util.List;
 
 /**
  * 药品服务接口
@@ -21,4 +23,12 @@ public interface MedicineService {
      * @return 药品对象
      */
     Medicine findOrCreate(Long userId, String name, String defaultDosage);
+
+    /**
+     * 查询用户的所有药品
+     *
+     * @param userId 用户ID
+     * @return 药品列表
+     */
+    List<Medicine> getMedicinesByUserId(Long userId);
 }

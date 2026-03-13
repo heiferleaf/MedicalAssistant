@@ -31,20 +31,19 @@ public class TaskQueryHistoryTool {
             @P(value = "Start date in yyyy-MM-dd format (optional)") String startDate,
             @P(value = "End date in yyyy-MM-dd format (optional)") String endDate,
             @P(value = "Filter by medicine name (optional)") String medicineName,
-            @P(value = "Filter by status: 0=not taken, 1=taken, 2=missed (optional)") Integer status
-    ) {
-        logger.info("查询用户历史任务，userId: {}, startDate: {}, endDate: {}, medicineName: {}, status: {}", 
+            @P(value = "Filter by status: 0=not taken, 1=taken, 2=missed (optional)") Integer status) {
+        logger.info("查询用户历史任务，userId: {}, startDate: {}, endDate: {}, medicineName: {}, status: {}",
                 userId, startDate, endDate, medicineName, status);
-        
+
         try {
             Long uid = Long.valueOf(userId);
-            
+
             LocalDate start = startDate != null && !startDate.isBlank() ? LocalDate.parse(startDate) : null;
             LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : null;
-            
+
             List<TaskVO> tasks = taskService.getHistoryTasks(uid, start, end, medicineName, status);
             logger.info("查询到 {} 个历史任务", tasks.size());
-            
+
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);
             result.put("tasks_count", tasks.size());
@@ -63,7 +62,7 @@ public class TaskQueryHistoryTool {
                 }
                 return taskMap;
             }).collect(Collectors.toList()));
-            
+
             return result;
         } catch (Exception e) {
             logger.error("查询历史任务失败", e);
@@ -73,14 +72,19 @@ public class TaskQueryHistoryTool {
             return result;
         }
     }
-    
+
     private String getStatusText(Integer status) {
-        if (status == null) return "未知";
+        if (status == null)
+            return "未知";
         switch (status) {
-            case 0: return "未服用";
-            case 1: return "已服用";
-            case 2: return "漏服";
-            default: return "未知";
+            case 0:
+                return "未服用";
+            case 1:
+                return "已服用";
+            case 2:
+                return "漏服";
+            default:
+                return "未知";
         }
     }
 }
