@@ -14,7 +14,7 @@ public interface FamilyGroupService {
 
     void applyJoin(Long userId, Long groupId, String remark);
 
-    void approveApply(Long applyId, String opType, String remark);
+    void approveApply(Long applyId, Long userId, String opType, String remark);
 
     void leaveGroup(Long groupId, Long userId);
 

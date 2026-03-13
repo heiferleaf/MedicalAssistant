@@ -66,13 +66,14 @@ public class FamilyGroupController {
      * 说明：Service 的 approveApply 统一处理了同意和拒绝逻辑
      */
     @PostMapping("/{groupId}/approve")
-    public Result<Void> approve(@PathVariable Long groupId,
+    public Result<Void> approve(@RequestAttribute("userId") Long userId,
+                                @PathVariable Long groupId,
                                 @RequestBody Map<String, Object> params){
         Long applyId = Long.valueOf(params.get("applyId").toString());
         String opType = params.get("opType").toString(); // "accept" or "reject"
         String remark = (String) params.get("remark");
 
-        familyGroupService.approveApply(applyId, opType, remark);
+        familyGroupService.approveApply(applyId, userId, opType, remark);
         return Result.success();
     }
 

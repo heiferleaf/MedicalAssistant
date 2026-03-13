@@ -1,6 +1,16 @@
 package com.whu.medicalbackend.service;
 
+<<<<<<< HEAD
 import com.whu.medicalbackend.entity.Medicine;
+
+import java.util.List;
+=======
+import com.whu.medicalbackend.dto.MedicineCreateDTO;
+import com.whu.medicalbackend.dto.MedicineVO;
+import com.whu.medicalbackend.dto.PlanFromMedicineDTO;
+import com.whu.medicalbackend.dto.PlanVO;
+import com. whu.medicalbackend. entity.Medicine;
+>>>>>>> 3533432c78b3d0a888a4729a91e5c8e407aada62
 
 import java.util.List;
 
@@ -24,6 +34,7 @@ public interface MedicineService {
      */
     Medicine findOrCreate(Long userId, String name, String defaultDosage);
 
+<<<<<<< HEAD
     /**
      * 查询用户的所有药品
      *
@@ -31,4 +42,23 @@ public interface MedicineService {
      * @return 药品列表
      */
     List<Medicine> getMedicinesByUserId(Long userId);
+=======
+    /** 查询当前用户的全部药品 */
+    List<MedicineVO> getMedicineList(Long userId);
+
+    /** 新增药品 */
+    MedicineVO addMedicine(Long userId, MedicineCreateDTO dto);
+
+    /** 编辑药品 */
+    MedicineVO updateMedicine(Long userId, Long medicineId, MedicineCreateDTO dto);
+
+    /** 删除药品 */
+    void deleteMedicine(Long userId, Long medicineId);
+
+    /**
+     * 从药箱快速创建计划
+     * 找到对应药品后，委托 PlanService 完成计划创建
+     */
+    PlanVO createPlanFromMedicine(Long userId, Long medicineId, PlanFromMedicineDTO dto);
+>>>>>>> 3533432c78b3d0a888a4729a91e5c8e407aada62
 }

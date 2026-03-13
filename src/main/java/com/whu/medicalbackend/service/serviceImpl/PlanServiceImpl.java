@@ -7,13 +7,16 @@ import com.whu. medicalbackend.entity.Medicine;
 import com.whu. medicalbackend.entity.MedicationPlan;
 import com.whu.medicalbackend.entity.MedicationTask;
 import com. whu.medicalbackend. exception.BusinessException;
+import com.whu.medicalbackend.mapper.FamilyMemberMapper;
 import com.whu.medicalbackend.mapper. MedicationPlanMapper;
 import com.whu.medicalbackend.mapper.MedicationTaskMapper;
 import com.whu.medicalbackend.mapper.MedicineMapper;
 import com.whu.medicalbackend.schedule.DynamicTaskScheduler;
 import com.whu.medicalbackend.service.MedicineService;
 import com.whu.medicalbackend.service. PlanService;
+import com.whu.medicalbackend.util.RedisKeyBuilderUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,8 +40,15 @@ import java.util.stream. Collectors;
 @Transactional(rollbackFor = Exception.class)
 public class PlanServiceImpl implements PlanService {
 
-    @Autowired
     private MedicineService medicineService;
+    @Autowired
+    private RedisService redisService;
+
+    @Lazy
+    @Autowired
+    public void setMedicineService(MedicineService medicineService) {
+        this.medicineService = medicineService;
+    }
 
     @Autowired
     private MedicationPlanMapper planMapper;
@@ -48,6 +58,9 @@ public class PlanServiceImpl implements PlanService {
 
     @Autowired
     private MedicineMapper medicineMapper;
+
+    @Autowired
+    private FamilyMemberMapper memberMapper;
 
     @Autowired
     private DynamicTaskScheduler dynamicTaskScheduler;
@@ -196,6 +209,18 @@ public class PlanServiceImpl implements PlanService {
 
         // 7. 重新生成未来任务（从明天到结束日期）
         generateFutureTasksForPlan(plan, tomorrow);
+
+        // 8. 取消今天任务的计时报警和提醒
+        List<MedicationTask> todayTasks = taskMapper.findByUserIdAndDate(userId, today)
+                .stream()
+                .filter(task -> task.getPlanId().equals(planId))
+                .collect(Collectors.toList());
+
+        // 取消今天任务的定时器
+        for (MedicationTask task : todayTasks) {
+            dynamicTaskScheduler.cancelTaskSchedule(task.getId());
+
+        }
     }
 
     /**
@@ -224,9 +249,18 @@ public class PlanServiceImpl implements PlanService {
                 .filter(task -> task.getPlanId().equals(planId))
                 .collect(Collectors.toList());
 
-        // 取消今天任务的定时器
-        for (MedicationTask task : todayTasks) {
-            dynamicTaskScheduler.cancelTaskSchedule(task.getId());
+        if(todayTasks != null) {
+            // 取消今天任务的定时器
+            for (MedicationTask task : todayTasks) {
+                dynamicTaskScheduler.cancelTaskSchedule(task.getId());
+            }
+            Long groupId = memberMapper.getGroupIdByUserId(userId);
+            if(groupId != null) {
+                String alarmKey = RedisKeyBuilderUtil.getFamilyAlarmKey(groupId, LocalDate.now().toString());
+                String snapshotKey = RedisKeyBuilderUtil.getFamilySnapshotKey(groupId, LocalDate.now().toString());
+                redisService.delete(alarmKey);
+                redisService.delete(snapshotKey);
+            }
         }
 
         // 3. 软删除计划

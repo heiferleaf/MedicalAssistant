@@ -19,7 +19,7 @@ public class SchedulingConfig implements SchedulingConfigurer {
     /**
      * 配置TaskScheduler 的Bean
      */
-    @Bean("taskScheduler")
+    @Bean("myTaskScheduler")
     public TaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
 
