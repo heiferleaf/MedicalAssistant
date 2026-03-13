@@ -16,9 +16,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class LangChain4jConfig {
+public class LangChain4jConfig implements WebMvcConfigurer {
 
     @Value("${dashscope.api-key:}")
     private String dashscopeApiKey;
@@ -57,6 +59,16 @@ public class LangChain4jConfig {
                 .apiKey(dashscopeApiKey)
                 .modelName(dashscopeModel)
                 .build();
+    }
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost:5173")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
     }
 
     // 删除这个方法，因为 MedicalAgent 已经自己处理了 AiServices 的构建
