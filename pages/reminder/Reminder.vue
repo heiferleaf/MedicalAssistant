@@ -608,7 +608,7 @@ page {
       .back-icon {
         width: 40rpx;
         height: 40rpx;
-        background-image: url("../../static/Register/back.png");
+        background-image: url("/static/Register/back.png");
         background-size: cover;
         background-position: center;
       }

@@ -5,16 +5,16 @@
     <view class="header">
       <view class="header-left">
         <view class="back-btn" @click="goBack">
-          <image class="back-icon" src="../../static/Register/back.png" mode="aspectFit" />
+          <image class="back-icon" src="/static/Register/back.png" mode="aspectFit" />
         </view>
         <text class="page-title">就医准备单</text>
       </view>
       <view class="header-right">
         <button class="action-btn" @click="shareDocument">
-          <image class="share-icon" src="../../static/Prepare/share.svg" mode="aspectFit" />
+          <image class="share-icon" src="/static/Prepare/share.svg" mode="aspectFit" />
         </button>
         <button class="action-btn" @click="exportDocument">
-          <image class="export-icon" src="../../static/Mine/export.svg" mode="aspectFit" />
+          <image class="export-icon" src="/static/Mine/export.svg" mode="aspectFit" />
         </button>
       </view>
     </view>
@@ -32,12 +32,12 @@
       <!-- 基本信息 -->
       <view class="basic-info">
         <view class="info-row">
-          <image class="info-icon" src="../../static/Health/time.svg" mode="aspectFit" />
+          <image class="info-icon" src="/static/Health/time.svg" mode="aspectFit" />
           <text class="info-label">生成时间：</text>
           <text class="info-value">{{ documentInfo.generatedTime }}</text>
         </view>
         <view class="info-row">
-          <image class="info-icon" src="../../static/Prepare/department.svg" mode="aspectFit" />
+          <image class="info-icon" src="/static/Prepare/department.svg" mode="aspectFit" />
           <text class="info-label">就诊科室：</text>
           <picker 
             mode="selector" 
@@ -47,17 +47,17 @@
           >
             <view class="info-value picker-value">
               <text>{{ documentInfo.department }}</text>
-              <image class="picker-arrow" src="../../static/Health/down.svg" mode="aspectFit" />
+              <image class="picker-arrow" src="/static/Health/down.svg" mode="aspectFit" />
             </view>
           </picker>
         </view>
         <view class="info-row">
-          <image class="info-icon" src="../../static/Login/user.png" mode="aspectFit" />
+          <image class="info-icon" src="/static/Login/user.png" mode="aspectFit" />
           <text class="info-label">患者：</text>
           <text class="info-value">{{ documentInfo.patient }}</text>
         </view>
         <view class="info-row">
-          <image class="info-icon" src="../../static/Health/calendar.svg" mode="aspectFit" />
+          <image class="info-icon" src="/static/Health/calendar.svg" mode="aspectFit" />
           <text class="info-label">就诊日期：</text>
           <picker 
             mode="date" 
@@ -66,7 +66,7 @@
           >
             <view class="info-value picker-value">
               <text>{{ documentInfo.visitDate }}</text>
-              <image class="picker-arrow" src="../../static/Health/down.svg" mode="aspectFit" />
+              <image class="picker-arrow" src="/static/Health/down.svg" mode="aspectFit" />
             </view>
           </picker>
         </view>
@@ -76,11 +76,11 @@
       <view class="section">
         <view class="section-header">
           <view class="section-title-container">
-            <image class="section-icon" src="../../static/Home/medical-list.svg" mode="aspectFit" />
+            <image class="section-icon" src="/static/Home/medical-list.svg" mode="aspectFit" />
             <text class="section-title">近期用药清单</text>
           </view>
           <button class="edit-section-btn" @click="editMedications">
-            <image class="edit-icon" src="../../static/Prepare/edit.svg" mode="aspectFit" />
+            <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
           </button>
         </view>
         
@@ -92,7 +92,7 @@
             @click="toMedicationDetail(med.id)"
           >
             <view class="medication-header">
-              <image class="pill-icon" src="../../static/Health/pill-active.svg" mode="aspectFit" />
+              <image class="pill-icon" src="/static/Health/pill-active.svg" mode="aspectFit" />
               <text class="medication-name">{{ med.name }}</text>
               <view class="medication-status" :class="med.statusClass">
                 <text>{{ med.status }}</text>
@@ -100,11 +100,11 @@
             </view>
             <view class="medication-details">
               <view class="detail-item">
-                <image class="detail-icon" src="../../static/Prepare/schedule.svg" mode="aspectFit" />
+                <image class="detail-icon" src="/static/Prepare/schedule.svg" mode="aspectFit" />
                 <text class="detail-text">{{ med.schedule }}</text>
               </view>
               <view class="detail-item">
-                <image class="detail-icon" src="../../static/Health/clock-history.svg" mode="aspectFit" />
+                <image class="detail-icon" src="/static/Health/clock-history.svg" mode="aspectFit" />
                 <text class="detail-text">已服用{{ med.takenDays }}天</text>
                 <view class="missed-count" v-if="med.missedCount > 0">
                   <text class="missed-text">⚠️漏服{{ med.missedCount }}次</text>
@@ -123,11 +123,11 @@
       <view class="section">
         <view class="section-header">
           <view class="section-title-container">
-            <image class="section-icon" src="../../static/Home/warning.svg" mode="aspectFit" />
+            <image class="section-icon" src="/static/Home/warning.svg" mode="aspectFit" />
             <text class="section-title">异常健康数据</text>
           </view>
           <button class="edit-section-btn" @click="editHealthData">
-            <image class="edit-icon" src="../../static/Prepare/edit.svg" mode="aspectFit" />
+            <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
           </button>
         </view>
         
@@ -163,11 +163,11 @@
       <view class="section">
         <view class="section-header">
           <view class="section-title-container">
-            <image class="section-icon" src="../../static/Prepare/question.svg" mode="aspectFit" />
+            <image class="section-icon" src="/static/Prepare/question.svg" mode="aspectFit" />
             <text class="section-title">待咨询问题</text>
           </view>
           <button class="edit-section-btn" @click="editQuestions">
-            <image class="edit-icon" src="../../static/Prepare/edit.svg" mode="aspectFit" />
+            <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
           </button>
         </view>
         
@@ -199,7 +199,7 @@
         </view>
         
         <button class="add-question-btn" @click="showAddQuestion" v-if="!showQuestionInput">
-          <image class="add-icon" src="../../static/Health/plus-circle.svg" mode="aspectFit" />
+          <image class="add-icon" src="/static/Health/plus-circle.svg" mode="aspectFit" />
           <text class="add-text">添加问题</text>
         </button>
       </view>
@@ -208,7 +208,7 @@
       <view class="section">
         <view class="section-header">
           <view class="section-title-container">
-            <image class="section-icon" src="../../static/DrugScan/note.svg" mode="aspectFit" />
+            <image class="section-icon" src="/static/DrugScan/note.svg" mode="aspectFit" />
             <text class="section-title">其他信息</text>
           </view>
         </view>
@@ -230,11 +230,11 @@
     <!-- 底部操作按钮 -->
     <view class="action-buttons">
       <button class="action-btn edit-btn" @click="editContent">
-        <image class="btn-icon" src="../../static/Prepare/edit.svg" mode="aspectFit" />
+        <image class="btn-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
         <text class="btn-text">编辑内容</text>
       </button>
       <button class="action-btn generate-btn" @click="generatePDF">
-        <image class="btn-icon" src="../../static/Prepare/pdf.svg" mode="aspectFit" />
+        <image class="btn-icon" src="/static/Prepare/pdf.svg" mode="aspectFit" />
         <text class="btn-text">生成PDF</text>
       </button>
     </view>
@@ -424,12 +424,12 @@ export default {
     },
     getIndicatorIcon(type) {
       const icons = {
-        bloodPressure: '../../static/Prepare/blood-pressure.svg',
-        heartRate: '../../static/Home/heart.svg',
-        bloodSugar: '../../static/Prepare/blood-sugar.svg',
-        weight: '../../static/Prepare/weight.svg'
+        bloodPressure: '/static/Prepare/blood-pressure.svg',
+        heartRate: '/static/Home/heart.svg',
+        bloodSugar: '/static/Prepare/blood-sugar.svg',
+        weight: '/static/Prepare/weight.svg'
       }
-      return icons[type] || '../../static/Prepare/health.svg'
+      return icons[type] || '/static/Prepare/health.svg'
     },
     editContent() {
       uni.navigateTo({

@@ -30,7 +30,7 @@
 						</view>
 						<view class="card-right">
 							<view class="warning-tag">
-								<image class="icon" src="../../static/Home/warning.svg"/>
+								<image class="icon" src="/static/Home/warning.svg"/>
 								<text class="tag-txt">需人工确认</text>
 							</view>
 							<text class="edit-btn" @tap="editField('dose')">修改</text>
@@ -68,12 +68,12 @@
 			<view class="safe-area-bottom"></view>
 		</scroll-view>
 
-		<image class="material-icons-round bg-decor" src="../../static/Mine/report.svg"/>
+		<image class="material-icons-round bg-decor" src="/static/Mine/report.svg"/>
 
 		<footer class="footer">
 			<button class="primary-btn" @tap="confirmAndSave">
 				<text>确认并开启提醒</text>
-				<image class="icon" src="../../static/Home/bell.svg"/>
+				<image class="icon" src="/static/Home/bell.svg"/>
 			</button>
 			<button class="secondary-btn" @tap="reCapture">重新拍摄</button>
 			<view class="ios-indicator"></view>

@@ -9,7 +9,7 @@
 					<text class="subtitle">共管理 {{ medicines.length }} 种药品</text>
 				</view>
 				<view class="add-btn" @tap="addMedicine">
-					<image class="icon" src="../../static/Health/plus-circle.svg"/>
+					<image class="icon" src="/static/Health/plus-circle.svg"/>
 				</view>
 			</view>
 		</header>
@@ -71,7 +71,7 @@ export default {
 					unit: "片",
 					frequency: "每天 1 次",
 					stockStatus: "库存充足",
-					icon: "../../static/Health/pill-active.svg",
+					icon: "/static/Health/pill-active.svg",
 					iconColor: "#3b82f6",
 					bgColor: "rgba(59, 130, 246, 0.1)"
 				},
@@ -81,7 +81,7 @@ export default {
 					unit: "粒",
 					frequency: "每天 2 次",
 					stockStatus: "库存紧张",
-					icon: "../../static/Health/medication.svg",
+					icon: "/static/Health/medication.svg",
 					iconColor: "#f59e0b",
 					bgColor: "rgba(245, 158, 11, 0.1)"
 				},
@@ -91,7 +91,7 @@ export default {
 					unit: "粒",
 					frequency: "必要时服用",
 					stockStatus: "备用中",
-					icon: "../../static/Health/science.svg",
+					icon: "/static/Health/science.svg",
 					iconColor: "#a855f7",
 					bgColor: "rgba(168, 85, 247, 0.1)"
 				},
@@ -101,7 +101,7 @@ export default {
 					unit: "片",
 					frequency: "每天 1 次",
 					stockStatus: "即将用完",
-					icon: "../../static/Health/vaccines.svg",
+					icon: "/static/Health/vaccines.svg",
 					iconColor: "#f43f5e",
 					bgColor: "rgba(244, 63, 94, 0.1)"
 				}
