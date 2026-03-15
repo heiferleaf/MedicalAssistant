@@ -142,7 +142,8 @@ public class MedicalAgent {
 
     public String chat(String sessionId, String userId, String userMessage) {
         logger.info("执行医疗助手对话：sessionId={}, userId={}, message={}", sessionId, userId, userMessage);
-        return medicalExpert.medical(sessionId, userId, userMessage);
+        String memoryId = userId + "_" + sessionId;
+        return medicalExpert.medical(memoryId, userId, userMessage);
     }
 
     public Map<String, Object> execute(String sessionId, String userId, String userMessage) {
