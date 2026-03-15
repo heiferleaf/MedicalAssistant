@@ -207,16 +207,20 @@ $primary: #3B82F6;
 				color: #ef4444;
 				background: rgba(239, 68, 68, 0.1);
 				border-radius: 8rpx;
-				opacity: 0;
+				opacity: 1;
 				transition: all 0.2s;
 				display: flex;
 				align-items: center;
 				justify-content: center;
 				font-weight: 600;
 				
-				.session-item:active & {
-					opacity: 1;
-					background: rgba(239, 68, 68, 0.2);
+				&:active {
+					background: rgba(239, 68, 68, 0.3);
+					transform: scale(0.95);
+				}
+				
+				@media (prefers-color-scheme: dark) {
+					background: rgba(239, 68, 68, 0.15);
 				}
 			}
 		}
