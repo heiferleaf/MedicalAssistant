@@ -8,10 +8,9 @@ import com.whu.medicalbackend.mapper.FamilyGroupMapper;
 import com.whu.medicalbackend.mapper.UserMapper;
 import com.whu.medicalbackend.service.serviceImpl.FamilyCacheService;
 import com.whu.medicalbackend.service.serviceImpl.RedisService;
-import com.whu.medicalbackend.util.RedisKeyBuilderUtil;
 import com.whu.medicalbackend.ws.WebSocketSessionManager;
-import com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent;
 import com.whu.medicalbackend.ws.event.FamilyPushEvent;
+import com.whu.medicalbackend.ws.event.UserTaskMedicineRemindEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +82,28 @@ public class WsAlarmBroadcastListener{
                 }
             }
         });
+    }
+
+    @Async
+    @EventListener
+    public void handleUserTaskMedicineRemindEvent(UserTaskMedicineRemindEvent event) throws JsonProcessingException {
+        Long userId = event.getUserId();
+        Boolean isOnline = (redisService.hasMember(userId.toString()));
+
+        if(Boolean.FALSE.equals(isOnline)) return;
+
+        // 在线的用户广播消息提醒
+        WebSocketSession session = sessionManager.get(userId);
+        if (session != null && session.isOpen()) {
+            String jsonPayload = objectMapper.writeValueAsString(event.getData());
+            try {
+                session.sendMessage(new TextMessage(jsonPayload));
+                logger.debug("【WS广播】成功推送到在线用户: {}", userId);
+            } catch (IOException e) {
+                // 忽略发送异常
+                logger.error("【WS广播】物理推送失败: {}", userId);
+            }
+        }
     }
 
     private void SmsHandle(Long groupId) {

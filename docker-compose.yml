@@ -4,6 +4,8 @@ services:
     image: mysql:8.0
     container_name: mysql
     restart: always
+    ports:
+      - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: Root123456      # root 用户密码，自己设置
       MYSQL_DATABASE: medicalassistant     # 实际的数据库名

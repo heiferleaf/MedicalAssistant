@@ -25,17 +25,7 @@ public class AgentProxyController {
         }
     }
 
-    @PostMapping("/confirm")
-    public Result<Map<String, Object>> confirm(@RequestBody Map<String, Object> payload) {
-        try {
-            Map<String, Object> resp = agentOrchestratorService.confirm(payload);
-            return Result.success(resp);
-        } catch (Exception e) {
-            return Result.error(ResultCode.SYSTEM_ERROR, "Agent confirm 处理失败: " + e.getMessage());
-        }
-    }
-
-    @GetMapping({"/health", "/health/"})
+    @GetMapping({ "/health", "/health/" })
     public Result<Map<String, Object>> health() {
         try {
             Map<String, Object> resp = agentOrchestratorService.health();

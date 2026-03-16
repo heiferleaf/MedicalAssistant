@@ -15,15 +15,23 @@ public class RedisKeyBuilderUtil {
     public static final String LOCK_FAMILY_SNAPSHOT_PREFIX = "lock:family:snapshot:";
     public static final String LOCK_FAMILY_ALARM_PREFIX    = "lock:family:alarm:";
     public static final String LOCK_FAMILY_LEAVE_PREFIX    = "lock:family:leave:";
+    public static final String LOCK_USER_MEDICINE_PREFIX   = "lock:user:medicine:";
+    public static final String LOCK_MEDICINE_ADD_PREFIX    = "lock:user:medicine:add:";
+    public static final String LOCK_MEDICINE_DEL_PREFIX    = "lock:user:medicine:delete:";
+    public static final String LOCK_MEDICINE_UPD_PREFIX    = "lock:user:medicine:update:";
+    public static final String LOCK_MEDICINE_PLAN_PREFIX    = "lock:user:medicine:plan:";
 
     public static final String FAMILY_APPLY_LIMIT_PREFIX   = "family:apply:limit:";
     public static final String FAMILY_INVITE_LIMIT_PREFIX  = "family:invite:limit:";
     public static final String FAMILY_SNAPSHOT_PREFIX      = "family:snapshot:";
     public static final String FAMILY_ALARM_PREFIX         = "family:alarms:";
     public static final String MEMBER_CACHE_KEY_PREFIX     = "family:members:";
-    public static final String ONLINE_MEMBER_CACHE_KEY     = "family:online:members";
+    public static final String ONLINE_MEMBER_CACHE_PREFIX  = "family:online:members";
+    public static final String USER_MEDICINE_CACHE_PREFIX  = "user:medicine:";
 
-    public static final String AUTH_REFRESHTOKEN_PREFIX    = "auth:rt:";
+
+
+    public static final String AUTH_REFREASHTOKEN_PREFIX   = "auth:rt:";
 
     // ================= 2. Key 构造方法 =================
 
@@ -34,19 +42,16 @@ public class RedisKeyBuilderUtil {
 
     /** 完整 Key: lock:family:apply:{userId}:{groupId} */
     public static String getFamilyApplyLockKey(Long userId, Long groupId) {
-        // 这里根据原常量末尾有冒号，中间变量需补齐冒号
         return LOCK_FAMILY_APPLY_PREFIX + userId + ":" + groupId;
     }
 
     /** 完整 Key: lock:family:invite:{phone}:{groupId} */
     public static String getFamilyInviteLockKey(String phone, Long groupId) {
-        // 这里根据原常量末尾有冒号，中间变量需补齐冒号
         return LOCK_FAMILY_INVITE_PREFIX + phone + ":" + groupId;
     }
 
     /** 完整 Key: lock:family:approve:{applyId} */
     public static String getFamilyApproveLockKey(Long applyId) {
-        // 原前缀末尾无冒号，此处手动补齐
         return LOCK_FAMILY_APPROVE_PREFIX + applyId;
     }
 
@@ -63,6 +68,31 @@ public class RedisKeyBuilderUtil {
     /** 完整 Key: lock:family:leave:{userId} */
     public static String getFamilyLeaveLockKey(Long userId) {
         return LOCK_FAMILY_LEAVE_PREFIX + userId;
+    }
+
+    /** 完整 Key: lock:user:medicine:{userId} **/
+    public static String getUserMedicineLockKey(Long userId) {
+        return LOCK_USER_MEDICINE_PREFIX + userId;
+    }
+
+    /** 完整 Key: lock:user:medicine:add:{userId} **/
+    public static String getUserAddMedicineLockKey(Long userId) {
+        return LOCK_MEDICINE_ADD_PREFIX + userId;
+    }
+
+    /** 完整 Key: lock:user:medicine:delete:{userId} **/
+    public static String getUserDeleteMedicineLockKey(Long userId) {
+        return LOCK_MEDICINE_DEL_PREFIX + userId;
+    }
+
+    /** 完整 Key: lock:user:medicine:update:{userId} **/
+    public static String getUserUpdateMedicineLockKey(Long userId) {
+        return LOCK_MEDICINE_UPD_PREFIX + userId;
+    }
+
+    /** 完整 Key: lock:user:medicine:plan:{userId} **/
+    public static String getUserMedicinePlanLockKey(Long userId) {
+        return LOCK_MEDICINE_PLAN_PREFIX + userId;
     }
 
     /** 完整 Key: family:apply:limit:{userId}:{groupId} */
@@ -87,7 +117,11 @@ public class RedisKeyBuilderUtil {
 
     /** 完整 Key: family:online:members */
     public static String getOnlineMemberKey() {
-        return ONLINE_MEMBER_CACHE_KEY;
+        return ONLINE_MEMBER_CACHE_PREFIX;
+    }
+    /** 完整 Key: user:medicine:{userId} **/
+    public static String getUserMedicineKey(Long userId) {
+        return USER_MEDICINE_CACHE_PREFIX + userId;
     }
 
     /** 完整 Key: family:alarm:{groupId}:{date} */
@@ -96,10 +130,10 @@ public class RedisKeyBuilderUtil {
     }
 
     public static String getAuthRefreshTokenKey(Long userId) {
-        return AUTH_REFRESHTOKEN_PREFIX + userId;
+        return AUTH_REFREASHTOKEN_PREFIX + userId;
     }
 
     public static String getAuthRefreshTokenKey(String userId) {
-        return AUTH_REFRESHTOKEN_PREFIX + userId;
+        return AUTH_REFREASHTOKEN_PREFIX + userId;
     }
 }

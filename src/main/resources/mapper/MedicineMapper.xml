@@ -13,15 +13,19 @@
         <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
+    <sql id="allProperties">
+        id, user_id, name, default_dosage, remark, created_at, updated_at
+    </sql>
+
     <select id="findById" resultMap="BaseResultMap">
-        SELECT id, user_id, name, default_dosage, remark, created_at, updated_at
+        SELECT <include refid="allProperties"/>
         FROM medicine
         WHERE id = #{id}
     </select>
 
     <!-- 根据用户ID和药品名查询 -->
     <select id="findByUserIdAndName" resultMap="BaseResultMap">
-        SELECT id, user_id, name, default_dosage, remark, created_at, updated_at
+        SELECT <include refid="allProperties"/>
         FROM medicine
         WHERE user_id = #{userId} AND name = #{name}
             LIMIT 1
@@ -31,4 +35,19 @@
         INSERT INTO medicine (user_id, name, default_dosage, remark)
         VALUES (#{userId}, #{name}, #{defaultDosage}, #{remark})
     </insert>
+
+    <select id="findAllByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="allProperties"/>
+        FROM medicine
+        WHERE user_id = #{userId}
+    </select>
+
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE * FROM medicne WHERE id = #{id}
+    </delete>
+
+    <update id="update" parameterType="Medicine">
+        UPDATE medicine SET name = #{medicine.name}, default_dosage = #{medicine.defaultDosage}, remark = #{medicine.remark}
+        WHERE id = #{medicine.id} AND user_id = #{medicine.userId}
+    </update>
 </mapper>
