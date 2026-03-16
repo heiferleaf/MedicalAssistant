@@ -4,7 +4,7 @@ import com.whu.medicalbackend.dto.MedicineCreateDTO;
 import com.whu.medicalbackend.dto.MedicineVO;
 import com.whu.medicalbackend.dto.PlanFromMedicineDTO;
 import com.whu.medicalbackend.dto.PlanVO;
-import com. whu.medicalbackend. entity.Medicine;
+import com.whu.medicalbackend.entity.Medicine;
 
 import java.util.List;
 
@@ -21,12 +21,20 @@ public interface MedicineService {
      * 查找或创建药品
      * （如果用户已有同名药品，返回现有；否则创建新药品）
      *
-     * @param userId 用户ID
+     * @param userId 用户 ID
      * @param name 药品名称
      * @param defaultDosage 默认剂量（可空）
      * @return 药品对象
      */
     Medicine findOrCreate(Long userId, String name, String defaultDosage);
+
+    /**
+     * 查询用户的所有药品
+     *
+     * @param userId 用户 ID
+     * @return 药品列表
+     */
+    List<Medicine> getMedicinesByUserId(Long userId);
 
     /** 查询当前用户的全部药品 */
     List<MedicineVO> getMedicineList(Long userId);

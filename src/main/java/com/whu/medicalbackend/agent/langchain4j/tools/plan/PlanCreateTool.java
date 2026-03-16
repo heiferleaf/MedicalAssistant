@@ -33,10 +33,9 @@ public class PlanCreateTool {
             @P(value = "List of time points (e.g., ['08:00', '12:00', '18:00'])") List<String> timePoints,
             @P(value = "Start date in yyyy-MM-dd format - MUST be today or a future date!") String startDate,
             @P(value = "End date in yyyy-MM-dd format (optional)") String endDate,
-            @P(value = "Additional notes or remarks (optional)") String remark
-    ) {
+            @P(value = "Additional notes or remarks (optional)") String remark) {
         logger.info("创建用药计划，userId: {}, medicineName: {}", userId, medicineName);
-        
+
         try {
             if (medicineName == null || medicineName.isBlank()) {
                 Map<String, Object> result = new LinkedHashMap<>();
@@ -53,10 +52,10 @@ public class PlanCreateTool {
                 result.put("message", "缺少必需参数：timePoints");
                 return result;
             }
-            
+
             LocalDate today = LocalDate.now();
             LocalDate start;
-            
+
             if (startDate == null || startDate.isBlank()) {
                 start = today;
             } else {
@@ -66,16 +65,16 @@ public class PlanCreateTool {
                     start = today;
                 }
             }
-            
+
             LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : null;
             if (end != null && end.isBefore(start)) {
                 end = start.plusMonths(1);
             }
-            
+
             List<LocalTime> times = timePoints.stream()
                     .map(LocalTime::parse)
                     .collect(java.util.stream.Collectors.toList());
-            
+
             PlanCreateDTO dto = new PlanCreateDTO();
             dto.setMedicineName(medicineName);
             dto.setDosage(dosage);
@@ -83,10 +82,10 @@ public class PlanCreateTool {
             dto.setStartDate(start);
             dto.setEndDate(end);
             dto.setRemark(remark);
-            
+
             Long uid = Long.valueOf(userId);
             com.whu.medicalbackend.dto.PlanVO planVO = planService.createPlan(uid, dto);
-            
+
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);
             result.put("message", "用药计划创建成功");

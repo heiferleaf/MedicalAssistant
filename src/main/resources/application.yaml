@@ -77,3 +77,6 @@ agent:
     timeout-ms: 30000     # 超时时间（毫秒）
     retry-enabled: true   # 启用重试
     max-retries: 2        # 最大重试次数
+
+printpdf:
+  output-dir: ./uploads/printpdf

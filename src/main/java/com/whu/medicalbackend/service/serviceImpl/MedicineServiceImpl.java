@@ -11,7 +11,6 @@ import com.whu.medicalbackend.service.MedicineService;
 import com.whu.medicalbackend.service.PlanService;
 import com.whu.medicalbackend.util.RedisKeyBuilderUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -30,7 +29,7 @@ public class MedicineServiceImpl implements MedicineService {
     @Autowired
     private RedisService redisService;
 
-    // 防止依赖循环，通过set函数注入属性
+    // 防止依赖循环，通过 set 函数注入属性
     private PlanService planService;
 
     @Lazy
@@ -72,9 +71,14 @@ public class MedicineServiceImpl implements MedicineService {
         return medicine;
     }
 
-    /** 查询当前用户的全部药品 */
-    public List<MedicineVO> getMedicineList(Long userId) {
+    @Override
+    public List<Medicine> getMedicinesByUserId(Long userId) {
+        return medicineMapper.findByUserId(userId);
+    }
 
+    /** 查询当前用户的全部药品 */
+    @Override
+    public List<MedicineVO> getMedicineList(Long userId) {
         String cacheKey = RedisKeyBuilderUtil.getUserMedicineKey(userId);
         String obj = redisService.get(cacheKey);
         if (obj != null) {
@@ -106,6 +110,7 @@ public class MedicineServiceImpl implements MedicineService {
     }
 
     /** 新增药品 */
+    @Override
     public MedicineVO addMedicine(Long userId, MedicineCreateDTO dto) {
         String lockKey = RedisKeyBuilderUtil.getUserAddMedicineLockKey(userId);
         if(!redisService.tryLock(lockKey, 0, 10)) {
@@ -120,14 +125,13 @@ public class MedicineServiceImpl implements MedicineService {
             return medicineVO;
         } catch (Exception e) {
             throw new BusinessException("业务出错" + e.getMessage());
-        }
-        finally {
+        } finally {
             redisService.unlock(lockKey);
         }
-
     }
 
     /** 编辑药品 */
+    @Override
     public MedicineVO updateMedicine(Long userId, Long medicineId, MedicineCreateDTO dto) {
         String lockKey = RedisKeyBuilderUtil.getUserUpdateMedicineLockKey(userId);
         if(!redisService.tryLock(lockKey, 0, 10)) {
@@ -139,7 +143,7 @@ public class MedicineServiceImpl implements MedicineService {
             if (medicine == null) {
                 throw new BusinessException("更新的药品不存在");
             }
-            if (medicine.getUserId().equals(userId)) {
+            if (!medicine.getUserId().equals(userId)) {
                 throw new BusinessException("药品不属于该用户");
             }
             MedicineVO medicineVO = doUpdateMedicine(medicine, dto);
@@ -153,6 +157,7 @@ public class MedicineServiceImpl implements MedicineService {
     }
 
     /** 删除药品 */
+    @Override
     public void deleteMedicine(Long userId, Long medicineId) {
         String lockKey = RedisKeyBuilderUtil.getUserDeleteMedicineLockKey(userId);
         if(!redisService.tryLock(lockKey, 0, 10)) {
@@ -164,7 +169,7 @@ public class MedicineServiceImpl implements MedicineService {
             if (medicine == null) {
                 throw new BusinessException("删除的药品不存在");
             }
-            if (medicine.getUserId().equals(userId)) {
+            if (!medicine.getUserId().equals(userId)) {
                 throw new BusinessException("药品不属于该用户");
             }
 
@@ -178,8 +183,7 @@ public class MedicineServiceImpl implements MedicineService {
             throw new BusinessException("该药品已关联用药计划，请先删除相关计划");
         } catch (Exception e) {
             throw new BusinessException("删除出错：" + e.getMessage());
-        }
-        finally {
+        } finally {
             redisService.unlock(lockKey);
         }
     }
@@ -188,6 +192,7 @@ public class MedicineServiceImpl implements MedicineService {
      * 从药箱快速创建计划
      * 找到对应药品后，委托 PlanService 完成计划创建
      */
+    @Override
     public PlanVO createPlanFromMedicine(Long userId, Long medicineId, PlanFromMedicineDTO dto) {
         String lockKey = RedisKeyBuilderUtil.getUserMedicinePlanLockKey(userId);
         if(!redisService.tryLock(lockKey, 0, 10)) {
@@ -200,7 +205,7 @@ public class MedicineServiceImpl implements MedicineService {
             if (medicine == null) {
                 throw new BusinessException("使用的药品不存在");
             }
-            if (medicine.getUserId().equals(userId)) {
+            if (!medicine.getUserId().equals(userId)) {
                 throw new BusinessException("药品不属于该用户");
             }
             // 2. 剂量未填则使用药品默认剂量

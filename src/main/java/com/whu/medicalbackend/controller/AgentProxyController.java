@@ -25,7 +25,7 @@ public class AgentProxyController {
         }
     }
 
-    @GetMapping({"/health", "/health/"})
+    @GetMapping({ "/health", "/health/" })
     public Result<Map<String, Object>> health() {
         try {
             Map<String, Object> resp = agentOrchestratorService.health();

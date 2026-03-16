@@ -5,6 +5,7 @@ import com.whu.medicalbackend.ws.WsHandler;
 import com.whu.medicalbackend.ws.WsHandshakeInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -34,9 +35,20 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer{
                     "/api/agent/health",
                     "/api/agent/chat",
                     "/api/agent/confirm",
+                    "/api/agent/sessions/**",
                     "/api/predict/**",
                     "/api/rag/**"
+
                 );
+    }
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .maxAge(3600);
     }
 
     @Override

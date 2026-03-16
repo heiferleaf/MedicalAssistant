@@ -27,12 +27,12 @@ public class TaskQueryTodayTool {
     @Tool(value = "Get today's medication tasks. Use this when the user asks about their tasks for today, wants to see what medications they need to take today, or requests their daily schedule.")
     public Map<String, Object> getTodayTasks(@P(value = "The user ID to get tasks for") String userId) {
         logger.info("查询用户今日任务，userId: {}", userId);
-        
+
         try {
             Long uid = Long.valueOf(userId);
             List<TaskVO> tasks = taskService.getTodayTasks(uid);
             logger.info("查询到 {} 个今日任务", tasks.size());
-            
+
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);
             result.put("tasks_count", tasks.size());
@@ -51,7 +51,7 @@ public class TaskQueryTodayTool {
                 }
                 return taskMap;
             }).collect(Collectors.toList()));
-            
+
             return result;
         } catch (Exception e) {
             logger.error("查询今日任务失败", e);
@@ -61,14 +61,19 @@ public class TaskQueryTodayTool {
             return result;
         }
     }
-    
+
     private String getStatusText(Integer status) {
-        if (status == null) return "未知";
+        if (status == null)
+            return "未知";
         switch (status) {
-            case 0: return "未服用";
-            case 1: return "已服用";
-            case 2: return "漏服";
-            default: return "未知";
+            case 0:
+                return "未服用";
+            case 1:
+                return "已服用";
+            case 2:
+                return "漏服";
+            default:
+                return "未知";
         }
     }
 }
