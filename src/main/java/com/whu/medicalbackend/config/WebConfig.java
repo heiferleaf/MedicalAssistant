@@ -30,7 +30,7 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer{
                 .excludePathPatterns(
                     "/api/user/login",
                     "/api/user/register",
-                    "/api/auth/refresh",
+                    "/api/user/refresh",
                     "/api/agent/health",
                     "/api/agent/chat",
                     "/api/agent/confirm",
