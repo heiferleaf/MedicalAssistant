@@ -489,49 +489,147 @@ export default {
       }, 1500)
     },
     exportDocument() {
-      uni.showActionSheet({
-        itemList: ['导出为PDF', '导出为Word', '导出为图片', '导出为文本'],
-        success: (res) => {
-          const formats = ['PDF', 'Word', '图片', '文本']
-          uni.showLoading({
-            title: `导出${formats[res.tapIndex]}...`
-          })
-          
-          setTimeout(() => {
-            uni.hideLoading()
-            uni.showToast({
-              title: `导出成功，已保存到相册`,
-              icon: 'success'
-            })
-          }, 2000)
-        }
-      })
+      this.generatePDF()
     },
-    generatePDF() {
-      uni.showLoading({
-        title: '生成PDF中...'
-      })
-      
-      setTimeout(() => {
-        uni.hideLoading()
-        
-        // 模拟PDF生成完成
-        uni.showModal({
-          title: 'PDF生成成功',
-          content: 'PDF文件已生成，是否现在查看？',
-          confirmText: '查看',
-          cancelText: '稍后',
-          success: (res) => {
-            if (res.confirm) {
-              // 这里可以打开PDF文件
-              uni.showToast({
-                title: '打开PDF查看器...',
-                icon: 'none'
-              })
-            }
+    async generatePDF() {
+      try {
+        uni.showLoading({ title: '生成PDF中...' })
+
+        const payload = {
+          generatedTime: this.documentInfo.generatedTime || '',
+          department: this.documentInfo.department || '',
+          patient: this.documentInfo.patient || '',
+          visitDate: this.documentInfo.visitDate || '',
+          medications: this.documentInfo.medications || [],
+          healthData: this.documentInfo.healthData || [],
+          questions: this.documentInfo.questions || [],
+          otherInfo: this.documentInfo.otherInfo || ''
+        }
+
+        // TODO: 改成你的后端真实地址
+        const baseUrl = 'http://localhost:8080'
+
+        const accessToken = uni.getStorageSync('accessToken') || ''
+
+        const res = await uni.request({
+          url: `${baseUrl}/api/medical/prepare/pdf`,
+          method: 'POST',
+          data: payload,
+          header: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
           }
         })
-      }, 2500)
+
+        uni.hideLoading()
+
+        if (!res || res.statusCode !== 200) {
+          uni.showModal({
+            title: '生成失败',
+            content: `请求失败(${res?.statusCode || ''})`,
+            showCancel: false
+          })
+          return
+        }
+
+        const body = res.data || {}
+        // 兼容：{success,fileUrl} 或 {code,data.fileUrl}
+        const success = body.success === true || body.code === 0
+        const fileUrlRaw = body.fileUrl || body?.data?.fileUrl
+
+        if (!success || !fileUrlRaw) {
+          uni.showModal({
+            title: '生成失败',
+            content: body.message || '后端未返回文件地址',
+            showCancel: false
+          })
+          return
+        }
+
+        // 拼完整URL（后端可能返回相对路径）
+        const fileUrl = /^https?:\/\//.test(fileUrlRaw) ? fileUrlRaw : `${baseUrl}${fileUrlRaw}`
+
+        uni.showModal({
+          title: 'PDF生成成功',
+          content: '是否现在查看？',
+          confirmText: '查看',
+          cancelText: '稍后',
+          success: async (r) => {
+            if (!r.confirm) return
+
+            const accessToken = uni.getStorageSync('accessToken') || ''
+
+            // #ifdef H5
+            try {
+              const resp = await fetch(fileUrl, {
+                method: 'GET',
+                headers: {
+                  Authorization: `Bearer ${accessToken}`
+                }
+              })
+
+              // token 失效
+              if (resp.status === 401 || resp.status === 402) {
+                uni.removeStorageSync('accessToken')
+                uni.showModal({
+                  title: '登录已过期',
+                  content: '请重新登录后再试',
+                  showCancel: false,
+                  success: () => uni.reLaunch({ url: '/pages/Login' })
+                })
+                return
+              }
+
+              if (!resp.ok) {
+                uni.showToast({ title: '打开失败', icon: 'none' })
+                return
+              }
+
+              const blob = await resp.blob()
+              const blobUrl = window.URL.createObjectURL(blob)
+              window.open(blobUrl, '_blank')
+            } catch (e) {
+              uni.showToast({ title: '打开失败', icon: 'none' })
+            }
+            // #endif
+
+            // #ifndef H5
+            uni.downloadFile({
+              url: fileUrl,
+              header: {
+                Authorization: `Bearer ${accessToken}`
+              },
+              success: (d) => {
+                if (d.statusCode === 200) {
+                  uni.openDocument({
+                    filePath: d.tempFilePath,
+                    showMenu: true
+                  })
+                } else if (d.statusCode === 401 || d.statusCode === 402) {
+                  uni.removeStorageSync('accessToken')
+                  uni.showModal({
+                    title: '登录已过期',
+                    content: '请重新登录后再试',
+                    showCancel: false,
+                    success: () => uni.reLaunch({ url: '/pages/Login' })
+                  })
+                } else {
+                  uni.showToast({ title: '下载失败', icon: 'none' })
+                }
+              },
+              fail: () => uni.showToast({ title: '下载失败', icon: 'none' })
+            })
+            // #endif
+          }
+        })
+      } catch (e) {
+        uni.hideLoading()
+        uni.showModal({
+          title: '生成失败',
+          content: e?.message || '网络异常，请稍后重试',
+          showCancel: false
+        })
+      }
     }
   }
 }
