@@ -48,4 +48,25 @@ export default {
     background-position: center;
     background-repeat: no-repeat;
 }
+
+@font-face {
+  font-family: 'MaterialIcons';
+  src: url('~@/static/fonts/iconfont.ttf') format('truetype');
+}
+
+/* 这里的类名一定要对应到页面中使用的类名 */
+.material-symbols-outlined {
+  font-family: 'MaterialIcons' !important; /* 必须与上面定义的名称一致 */
+  font-weight: normal;
+  font-style: normal;
+  font-size: 22px; /* 默认大小，页面里可以单独调 */
+  line-height: 1;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+}
 </style>

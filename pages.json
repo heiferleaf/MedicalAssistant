@@ -107,8 +107,13 @@
 			"style": {
 				"navigationBarTitleText": "邀请成员"
 			}
+		},
+		{
+			"path": "pages/mine/profile",
+			"style": {
+				"navigationBarTitleText": "个人信息"
+			}
 		}
-
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
