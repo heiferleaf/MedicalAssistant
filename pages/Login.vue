@@ -141,6 +141,7 @@ export default {
         uni.setStorageSync("accessToken", result.accessToken);
         uni.setStorageSync("refreshToken", result.refreshToken);
         uni.setStorageSync("userName", this.loginForm.username.trim());
+        uni.setStorageSync("createTime", result.createTime);
 
         connect(); 
 

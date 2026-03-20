@@ -241,9 +241,14 @@ export default {
       return this.taskList.filter((t) => t.status !== 1).length;
     },
   },
-  onLoad() {
+  onLoad(options) {
     this.initCalendar(); // 初始化日历条
     this.initData();
+
+    if(options.tab === "history") {
+      this.currentTab = 2;
+      this.handleSwitchHistory();
+    }
   },
   methods: {
     // --- 新增：生成日历条数据 ---
