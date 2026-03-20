@@ -7,6 +7,7 @@
 		></image>
 		<view class="overlay-gradient"></view>
 
+		<view class="padding"></view>
 		<view class="status-bar"></view>
 
 		<view class="nav-header">
@@ -94,6 +95,10 @@ export default {
 	background-color: #000;
 	position: relative;
 	overflow: hidden;
+}
+
+.padding {
+	height: 64rpx; /* 顶部留白，适配状态栏 */
 }
 
 .camera-mock {

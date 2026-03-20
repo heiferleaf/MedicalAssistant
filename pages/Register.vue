@@ -1,5 +1,6 @@
 <template>
   <view class="register-page">
+    <view class="padding"></view>
     <view class="bg-mesh"></view>
     
     <!-- 顶部导航调小高度 -->
@@ -117,6 +118,9 @@ export default {
 </script>
 
 <style scoped>
+.padding {
+  height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 /* 整体尺寸优化 */
 .register-page { position: relative; min-height: 100vh; background-color: #f5f7f9; }
 .bg-mesh { position: fixed; inset: 0; background: radial-gradient(at 0% 0%, #eef2ff 0%, #f5f7f9 100%); z-index: 0; }

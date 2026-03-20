@@ -1,5 +1,6 @@
 <template>
     <view class="page-container">
+		<view class="padding"></view>
         <view class="header">
             <view class="back-btn" @click="uni.navigateBack()">
                 <image class="icon-sm" src="/static/Register/back.png" mode="aspectFit"></image>
@@ -161,6 +162,9 @@ $text-main: #0f172a;
 $text-sub: #64748b;
 $border-color: #e2e8f0;
 
+.padding {
+  height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 /* 图标尺寸工具 */
 .icon-sm {
     width: 40rpx;

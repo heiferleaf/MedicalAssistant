@@ -1,5 +1,6 @@
 <template>
 	<view class="mine-container">
+		<view class="padding"></view>
 		<view class="status-bar"></view>
 
 		<scroll-view scroll-y class="scroll-body">
@@ -152,6 +153,9 @@ $primary: #4d88ff;
 $bg-light: #F8FAFC;
 $bg-dark: #0F172A;
 
+.padding {
+	height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 .mine-container {
 	min-height: 100vh;
 	background-color: $bg-light;

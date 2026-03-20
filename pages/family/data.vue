@@ -1,5 +1,6 @@
 <template>
   <view class="page-container">
+		<view class="padding"></view>
     <view class="header">
       <view class="icon-btn" @click="goBack">
         <image class="icon" src="/static/Register/back.png" mode="aspectFit"></image>
@@ -102,6 +103,9 @@ const switchTab = (tabName) => {
 </script>
 
 <style lang="scss" scoped>
+.padding {
+  height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 /* 全局变量 */
 $primary: #4d88ff;
 $bg-color: #f5f6f8;
@@ -136,6 +140,7 @@ $border-color: #f1f5f9;
   position: sticky;
   top: 0;
   z-index: 10;
+  background-color: #f5f6f8;
   
   .icon-btn {
     width: 80rpx;
