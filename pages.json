@@ -125,6 +125,12 @@
 			"style": {
 				"navigationBarTitleText": "个人信息"
 			}
+		},
+		{
+		  "path": "pages/mine/notification",
+		  "style": {
+		    "navigationBarTitleText": "系统通知"
+		  }
 		}
 	],
 	"globalStyle": {

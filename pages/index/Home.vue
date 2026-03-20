@@ -116,7 +116,7 @@ export default {
 			isDarkMode: false,
 			refreshing: false,
 			userInfo: { name: "小明", avatar: "static/avatars/avatar1.svg", hasNew: true },
-			hasNotification: true,
+			hasNotification: false,
 			medicationList: [
 				{ id: 1, medicineName: "阿司匹林", timePoint: "10:00", dosage: "1片", status: 1 },
 				{ id: 2, medicineName: "降压药", timePoint: "14:00", dosage: "1片", status: 0 },
@@ -151,6 +151,22 @@ export default {
 	
 	beforeDestroy() {
 	  if (this._blobTimer) clearInterval(this._blobTimer); // 新增
+	},
+	
+	onShow() {
+	    // 每次回到首页，检查一次是否有未读消息
+	    this.checkUnreadStatus();
+	},
+	
+	onLoad() {
+	    // 监听 WS 接收到新消息的事件
+	    uni.$on('NEW_NOTIFICATION_RECEIVED', (data) => {
+	        this.hasNotification = data.hasUnread;
+	    });
+	},
+	
+	onUnload() {
+	    uni.$off('NEW_NOTIFICATION_RECEIVED');
 	},
 	
 	methods: {
@@ -230,6 +246,23 @@ export default {
 		  }
 		  next()
 		  this._blobTimer = setInterval(next, 2600)
+		},
+		
+		checkUnreadStatus() {
+		        // 从本地存储读取，判断是否有没有读过的消息
+		        const list = uni.getStorageSync('SYSTEM_NOTIFICATIONS') || [];
+		        this.hasNotification = list.some(item => item.isRead === false);
+		},
+		
+		toNotification() {
+			// 点击进入通知页面
+			uni.navigateTo({
+				url: '/pages/mine/notification', // 你的通知页面路径
+				success: () => {
+					// 只要点进去了，首页红点可以先消失（或者由通知页面处理）
+					this.hasNotification = false;
+				}
+			});
 		},
 
 		async fetchTasks() {

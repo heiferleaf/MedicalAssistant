@@ -1,5 +1,39 @@
 // config.js
 
+// config.js 头部添加常量
+const STORAGE_KEY = 'SYSTEM_NOTIFICATIONS';
+const MAX_MSG_COUNT = 100; // 最大保存100条
+
+// 获取本地存储的消息
+function getLocalMessages() {
+	return uni.getStorageSync(STORAGE_KEY) || [];
+}// 核心逻辑：保存消息并更新未读状态
+function saveAndNotify(newMsg) {
+	let list = getLocalMessages();
+	
+	// 1. 插入新消息到开头
+	const msgItem = {
+		...newMsg,
+		id: Date.now(),
+		time: new Date().toLocaleString(),
+		isRead: false // 标记为未读
+	};
+	list.unshift(msgItem);
+	
+	// 2. 限制数量
+	if (list.length > MAX_MSG_COUNT) {
+		list = list.slice(0, MAX_MSG_COUNT);
+	}
+	
+	// 3. 写入持久化存储
+	uni.setStorageSync(STORAGE_KEY, list);
+	
+	// 4. 通知全局：有新消息（用于首页红点）
+	uni.$emit('NEW_NOTIFICATION_RECEIVED', { hasUnread: true });
+}
+
+
+
 let BASE_URL = "";
 let WS_BASE_URL = "";
 
@@ -102,6 +136,8 @@ function handleMessage(pushData) {
       title = "新消息";
       content = "您有一条新的健康云通知";
   }
+  // 持久化存储
+  saveAndNotify({ title, content, type, raw: pushData });
 
   // 2. 触发通知栏消息（App 端）
   // #ifdef APP-PLUS
