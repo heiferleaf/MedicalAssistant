@@ -92,6 +92,49 @@ public class AgentSessionController {
     }
 
     /**
+     * 更新会话信息（PUT 方法）
+     */
+    @PutMapping("/{sessionId}")
+    public Result<Map<String, Object>> updateSessionPut(
+            @PathVariable String sessionId,
+            @RequestBody Map<String, Object> payload) {
+        return updateSessionInternal(sessionId, payload);
+    }
+
+    /**
+     * 更新会话信息（POST 方法）
+     */
+    @PostMapping("/{sessionId}")
+    public Result<Map<String, Object>> updateSessionPost(
+            @PathVariable String sessionId,
+            @RequestBody Map<String, Object> payload) {
+        return updateSessionInternal(sessionId, payload);
+    }
+
+    /**
+     * 更新会话信息内部方法
+     */
+    private Result<Map<String, Object>> updateSessionInternal(
+            String sessionId,
+            Map<String, Object> payload) {
+        try {
+            String summary = (String) payload.get("summary");
+            
+            if (summary != null && !summary.isBlank()) {
+                memoryRepository.updateSessionSummary(sessionId, summary);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("sessionId", sessionId);
+            result.put("summary", summary);
+            
+            return Result.success(result);
+        } catch (Exception e) {
+            return Result.error(ResultCode.SYSTEM_ERROR, "更新会话失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 获取会话的所有消息
      */
     @GetMapping("/{sessionId}/messages")
@@ -106,6 +149,8 @@ public class AgentSessionController {
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("role", msg.get("role"));
                 item.put("content", msg.get("content"));
+                item.put("actionType", msg.get("action_type"));
+                item.put("actionData", msg.get("action_data"));
                 item.put("createdAt", msg.get("created_at"));
                 result.add(item);
             }

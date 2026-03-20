@@ -86,13 +86,24 @@ public class AgentOrchestratorService {
             boolean withTrace, boolean withTiming) {
         try {
             logger.info("使用 Medical Agent 处理请求");
-            Map<String, Object> result = medicalAgent.execute(sessionId, userId, message);
+            Map<String, Object> result = medicalAgent.execute(sessionId, userId, message, message);
 
             // 保存 AI 回复到数据库
             if (result != null && result.get("success") != null && (Boolean) result.get("success")) {
                 String assistantMessage = (String) result.get("assistant_message");
+                String actionType = (String) result.get("action_type");
+                String actionData = (String) result.get("action_data");
+                
                 if (assistantMessage != null && !assistantMessage.isBlank()) {
-                    memoryRepository.appendMessage(sessionId, userId, "assistant", assistantMessage);
+                    if (actionType != null && !actionType.isBlank() && actionData != null) {
+                        // 保存带 action 的消息
+                        memoryRepository.appendMessageWithAction(
+                            sessionId, userId, "assistant", assistantMessage, actionType, actionData
+                        );
+                    } else {
+                        // 保存普通消息
+                        memoryRepository.appendMessage(sessionId, userId, "assistant", assistantMessage);
+                    }
                 }
             }
 

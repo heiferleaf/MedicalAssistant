@@ -25,7 +25,7 @@ public class PlanCreateTool {
         this.planService = planService;
     }
 
-    @Tool(value = "Create a new medication plan for the user. Use this when the user wants to add a new medication to their schedule, set up reminders, or create a new plan for taking medications. IMPORTANT: Always use TODAY'S DATE as the start date if not specified, and never use dates in the past!")
+    @Tool(value = "Create a new medication plan for the user. IMPORTANT: This tool does NOT actually create the plan. It returns a confirmation marker that the frontend will use to show a confirmation card to the user.")
     public Map<String, Object> createPlan(
             @P(value = "The user ID to create the plan for") String userId,
             @P(value = "The name of the medicine") String medicineName,
@@ -34,69 +34,26 @@ public class PlanCreateTool {
             @P(value = "Start date in yyyy-MM-dd format - MUST be today or a future date!") String startDate,
             @P(value = "End date in yyyy-MM-dd format (optional)") String endDate,
             @P(value = "Additional notes or remarks (optional)") String remark) {
-        logger.info("创建用药计划，userId: {}, medicineName: {}", userId, medicineName);
-
-        try {
-            if (medicineName == null || medicineName.isBlank()) {
-                Map<String, Object> result = new LinkedHashMap<>();
-                result.put("success", false);
-                result.put("message", "缺少必需参数：medicineName");
-                return result;
-            }
-            if (dosage == null || dosage.isBlank()) {
-                dosage = "按医嘱";
-            }
-            if (timePoints == null || timePoints.isEmpty()) {
-                Map<String, Object> result = new LinkedHashMap<>();
-                result.put("success", false);
-                result.put("message", "缺少必需参数：timePoints");
-                return result;
-            }
-
-            LocalDate today = LocalDate.now();
-            LocalDate start;
-
-            if (startDate == null || startDate.isBlank()) {
-                start = today;
-            } else {
-                start = LocalDate.parse(startDate);
-                if (start.isBefore(today)) {
-                    logger.warn("检测到历史日期 {}，自动调整为今天 {}", start, today);
-                    start = today;
-                }
-            }
-
-            LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : null;
-            if (end != null && end.isBefore(start)) {
-                end = start.plusMonths(1);
-            }
-
-            List<LocalTime> times = timePoints.stream()
-                    .map(LocalTime::parse)
-                    .collect(java.util.stream.Collectors.toList());
-
-            PlanCreateDTO dto = new PlanCreateDTO();
-            dto.setMedicineName(medicineName);
-            dto.setDosage(dosage);
-            dto.setTimePoints(times);
-            dto.setStartDate(start);
-            dto.setEndDate(end);
-            dto.setRemark(remark);
-
-            Long uid = Long.valueOf(userId);
-            com.whu.medicalbackend.dto.PlanVO planVO = planService.createPlan(uid, dto);
-
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("success", true);
-            result.put("message", "用药计划创建成功");
-            result.put("plan_id", planVO.getId());
-            return result;
-        } catch (Exception e) {
-            logger.error("创建用药计划失败", e);
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("success", false);
-            result.put("message", "创建用药计划失败: " + e.getMessage());
-            return result;
-        }
+        
+        logger.info("PlanCreateTool 被调用，userId: {}, medicineName: {}（返回待确认标记）", userId, medicineName);
+        
+        // 不真正创建计划，而是返回待确认标记
+        // 前端会检测到这个标记并显示确认卡片
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("pending_confirmation", true);
+        result.put("tool_name", "createPlan");
+        result.put("arguments", new LinkedHashMap<String, Object>() {{
+            put("userId", userId);
+            put("medicineName", medicineName);
+            put("dosage", dosage != null ? dosage : "按医嘱");
+            put("timePoints", timePoints);
+            put("startDate", startDate);
+            put("endDate", endDate);
+            put("remark", remark);
+        }});
+        result.put("message", "请确认是否创建以下用药计划");
+        
+        return result;
     }
 }

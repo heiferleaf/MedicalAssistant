@@ -40,3 +40,16 @@ CREATE TABLE IF NOT EXISTS agent_pending_actions (
     INDEX idx_agent_pending_actions_user_id_status (user_id, status),
     INDEX idx_agent_pending_actions_expires_at (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='agent 待确认动作表';
+
+-- ====================================
+-- 增量更新脚本
+-- 添加 action_type 和 action_data 字段到 agent_messages 表
+-- ====================================
+
+-- 添加 action_type 字段（如果不存在）
+ALTER TABLE agent_messages 
+ADD COLUMN action_type VARCHAR(64) NULL COMMENT '操作类型：plan, medicine, task, family 等' AFTER content;
+
+-- 添加 action_data 字段（如果不存在）
+ALTER TABLE agent_messages 
+ADD COLUMN action_data TEXT NULL COMMENT '操作数据（JSON 格式）' AFTER action_type;

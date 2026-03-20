@@ -44,10 +44,29 @@ public class AgentMemoryRepository {
                 Timestamp.valueOf(LocalDateTime.now())
         );
     }
+    
+    /**
+     * 保存带 action 的消息
+     */
+    public void appendMessageWithAction(String sessionId, String userId, String role, String content, 
+                                        String actionType, String actionData) {
+        touchSession(sessionId, userId);
+        jdbcTemplate.update(
+                "INSERT INTO agent_messages(session_id, user_id, role, content, action_type, action_data, created_at) " +
+                "VALUES(?,?,?,?,?,?,?)",
+                sessionId,
+                userId,
+                role,
+                content,
+                actionType,
+                actionData,
+                Timestamp.valueOf(LocalDateTime.now())
+        );
+    }
 
     public List<Map<String, Object>> getRecentMessages(String sessionId, int limit) {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT role, content, created_at FROM agent_messages WHERE session_id=? ORDER BY id DESC LIMIT ?",
+                "SELECT role, content, action_type, action_data, created_at FROM agent_messages WHERE session_id=? ORDER BY id DESC LIMIT ?",
                 sessionId,
                 Math.max(1, limit)
         );
@@ -70,6 +89,17 @@ public class AgentMemoryRepository {
 
     public void deleteSessionMessages(String sessionId) {
         jdbcTemplate.update("DELETE FROM agent_messages WHERE session_id=?", sessionId);
+    }
+
+    /**
+     * 更新会话摘要
+     */
+    public void updateSessionSummary(String sessionId, String summary) {
+        jdbcTemplate.update(
+            "UPDATE agent_sessions SET summary_text = ? WHERE session_id = ?",
+            summary,
+            sessionId
+        );
     }
 
     public void savePendingAction(
