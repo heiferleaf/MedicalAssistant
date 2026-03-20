@@ -1,6 +1,7 @@
 <template>
 	<scroll-view class="container" scroll-y :class="{ 'dark-mode': isDarkMode }" :style="{ '--base-font': globalFontSize + 'px' }">
 
+		<view class="padding"></view>
 		<view class="header">
 			<view class="user-section">
 				<view class="user-info" @tap="toProfile">
@@ -37,7 +38,7 @@
 			<view class="section-title">
 				<text class="title-text">今日服药任务</text>
 				<view class="more-link" @tap="toMedicationList">
-					<text>任务中心</text>
+					<text style="font-size: calc(var(--base-font) + 2rpx);" @click="uni.navigateTo({ url: '/pages/reminder/Reminder' })">任务中心</text>
 					<text class="iconfont icon-arrow-right"></text>
 				</view>
 			</view>
@@ -311,6 +312,10 @@ export default {
 	}
 }
 
+.padding {
+	height: 64rpx;
+}
+
 .header {
 	padding: 60rpx 40rpx 30rpx;
 
@@ -350,7 +355,7 @@ export default {
 
 			.welcome-text {
 				.greet {
-					font-size: calc(var(--base-font) + 10rpx);
+					font-size: calc(var(--base-font) + 8rpx);
 					color: #64748b;
 					display: block;
 				}
@@ -409,7 +414,7 @@ export default {
 			gap: 15rpx;
 
 			.day-num {
-				font-size: calc(var(--base-font) + 40rpx);
+				font-size: calc(var(--base-font) + 32rpx);
 				font-weight: 900;
 				color: #6366f1;
 				line-height: 1;
@@ -427,7 +432,7 @@ export default {
 			background: #eef2ff;
 			color: #6366f1;
 			border-radius: 40rpx;
-			font-size: calc(var(--base-font) + 8rpx);
+			font-size: calc(var(--base-font) + 4rpx);
 			font-weight: 600;
 
 			@media (prefers-color-scheme: dark) {
@@ -448,7 +453,7 @@ export default {
 		margin-bottom: 24rpx;
 
 		.title-text {
-			font-size: calc(var(--base-font) + 10rpx);
+			font-size: calc(var(--base-font) + 1rpx);
 			font-weight: bold;
 			color: #1e293b;
 
@@ -667,7 +672,7 @@ export default {
 			text-align: center;
 
 			.time-text {
-				font-size: calc(var(--base-font) + 10rpx);
+				font-size: calc(var(--base-font) + 1rpx);
 				font-weight: bold;
 				color: #475569;
 				display: block;
@@ -687,7 +692,7 @@ export default {
 
 		.name-box {
 			.med-name {
-				font-size: calc(var(--base-font) + 10rpx);
+				font-size: calc(var(--base-font) + 1rpx);
 				font-weight: 600;
 				color: #1e293b;
 				display: block;
@@ -698,7 +703,7 @@ export default {
 			}
 
 			.med-dosage {
-				font-size: calc(var(--base-font) + 8rpx);
+				font-size: calc(var(--base-font) + 1rpx);
 				color: #94a3b8;
 			}
 		}
@@ -713,7 +718,7 @@ export default {
 		.status-done-text {
 			color: #10b981;
 			font-weight: 500;
-			font-size: calc(var(--base-font) + 8rpx);
+			font-size: calc(var(--base-font) + 1rpx);
 		}
 	}
 
@@ -729,7 +734,7 @@ export default {
 			color: white;
 			padding: 8rpx 24rpx;
 			border-radius: 20rpx;
-			font-size: calc(var(--base-font) + 8rpx);
+			font-size: calc(var(--base-font) + 1rpx);
 			font-weight: 600;
 		}
 	}
@@ -754,7 +759,7 @@ export default {
 
 		.status-missed-text {
 			font-weight: bold;
-			font-size: calc(var(--base-font) + 10rpx);
+			font-size: calc(var(--base-font) + 1rpx);
 		}
 	}
 }
@@ -781,7 +786,7 @@ export default {
 		}
 
 		.tool-name {
-			font-size: calc(var(--base-font) + 8rpx);
+			font-size: calc(var(--base-font) + 1rpx);
 			color: #64748b;
 			font-weight: 500;
 		}

@@ -1,5 +1,6 @@
 <template>
 	<view class="health-container">
+		<view class="padding"></view>
 		<view class="status-bar"></view>
 
 		<scroll-view scroll-y class="scroll-body">
@@ -145,6 +146,9 @@ $primary-color: #6366F1;
 $bg-light: #F8FAFC;
 $bg-dark: #0F172A;
 
+.padding {
+	height: 64rpx;
+}
 .health-container {
 	min-height: 100vh;
 	background-color: $bg-light;

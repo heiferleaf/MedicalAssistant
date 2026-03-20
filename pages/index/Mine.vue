@@ -1,5 +1,6 @@
 <template>
 	<view class="mine-container">
+		<view class="padding"></view>
 		<view class="status-bar"></view>
 
 		<scroll-view scroll-y class="scroll-body">
@@ -18,9 +19,9 @@
 					</view>
 					<view class="user-info">
 						<text class="user-name">{{ username }}</text>
-						<text class="user-status">坚持服药第 124 天</text>
+						<text class="user-status">成为用户第 {{ createTime ? Math.floor((Date.now() - new Date(createTime).getTime()) / (1000 * 60 * 60 * 24)) : 0 }} 天</text>
 						<view class="badge">
-							<text class="badge-text">LV.4 活跃用户</text>
+							<text class="badge-text">LV.{{ getUserLevel() }} 活跃用户</text>
 						</view>
 					</view>
 					<image class="icon" src="/static/Mine/right-arrow.svg" />
@@ -63,28 +64,6 @@
 						</view>
 						<image class="icon" src="/static/Mine/right-arrow.svg" />
 					</view>
-					<view class="divider"></view>
-					<view class="menu-item" hover-class="hover-gray" @tap="navigateTo('doctor')">
-						<view class="menu-left">
-							<view class="menu-icon bg-orange-light">
-								<image class="icon" src="/static/Mine/doctor.svg" />
-							</view>
-							<text class="menu-text">我的医生</text>
-						</view>
-						<image class="icon" src="/static/Mine/right-arrow.svg" />
-					</view>
-				</view>
-
-				<view class="menu-group mt-4">
-					<view class="menu-item" hover-class="hover-gray" @tap="navigateTo('help')">
-						<view class="menu-left">
-							<view class="menu-icon bg-slate-light">
-								<image class="icon" src="/static/Mine/help.svg" />
-							</view>
-							<text class="menu-text">帮助与反馈</text>
-						</view>
-						<image class="icon" src="/static/Mine/right-arrow.svg" />
-					</view>
 				</view>
 			</section>
 
@@ -104,15 +83,23 @@ export default {
 	data() {
 		return {
 			username: "小明",
+			createTime: ""
 		};
 	},
 	mounted() {
 		this.initData();
 	},
 	methods: {
+		getUserLevel() {
+			// 简单的等级计算逻辑：每满30天增加一级，最高LV.10
+			if (!this.createTime) return 1;
+			const days = Math.floor((Date.now() - new Date(this.createTime).getTime()) / (1000 * 60 * 60 * 24));
+			return Math.min(10, Math.floor(days / 30) + 1);
+		},
 		initData() {
 			const username = uni.getStorageSync("username") || "小明";
 			this.username = username;
+			this.createTime = uni.getStorageSync("createTime") || "";
 		},
 				getAvatar() {
 			const userId = uni.getStorageSync("userId") || "defaultUser";
@@ -126,6 +113,16 @@ export default {
 		},
 		navigateTo(type) {
 			console.log('跳转至：', type);
+			switch (type) {
+				case 'history':
+					uni.navigateTo({ url: `/pages/reminder/Reminder?tab=history` });
+					break;
+				case 'report':
+					uni.navigateTo({ url: '/pages/mine/report' });
+					break;
+				default:
+					break;
+			}
 		},
 		logout() {
 
@@ -152,6 +149,9 @@ $primary: #4d88ff;
 $bg-light: #F8FAFC;
 $bg-dark: #0F172A;
 
+.padding {
+	height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 .mine-container {
 	min-height: 100vh;
 	background-color: $bg-light;

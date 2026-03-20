@@ -1,14 +1,12 @@
 <template>
     <view class="page-container">
+		<view class="padding"></view>
         <view class="header">
             <view class="header-left">
                 <view class="icon-btn" @click="uni.navigateBack()">
                     <image class="icon-md" src="/static/Register/back.png" mode="aspectFit"></image>
                 </view>
                 <text class="header-title">家庭管理</text>
-            </view>
-            <view class="icon-btn" @click="goToSettings">
-                <image class="icon-md" src="/static/Mine/settings.svg" mode="aspectFit"></image>
             </view>
         </view>
 
@@ -286,6 +284,9 @@ $text-main: #0f172a;
 $text-sub: #64748b;
 $border-color: #e2e8f0;
 
+.padding {
+    height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 /* 通用图标尺寸 */
 .icon-sm {
     width: 40rpx;
@@ -338,6 +339,7 @@ $border-color: #e2e8f0;
     position: sticky;
     top: 0;
     z-index: 10;
+    background-color: #f5f6f8;
 
     .header-left {
         display: flex;

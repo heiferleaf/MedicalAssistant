@@ -12,45 +12,19 @@
       <view class="nav-search">
         <view class="search-inner">
           <icon type="search" size="18" color="#9FA0AB" class="search-icon" />
-          <input
-            type="text"
-            v-model="historyParams.medicineName"
-            placeholder="搜索药品名称..."
-            placeholder-class="search-placeholder"
-            @confirm="fetchHistory(true)"
-            confirm-type="search"
-          />
-          <text
-            v-if="historyParams.medicineName"
-            class="clear-btn"
-            @click="
-              historyParams.medicineName = '';
-              fetchHistory(true);
-            "
-            >×</text
-          >
+          <input type="text" v-model="historyParams.medicineName" placeholder="搜索药品名称..."
+            placeholder-class="search-placeholder" @confirm="fetchHistory(true)" confirm-type="search" />
+          <text v-if="historyParams.medicineName" class="clear-btn" @click="
+            historyParams.medicineName = '';
+          fetchHistory(true);
+          ">×</text>
         </view>
       </view>
 
       <view class="tab-pill-container">
-        <view
-          class="tab-pill"
-          :class="{ active: currentTab === 0 }"
-          @click="currentTab = 0"
-          >今日任务</view
-        >
-        <view
-          class="tab-pill"
-          :class="{ active: currentTab === 1 }"
-          @click="currentTab = 1"
-          >用药计划</view
-        >
-        <view
-          class="tab-pill"
-          :class="{ active: currentTab === 2 }"
-          @click="handleSwitchHistory"
-          >历史任务</view
-        >
+        <view class="tab-pill" :class="{ active: currentTab === 0 }" @click="currentTab = 0">今日任务</view>
+        <view class="tab-pill" :class="{ active: currentTab === 1 }" @click="currentTab = 1">用药计划</view>
+        <view class="tab-pill" :class="{ active: currentTab === 2 }" @click="handleSwitchHistory">历史任务</view>
       </view>
     </view>
 
@@ -58,16 +32,9 @@
       <view class="calendar-strip">
         <scroll-view scroll-x class="calendar-scroll" show-scrollbar="false">
           <view class="calendar-row">
-            <view
-              class="date-item"
-              v-for="(day, index) in weekDays"
-              :key="index"
-            >
+            <view class="date-item" v-for="(day, index) in weekDays" :key="index">
               <text class="week-text">{{ day.week }}</text>
-              <view
-                class="day-circle"
-                :class="{ 'date-active': day.fullDate === todayDate }"
-              >
+              <view class="day-circle" :class="{ 'date-active': day.fullDate === todayDate }">
                 <text class="day-text">{{ day.day }}</text>
               </view>
             </view>
@@ -87,23 +54,16 @@
           今日暂无任务，好好休息
         </view>
 
-        <view
-          class="timeline-row"
-          v-for="(task, index) in taskList"
-          :key="task.id"
-          @click="handleTaskClick(task, index)"
-        >
+        <view class="timeline-row" v-for="(task, index) in taskList" :key="task.id"
+          @click="handleTaskClick(task, index)">
           <view class="time-column">
             <text class="time-text">{{ task.timePoint }}</text>
           </view>
 
-          <view
-            class="card-column"
-            :class="{
-              'card-active': task.status !== 1,
-              'card-done': task.status === 1,
-            }"
-          >
+          <view class="card-column" :class="{
+            'card-active': task.status !== 1,
+            'card-done': task.status === 1,
+          }">
             <view class="card-content">
               <text class="card-title">{{ task.medicineName }}</text>
               <text class="card-desc">剂量: {{ task.dosage }}</text>
@@ -127,36 +87,21 @@
 
     <scroll-view scroll-y class="content-area" v-if="currentTab === 1">
       <view class="plan-list-container">
-        <view
-          class="plan-card-modern"
-          v-for="(plan, index) in planList"
-          :key="plan.id"
-        >
+        <view class="plan-card-modern" v-for="(plan, index) in planList" :key="plan.id">
           <view class="plan-top">
-            <text class="plan-icon">💊</text>
+            <image class="icon" src="/static/Health/pill-active.svg" />
             <view class="plan-info">
               <text class="p-name">{{ plan.medicineName }}</text>
               <text class="p-dosage">每次 {{ plan.dosage }}</text>
             </view>
             <view class="plan-opt">
-              <text class="opt-btn" @click.stop="openPlanModal('edit', plan)"
-                >✎</text
-              >
-              <text
-                class="opt-btn delete"
-                @click.stop="handleDeletePlan(plan.id, index)"
-                >🗑</text
-              >
+              <image class="opt-btn" @click.stop="openPlanModal('edit', plan)" style="width: 32rpx;height: 32rpx;" src="/static/Prepare/edit.svg" />
+              <image class="opt-btn delete" @click.stop="handleDeletePlan(plan.id, index)" style="width: 32rpx;height: 32rpx;" src="/static/Reminder/delete.svg" />
             </view>
           </view>
 
           <view class="plan-times">
-            <text
-              class="time-chip"
-              v-for="(t, ti) in plan.timePoints"
-              :key="ti"
-              >{{ t }}</text
-            >
+            <text class="time-chip" v-for="(t, ti) in plan.timePoints" :key="ti">{{ t }}</text>
           </view>
 
           <view class="plan-dates">
@@ -172,31 +117,23 @@
 
     <scroll-view scroll-y class="content-area" v-if="currentTab === 2">
       <view class="history-filter">
-        <picker
-          mode="date"
-          :value="historyParams.start"
-          @change="
-            (e) => {
-              historyParams.start = e.detail.value;
-              fetchHistory(true);
-            }
-          "
-        >
+        <picker mode="date" :value="historyParams.start" @change="
+          (e) => {
+            historyParams.start = e.detail.value;
+            fetchHistory(true);
+          }
+        ">
           <view class="filter-item">{{
             historyParams.start || "起始日期"
           }}</view>
         </picker>
         <text class="filter-sep">-</text>
-        <picker
-          mode="date"
-          :value="historyParams.end"
-          @change="
-            (e) => {
-              historyParams.end = e.detail.value;
-              fetchHistory(true);
-            }
-          "
-        >
+        <picker mode="date" :value="historyParams.end" @change="
+          (e) => {
+            historyParams.end = e.detail.value;
+            fetchHistory(true);
+          }
+        ">
           <view class="filter-item">{{ historyParams.end || "截止日期" }}</view>
         </picker>
       </view>
@@ -206,14 +143,9 @@
           <view class="h-main">
             <view class="h-info">
               <text class="h-name">{{ item.medicineName }}</text>
-              <text class="h-time"
-                >{{ item.taskDate }} {{ item.timePoint }}</text
-              >
+              <text class="h-time">{{ item.taskDate }} {{ item.timePoint }}</text>
             </view>
-            <view
-              class="h-status"
-              :class="item.status === 1 ? 'st-done' : 'st-miss'"
-            >
+            <view class="h-status" :class="item.status === 1 ? 'st-done' : 'st-miss'">
               {{ item.status === 1 ? "已服" : "未服" }}
             </view>
           </view>
@@ -221,9 +153,7 @@
             记录时间: {{ formatTime(item.operateTime) }}
           </view>
         </view>
-        <view v-if="historyList.length === 0" class="empty-tip"
-          >暂无相关历史记录</view
-        >
+        <view v-if="historyList.length === 0" class="empty-tip">暂无相关历史记录</view>
       </view>
     </scroll-view>
 
@@ -235,59 +165,30 @@
           }}</text>
         </view>
 
-        <input
-          class="input-modern"
-          v-model="formData.medicineName"
-          placeholder="药品名称"
-        />
-        <input
-          class="input-modern"
-          v-model="formData.dosage"
-          placeholder="剂量 (如: 2粒)"
-        />
+        <input class="input-modern" v-model="formData.medicineName" placeholder="药品名称" />
+        <input class="input-modern" v-model="formData.dosage" placeholder="剂量 (如: 2粒)" />
 
         <view class="picker-row">
-          <picker
-            mode="date"
-            :value="formData.startDate"
-            @change="(e) => (formData.startDate = e.detail.value)"
-          >
-            <view class="picker-btn"
-              >开始: {{ formData.startDate || "选择" }}</view
-            >
+          <picker mode="date" :value="formData.startDate" @change="(e) => (formData.startDate = e.detail.value)">
+            <view class="picker-btn">开始: {{ formData.startDate || "选择" }}</view>
           </picker>
-          <picker
-            mode="date"
-            :value="formData.endDate"
-            @change="(e) => (formData.endDate = e.detail.value)"
-          >
-            <view class="picker-btn"
-              >结束: {{ formData.endDate || "可选" }}</view
-            >
+          <picker mode="date" :value="formData.endDate" @change="(e) => (formData.endDate = e.detail.value)">
+            <view class="picker-btn">结束: {{ formData.endDate || "可选" }}</view>
           </picker>
         </view>
 
         <view class="time-config">
           <text class="label">时间点:</text>
           <view class="tags-wrapper">
-            <view
-              class="t-tag"
-              v-for="(t, i) in formData.timePoints"
-              :key="i"
-              @click="removeTimePoint(i)"
-              >{{ t }} ×</view
-            >
+            <view class="t-tag" v-for="(t, i) in formData.timePoints" :key="i" @click="removeTimePoint(i)">{{ t }} ×
+            </view>
             <picker mode="time" @change="addTimePoint">
               <view class="add-tag-btn">+ 添加</view>
             </picker>
           </view>
         </view>
 
-        <input
-          class="input-modern"
-          v-model="formData.remark"
-          placeholder="备注"
-        />
+        <input class="input-modern" v-model="formData.remark" placeholder="备注" />
 
         <view class="modal-actions">
           <button class="btn-cancel" @click="showModal = false">取消</button>
@@ -340,9 +241,14 @@ export default {
       return this.taskList.filter((t) => t.status !== 1).length;
     },
   },
-  onLoad() {
+  onLoad(options) {
     this.initCalendar(); // 初始化日历条
     this.initData();
+
+    if(options.tab === "history") {
+      this.currentTab = 2;
+      this.handleSwitchHistory();
+    }
   },
   methods: {
     // --- 新增：生成日历条数据 ---
@@ -430,7 +336,7 @@ export default {
           if (typeof item.timePoints === "string") {
             try {
               item.timePoints = JSON.parse(item.timePoints);
-            } catch (e) {}
+            } catch (e) { }
           }
           return item;
         });
@@ -562,8 +468,10 @@ export default {
 $bg-color: #f8f9fd;
 $text-dark: #1d1d2b;
 $text-grey: #9fa0ab;
-$primary-purple: #9f9af8; /* 按钮/高亮色 */
-$card-purple-bg: #ecebff; /* 任务卡片背景 */
+$primary-purple: #9f9af8;
+/* 按钮/高亮色 */
+$card-purple-bg: #ecebff;
+/* 任务卡片背景 */
 $white: #ffffff;
 $border-radius: 30rpx;
 
@@ -584,7 +492,8 @@ page {
 /* 顶部导航 */
 .custom-navbar {
   background: $white;
-  padding: 100rpx 40rpx 20rpx; /* 适配全面屏顶部 */
+  padding: 100rpx 40rpx 20rpx;
+  /* 适配全面屏顶部 */
   border-bottom-left-radius: 40rpx;
   border-bottom-right-radius: 40rpx;
   box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.02);
@@ -594,6 +503,7 @@ page {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30rpx;
+
     .nav-back {
       width: 90rpx;
       height: 90rpx;
@@ -605,6 +515,7 @@ page {
       display: flex;
       align-items: center;
       justify-content: center;
+
       .back-icon {
         width: 40rpx;
         height: 40rpx;
@@ -613,6 +524,7 @@ page {
         background-position: center;
       }
     }
+
     .date-badge {
       background: #f2f2f2;
       padding: 10rpx 24rpx;
@@ -629,6 +541,7 @@ page {
     background: #f5f5f7;
     border-radius: 20rpx;
     padding: 8rpx;
+
     .tab-pill {
       flex: 1;
       text-align: center;
@@ -638,6 +551,7 @@ page {
       color: $text-grey;
       font-weight: 600;
       transition: all 0.3s;
+
       &.active {
         background: $white;
         color: $text-dark;
@@ -656,14 +570,17 @@ page {
 /* 日历条样式 */
 .calendar-strip {
   margin-top: 40rpx;
+
   .calendar-scroll {
     white-space: nowrap;
     width: 100%;
   }
+
   .calendar-row {
     display: flex;
     padding-bottom: 10rpx;
   }
+
   .date-item {
     display: flex;
     flex-direction: column;
@@ -682,6 +599,7 @@ page {
       color: $text-grey;
       margin-bottom: 8rpx;
     }
+
     .day-circle {
       width: 70rpx;
       height: 70rpx;
@@ -694,14 +612,17 @@ page {
       &.date-active {
         background: $card-purple-bg;
         border-color: $primary-purple;
+
         .week-text {
           color: $primary-purple;
         }
+
         .day-text {
           color: $primary-purple;
         }
       }
     }
+
     .day-text {
       font-size: 16rpx;
       font-weight: bold;
@@ -715,11 +636,13 @@ page {
   display: flex;
   align-items: center;
   margin: 40rpx 0 30rpx;
+
   .section-title {
     font-size: 36rpx;
     font-weight: bold;
     color: $text-dark;
   }
+
   .badge-count {
     background: #ff4d4f;
     color: $white;
@@ -733,6 +656,7 @@ page {
 /* 时间轴任务列表 */
 .timeline-container {
   position: relative;
+
   /* 时间轴竖线 (简单模拟) */
   &::before {
     content: "";
@@ -755,6 +679,7 @@ page {
       width: 80rpx;
       text-align: left;
       padding-top: 10rpx;
+
       .time-text {
         font-size: 26rpx;
         font-weight: 600;
@@ -774,13 +699,16 @@ page {
       /* 两种状态的卡片样式 */
       &.card-active {
         background: $card-purple-bg;
+
         .card-title {
           color: $text-dark;
         }
       }
+
       &.card-done {
         background: $white;
         opacity: 0.8;
+
         .card-title {
           text-decoration: line-through;
           color: $text-grey;
@@ -793,6 +721,7 @@ page {
         margin-bottom: 8rpx;
         display: block;
       }
+
       .card-desc {
         font-size: 26rpx;
         color: #7a7a85;
@@ -803,27 +732,38 @@ page {
       .card-footer {
         display: flex;
         justify-content: flex-end;
+
         .status-pill {
           font-size: 24rpx;
           font-weight: bold;
           padding: 8rpx 20rpx;
           border-radius: 30rpx;
+
           &.pending {
             background: $white;
             color: $text-dark;
           }
+
           background: #e8f5e9;
-          color: #4caf50; /* Done style */
+          color: #4caf50;
+          /* Done style */
         }
       }
     }
   }
 }
 
+.icon {
+  width: 48rpx;
+  height: 48rpx;
+  color: #94a3b8;
+}
+
 /* 计划列表卡片 (Tab 2) */
 .plan-list-container {
   padding-top: 30rpx;
 }
+
 .plan-card-modern {
   background: $white;
   border-radius: 30rpx;
@@ -835,6 +775,7 @@ page {
     display: flex;
     align-items: flex-start;
     margin-bottom: 20rpx;
+
     .plan-icon {
       font-size: 40rpx;
       margin-right: 20rpx;
@@ -845,37 +786,44 @@ page {
       line-height: 80rpx;
       border-radius: 20rpx;
     }
+
     .plan-info {
       flex: 1;
       display: flex;
       flex-direction: column;
     }
+
     .p-name {
       font-size: 32rpx;
       font-weight: bold;
       color: $text-dark;
     }
+
     .p-dosage {
       font-size: 24rpx;
       color: $text-grey;
       margin-top: 6rpx;
     }
+
     .plan-opt {
       .opt-btn {
         font-size: 36rpx;
         padding: 10rpx;
         color: $text-grey;
+
         &.delete {
           color: #ff6b6b;
         }
       }
     }
   }
+
   .plan-times {
     display: flex;
     flex-wrap: wrap;
     margin-bottom: 16rpx;
   }
+
   .time-chip {
     background: #f0f0f5;
     color: $text-dark;
@@ -886,6 +834,7 @@ page {
     margin-bottom: 10rpx;
     font-weight: 600;
   }
+
   .plan-dates {
     font-size: 22rpx;
     color: #aaa;
@@ -906,6 +855,7 @@ page {
   align-items: center;
   justify-content: center;
   box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.2);
+
   .plus-icon {
     font-size: 60rpx;
     font-weight: 300;
@@ -927,11 +877,13 @@ page {
   justify-content: center;
   z-index: 999;
 }
+
 .modal-content-modern {
   width: 80%;
   background: $white;
   border-radius: 40rpx;
   padding: 50rpx 40rpx;
+
   .m-title {
     font-size: 36rpx;
     font-weight: 800;
@@ -940,6 +892,7 @@ page {
     text-align: center;
     margin-bottom: 40rpx;
   }
+
   .input-modern {
     background: #f7f8fa;
     height: 90rpx;
@@ -949,11 +902,13 @@ page {
     font-size: 28rpx;
     color: $text-dark;
   }
+
   .picker-row {
     display: flex;
     gap: 20rpx;
     margin-bottom: 24rpx;
   }
+
   .picker-btn {
     background: #f7f8fa;
     padding: 24rpx;
@@ -963,19 +918,23 @@ page {
     text-align: center;
     min-width: 160rpx;
   }
+
   .time-config {
     margin-bottom: 30rpx;
+
     .label {
       font-size: 26rpx;
       color: $text-grey;
       margin-bottom: 16rpx;
       display: block;
     }
+
     .tags-wrapper {
       display: flex;
       flex-wrap: wrap;
       gap: 16rpx;
     }
+
     .t-tag {
       background: $card-purple-bg;
       color: $primary-purple;
@@ -984,6 +943,7 @@ page {
       font-size: 24rpx;
       font-weight: bold;
     }
+
     .add-tag-btn {
       border: 2rpx dashed #ddd;
       color: #aaa;
@@ -992,10 +952,12 @@ page {
       font-size: 24rpx;
     }
   }
+
   .modal-actions {
     display: flex;
     gap: 20rpx;
     margin-top: 40rpx;
+
     button {
       flex: 1;
       height: 90rpx;
@@ -1004,20 +966,24 @@ page {
       font-size: 30rpx;
       font-weight: bold;
       border: none;
+
       &:after {
         border: none;
       }
     }
+
     .btn-cancel {
       background: #f2f2f7;
       color: $text-grey;
     }
+
     .btn-save {
       background: $text-dark;
       color: $white;
     }
   }
 }
+
 .empty-tip {
   text-align: center;
   color: #ccc;
@@ -1034,6 +1000,7 @@ page {
   padding: 20rpx 30rpx;
   border-radius: 20rpx;
   margin: 30rpx 0;
+
   .filter-item {
     font-size: 26rpx;
     color: $text-dark;
@@ -1041,6 +1008,7 @@ page {
     padding: 10rpx 24rpx;
     border-radius: 12rpx;
   }
+
   .filter-sep {
     color: $text-grey;
   }
@@ -1052,11 +1020,13 @@ page {
   padding: 30rpx;
   margin-bottom: 20rpx;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.02);
+
   .h-main {
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
+
   .h-info {
     .h-name {
       font-size: 30rpx;
@@ -1064,6 +1034,7 @@ page {
       color: $text-dark;
       display: block;
     }
+
     .h-time {
       font-size: 24rpx;
       color: $text-grey;
@@ -1071,19 +1042,23 @@ page {
       display: block;
     }
   }
+
   .h-status {
     font-size: 24rpx;
     padding: 6rpx 20rpx;
     border-radius: 12rpx;
+
     &.st-done {
       background: #e8f5e9;
       color: #4caf50;
     }
+
     &.st-miss {
       background: #ffebee;
       color: #ef5350;
     }
   }
+
   .h-footer {
     margin-top: 20rpx;
     padding-top: 16rpx;
@@ -1097,10 +1072,12 @@ page {
 .card-column.card-active {
   background: $card-purple-bg;
 }
+
 .card-column.card-done {
   background: #fff;
   opacity: 0.6;
 }
+
 .status-pill.pending {
   background: #fff !important;
   color: $text-dark !important;
@@ -1109,17 +1086,22 @@ page {
 /* 搜索框外部容器 */
 .nav-search {
   padding: 20rpx 0;
-  background-color: transparent; /* 保持与页面背景融合 */
+  background-color: transparent;
+  /* 保持与页面背景融合 */
 
   .search-inner {
     display: flex;
     align-items: center;
-    background-color: #f2f2f2; /* 白色背景 */
+    background-color: #f2f2f2;
+    /* 白色背景 */
     height: 90rpx;
-    border-radius: 45rpx; /* 大圆角 */
+    border-radius: 45rpx;
+    /* 大圆角 */
     padding: 0 30rpx;
-    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.03); /* 极淡的阴影 */
-    border: 1rpx solid #f0f0f5; /* 极细的边框线 */
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.03);
+    /* 极淡的阴影 */
+    border: 1rpx solid #f0f0f5;
+    /* 极细的边框线 */
 
     .search-icon {
       margin-right: 20rpx;

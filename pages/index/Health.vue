@@ -1,5 +1,6 @@
 <template>
 	<view class="container" :class="{ 'dark-mode': isDarkMode }" :style="{ '--base-font': globalFontSize + 'px' }">
+		<view class="padding"></view>
 		<view class="header">
 			<text class="title">我的药箱</text>
 			<button class="add-btn" type="primary" size="mini" @click="openForm('add')">新增药品</button>
@@ -265,6 +266,9 @@ export default {
 <style scoped>
 /* 3. 在 CSS 中，通过 calc(var(--base-font)) 替换固定的像素值 */
 
+.padding {
+	height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 .container {
   padding: 20px;
   background-color: #f5f5f5;
