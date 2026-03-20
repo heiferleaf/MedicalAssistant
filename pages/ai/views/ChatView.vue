@@ -14,10 +14,16 @@
 					:id="'msg-' + index"
 				>
 					<ChatMessage
+						:messageId="msg.id"
 						:role="msg.role"
 						:type="msg.type"
 						:content="msg.content"
 						:image="msg.image"
+						:actionType="msg.actionType"
+						:actionData="msg.actionData"
+						@action-confirm="handleActionConfirm"
+						@action-edit="handleActionEdit"
+						@action-cancel="handleActionCancel"
 					>
 						<!-- 插槽：用于扩展特殊消息类型 -->
 						<slot :name="'message-' + index" :msg="msg" :index="index"></slot>
@@ -58,6 +64,15 @@ export default {
 			if (this.messages.length > 0) {
 				this.$emit('scroll-to', 'msg-' + (this.messages.length - 1));
 			}
+		},
+		handleActionConfirm(event) {
+			this.$emit('action-confirm', event);
+		},
+		handleActionEdit(event) {
+			this.$emit('action-edit', event);
+		},
+		handleActionCancel(event) {
+			this.$emit('action-cancel', event);
 		}
 	}
 }
@@ -74,7 +89,7 @@ export default {
 	height: 100%;
 	
 	.chat-content {
-		padding: 40rpx 30rpx;
+		padding: 30rpx;
 		padding-bottom: 60rpx;
 	}
 }

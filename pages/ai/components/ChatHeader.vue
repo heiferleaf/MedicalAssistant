@@ -4,13 +4,8 @@
 			<view v-if="showMenu" class="menu-btn" @click="toggleSidebar">
 				<text class="menu-icon">☰</text>
 			</view>
-			<view class="ai-avatar">{{ avatarText }}</view>
 			<view class="header-info">
 				<text class="header-title">{{ title }}</text>
-				<view class="online-status">
-					<view class="dot"></view>
-					<text class="status-text">{{ statusText }}</text>
-				</view>
 			</view>
 		</view>
 		<view class="header-right">
@@ -27,17 +22,9 @@ export default {
 			type: Boolean,
 			default: true
 		},
-		avatarText: {
-			type: String,
-			default: 'AI'
-		},
 		title: {
 			type: String,
 			default: '智愈助手'
-		},
-		statusText: {
-			type: String,
-			default: '在线 | 为您的健康护航'
 		}
 	},
 	methods: {
@@ -56,7 +43,7 @@ $primary: #3B82F6;
 	background: rgba(255, 255, 255, 0.85);
 	backdrop-filter: blur(20px);
 	display: flex;
-	justify-content: space-between;
+	justify-content: center;
 	align-items: center;
 	border-bottom: 1rpx solid #e2e8f0;
 	z-index: 100;
@@ -86,41 +73,20 @@ $primary: #3B82F6;
 			}
 		}
 		
-		.ai-avatar {
-			width: 80rpx; 
-			height: 80rpx; 
-			background: $primary; 
-			color: #fff;
-			border-radius: 50%; 
-			display: flex; 
-			align-items: center; 
+		.header-info { 
+			display: flex;
+			align-items: center;
 			justify-content: center;
-			font-weight: bold; 
-			font-size: 32rpx; 
-			box-shadow: 0 8rpx 20rpx rgba(59, 130, 246, 0.2);
-		}
-		
-		.header-title { 
-			font-size: 34rpx; 
-			font-weight: 700; 
-		}
-		
-		.online-status {
-			display: flex; 
-			align-items: center; 
-			gap: 8rpx;
+			flex: 1;
 			
-			.dot { 
-				width: 12rpx; 
-				height: 12rpx; 
-				background: #22c55e; 
-				border-radius: 50%; 
-			}
-			
-			.status-text { 
-				font-size: 22rpx; 
-				color: #16a34a; 
-				font-weight: 500; 
+			.header-title { 
+				font-size: 36rpx; 
+				font-weight: 700;
+				letter-spacing: 2rpx;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				-webkit-background-clip: text;
+				-webkit-text-fill-color: transparent;
+				background-clip: text;
 			}
 		}
 	}

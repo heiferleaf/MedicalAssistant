@@ -1,9 +1,6 @@
 <template>
 	<view class="chat-input">
 		<view class="input-row">
-			<view v-if="showAddBtn" class="add-btn" @click="$emit('add')">
-				<image class="icon" src="/static/Health/plus-circle.svg"/>
-			</view>
 			<view class="input-box">
 				<input 
 					v-model="inputValue" 
@@ -32,10 +29,6 @@ export default {
 		placeholder: {
 			type: String,
 			default: '输入健康疑问...'
-		},
-		showAddBtn: {
-			type: Boolean,
-			default: true
 		},
 		showMic: {
 			type: Boolean,

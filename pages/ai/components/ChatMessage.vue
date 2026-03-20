@@ -1,29 +1,90 @@
 <template>
 	<view :class="['message-group', role === 'user' ? 'user-message' : 'ai-message']">
-		<view :class="['chat-bubble', role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai']">
-			<!-- 文本消息 -->
-			<text v-if="type === 'text'" class="msg-text">{{ content }}</text>
-			
-			<!-- 图片消息 -->
-			<image v-if="image" class="msg-img" :src="image" mode="aspectFill"></image>
-			
-			<!-- 加载状态 -->
-			<view v-if="role === 'loading'" class="loading-dots">
-				<view class="dot-loading"></view>
-				<view class="dot-loading"></view>
-				<view class="dot-loading"></view>
+		<!-- AI 消息：完整的圆角矩形，占满整个空间 -->
+		<view v-if="role === 'assistant'" class="ai-message-container">
+			<view class="ai-content">
+				<!-- 操作卡片：用药计划 -->
+				<PlanActionCard
+					v-if="actionType === 'plan'"
+					:messageId="messageId"
+					:actionData="actionData.data"
+					:showConfirm="actionData.showConfirm"
+					:showEdit="actionData.showEdit"
+					:status="actionData.status"
+					@confirm="handleActionConfirm"
+					@cancel="handleActionCancel"
+				/>
+				
+				<!-- 操作卡片：用药任务 -->
+				<TaskActionCard
+					v-if="actionType === 'task'"
+					:messageId="messageId"
+					:actionData="actionData.data"
+					:status="actionData.status"
+					@confirm="handleActionConfirm"
+					@cancel="handleActionCancel"
+				/>
+				
+				<!-- 操作卡片：药箱 -->
+				<MedicineActionCard
+					v-if="actionType === 'medicine'"
+					:messageId="messageId"
+					:actionData="actionData.data"
+					:status="actionData.status"
+					@confirm="handleActionConfirm"
+					@cancel="handleActionCancel"
+				/>
+				
+				<!-- AI 消息使用 Markdown 渲染 -->
+				<SimpleMarkdown 
+					v-if="type === 'text' && !actionType" 
+					:content="content" 
+				/>
+				
+				<!-- 图片消息 -->
+				<image v-if="image" class="msg-img" :src="image" mode="aspectFill"></image>
+				
+				<!-- 加载状态 -->
+				<view v-if="role === 'loading'" class="loading-dots">
+					<view class="dot-loading"></view>
+					<view class="dot-loading"></view>
+					<view class="dot-loading"></view>
+				</view>
+				
+				<!-- 插槽：用于扩展其他消息类型 -->
+				<slot></slot>
 			</view>
-			
-			<!-- 插槽：用于扩展其他消息类型 -->
+		</view>
+		
+		<!-- 用户消息：保持原有样式 -->
+		<view v-else :class="['chat-bubble', 'chat-bubble-user']">
+			<text v-if="type === 'text'" class="msg-text">{{ content }}</text>
+			<image v-if="image" class="msg-img" :src="image" mode="aspectFill"></image>
 			<slot></slot>
 		</view>
 	</view>
 </template>
 
 <script>
+import SimpleMarkdown from './SimpleMarkdown.vue';
+import PlanActionCard from './ActionCards/PlanActionCard.vue';
+import TaskActionCard from './ActionCards/TaskActionCard.vue';
+import MedicineActionCard from './ActionCards/MedicineActionCard.vue';
+
 export default {
 	name: 'ChatMessage',
+	components: {
+		SimpleMarkdown,
+		PlanActionCard,
+		TaskActionCard,
+		MedicineActionCard
+	},
 	props: {
+		// 消息 ID
+		messageId: {
+			type: String,
+			default: ''
+		},
 		role: {
 			type: String,
 			required: true,
@@ -40,6 +101,43 @@ export default {
 		image: {
 			type: String,
 			default: ''
+		},
+		// 操作类型：plan, medicine, task, family 等
+		actionType: {
+			type: String,
+			default: ''
+		},
+		// 操作数据
+		actionData: {
+			type: Object,
+			default: () => ({})
+		}
+	},
+	methods: {
+		// 处理确认操作
+		handleActionConfirm(data) {
+			this.$emit('action-confirm', {
+				type: this.actionType,
+				data: data,
+				messageId: this.messageId
+			});
+		},
+		
+		// 处理取消操作
+		handleActionCancel(data) {
+			this.$emit('action-cancel', {
+				type: this.actionType,
+				data: data,
+				messageId: this.messageId
+			});
+		},
+		
+		// 处理编辑操作
+		handleActionEdit(data) {
+			this.$emit('action-edit', {
+				type: this.actionType,
+				data: data
+			});
 		}
 	}
 }
@@ -56,21 +154,44 @@ $primary: #3B82F6;
 	&.user-message {
 		align-items: flex-end;
 	}
+	
+	&.ai-message {
+		align-items: stretch;
+	}
 }
 
+/* AI 消息样式 - 完整圆角矩形，占满整个空间 */
+.ai-message-container {
+	width: 100%;
+	background: #fff;
+	border-radius: 24rpx;
+	overflow: hidden;
+	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+	
+	@media (prefers-color-scheme: dark) {
+		background: #1e293b;
+		box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.3);
+	}
+}
+
+.ai-content {
+	padding: 32rpx;
+	font-size: 28rpx;
+	line-height: 1.8;
+	color: #1e293b;
+	
+	@media (prefers-color-scheme: dark) {
+		color: #f1f5f9;
+	}
+}
+
+/* 用户消息样式 - 保持原有 */
 .chat-bubble {
 	padding: 30rpx;
 	max-width: 85%;
 	border-radius: 32rpx;
 	font-size: 28rpx;
 	line-height: 1.6;
-	
-	&.chat-bubble-ai {
-		background: #fff;
-		border-bottom-left-radius: 8rpx;
-		color: #1e293b;
-		@media (prefers-color-scheme: dark) { background: #1e293b; color: #f1f5f9; }
-	}
 	
 	&.chat-bubble-user {
 		background: $primary;
