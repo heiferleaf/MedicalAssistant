@@ -1,5 +1,5 @@
 <template>
-	<scroll-view class="container" scroll-y>
+	<scroll-view class="container" scroll-y :class="{ 'dark-mode': isDarkMode }" :style="{ '--base-font': globalFontSize + 'px' }">
 
 		<view class="header">
 			<view class="user-section">
@@ -43,7 +43,8 @@
 			</view>
 
 			<view class="med-list">
-				<view v-for="(item, index) in taskList" :key="item.id" class="med-card" :class="getStatusClass(item.status)">
+				<view v-for="(item, index) in taskList" :key="item.id" class="med-card"
+					:class="getStatusClass(item.status)">
 					<view class="med-info-left">
 						<view class="time-box">
 							<text class="time-text">{{ item.timePoint }}</text>
@@ -82,6 +83,8 @@ export default {
 	components: { quickTools },
 	data() {
 		return {
+			globalFontSize: 16, // 默认基准字体大小 16px
+			isDarkMode: false,
 			refreshing: false,
 			userInfo: { name: "小明", avatar: "static/avatars/avatar1.svg", hasNew: true },
 			hasNotification: true,
@@ -108,10 +111,21 @@ export default {
 	},
 	mounted() {
 		console.log("Home onShow");
+		this.applyGlobalSettings();
 		this.fetchTasks();
 		this.initData();
 	},
 	methods: {
+		// 读取全局设置
+		applyGlobalSettings() {
+			const savedFont = uni.getStorageSync('app_font_size');
+			console.log('读取到的全局字体大小:', savedFont); // 调试输出，查看读取到的值
+			if (savedFont) {
+				this.globalFontSize = savedFont;
+			}
+			const savedTheme = uni.getStorageSync('app_theme');
+			this.isDarkMode = (savedTheme === 'dark');
+		},
 		initData() {
 			const username = uni.getStorageSync("username") || "用户";
 			this.userInfo.name = username;
@@ -238,13 +252,13 @@ export default {
 
 			.welcome-text {
 				.greet {
-					font-size: 26rpx;
+					font-size: calc(var(--base-font) + 10rpx);
 					color: #64748b;
 					display: block;
 				}
 
 				.name {
-					font-size: 38rpx;
+					font-size: calc(var(--base-font) + 8rpx);
 					font-weight: bold;
 					color: #1e293b;
 
@@ -270,7 +284,7 @@ export default {
 			}
 
 			.icon-bell {
-				font-size: 48rpx;
+				font-size: calc(var(--base-font) + 8rpx);
 				color: #64748b;
 			}
 
@@ -297,14 +311,14 @@ export default {
 			gap: 15rpx;
 
 			.day-num {
-				font-size: 100rpx;
+				font-size: calc(var(--base-font) + 40rpx);
 				font-weight: 900;
 				color: #6366f1;
 				line-height: 1;
 			}
 
 			.month-year {
-				font-size: 28rpx;
+				font-size: calc(var(--base-font) + 8rpx);
 				color: #64748b;
 				font-weight: 500;
 			}
@@ -315,7 +329,7 @@ export default {
 			background: #eef2ff;
 			color: #6366f1;
 			border-radius: 40rpx;
-			font-size: 26rpx;
+			font-size: calc(var(--base-font) + 8rpx);
 			font-weight: 600;
 
 			@media (prefers-color-scheme: dark) {
@@ -336,7 +350,7 @@ export default {
 		margin-bottom: 24rpx;
 
 		.title-text {
-			font-size: 34rpx;
+			font-size: calc(var(--base-font) + 10rpx);
 			font-weight: bold;
 			color: #1e293b;
 
@@ -346,7 +360,7 @@ export default {
 		}
 
 		.more-link {
-			font-size: 26rpx;
+			font-size: calc(var(--base-font) + 8rpx);
 			color: #94a3b8;
 			display: flex;
 			align-items: center;
@@ -380,7 +394,7 @@ export default {
 			text-align: center;
 
 			.time-text {
-				font-size: 32rpx;
+				font-size: calc(var(--base-font) + 10rpx);
 				font-weight: bold;
 				color: #475569;
 				display: block;
@@ -400,7 +414,7 @@ export default {
 
 		.name-box {
 			.med-name {
-				font-size: 32rpx;
+				font-size: calc(var(--base-font) + 10rpx);
 				font-weight: 600;
 				color: #1e293b;
 				display: block;
@@ -411,7 +425,7 @@ export default {
 			}
 
 			.med-dosage {
-				font-size: 26rpx;
+				font-size: calc(var(--base-font) + 8rpx);
 				color: #94a3b8;
 			}
 		}
@@ -426,7 +440,7 @@ export default {
 		.status-done-text {
 			color: #10b981;
 			font-weight: 500;
-			font-size: 28rpx;
+			font-size: calc(var(--base-font) + 8rpx);
 		}
 	}
 
@@ -440,9 +454,9 @@ export default {
 		.take-btn {
 			background: #6366f1;
 			color: white;
-			padding: 12rpx 36rpx;
+			padding: 8rpx 24rpx;
 			border-radius: 20rpx;
-			font-size: 26rpx;
+			font-size: calc(var(--base-font) + 8rpx);
 			font-weight: 600;
 		}
 	}
@@ -467,7 +481,7 @@ export default {
 
 		.status-missed-text {
 			font-weight: bold;
-			font-size: 28rpx;
+			font-size: calc(var(--base-font) + 10rpx);
 		}
 	}
 }
@@ -494,7 +508,7 @@ export default {
 		}
 
 		.tool-name {
-			font-size: 24rpx;
+			font-size: calc(var(--base-font) + 8rpx);
 			color: #64748b;
 			font-weight: 500;
 		}
@@ -508,7 +522,7 @@ export default {
 /* 图标库占位 */
 .iconfont {
 	font-family: "Material Symbols Outlined";
-	font-size: 48rpx;
+	font-size: calc(var(--base-font) + 20rpx);
 }
 
 .bottom-safe-spacer {
@@ -524,5 +538,62 @@ export default {
 
 .bottom-safe-spacer {
 	height: 200rpx;
+}
+
+/* ====================================================
+   暗黑模式全局覆盖样式 (通过 .dark-mode 类触发)
+==================================================== */
+.dark-mode.container {
+    background-color: #0f172a; /* 页面深色底色 */
+
+    /* 1. 头部区域 */
+    .header {
+        .user-info .welcome-text .name {
+            color: #ffffff;
+        }
+
+        .notification-btn {
+            background: #1e293b;
+        }
+
+        .date-section .week-tag {
+            background: rgba(99, 102, 241, 0.2);
+        }
+    }
+
+    /* 2. 任务标题区域 */
+    .section-box {
+        .section-title .title-text {
+            color: #ffffff;
+        }
+    }
+
+    /* 3. 服药卡片基础样式 */
+    .med-card {
+        background: #1e293b;
+        border-color: #334155;
+
+        .med-info-left {
+            .time-box .time-text {
+                color: #e2e8f0;
+            }
+
+            .name-box .med-name {
+                color: #ffffff;
+            }
+        }
+
+        /* 漏服状态下的卡片深色适配 */
+        &.is-missed {
+            background: rgba(225, 29, 72, 0.1);
+            border-color: rgba(225, 29, 72, 0.2);
+            /* 注意：这里的红色文字和红点因为对比度尚可，可以保留原有的 #e11d48，或者按需微调 */
+        }
+        
+        /* 待服药状态下，按钮如果需要暗化可以加在这里 */
+        &.is-pending {
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+    }
 }
 </style>

@@ -17,6 +17,8 @@
     "url": ""
   },
   "permissions": {
+    "Push": {},
+    "Camera": {},
     "UniNView": {
       "description": "UniNView原生渲染"
     }
@@ -91,16 +93,54 @@
           "<uses-permission android:name=\"android.permission.FLASHLIGHT\"/>",
           "<uses-feature android:name=\"android.hardware.camera\"/>",
           "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
+        ],
+        "abiFilters": [
+          "armeabi-v7a",
+          "arm64-v8a",
+          "x86"
         ]
       },
       "apple": {
         "dSYMs": false
       },
       "plugins": {
+        "push": {
+          "unipush": {
+            "version": "2",
+            "offline": false,
+            "icons": {
+              "small": {
+                "ldpi": "C:/Users/qq864/Desktop/MyGame/third/ruan_chuang/icon.png",
+                "mdpi": "C:/Users/qq864/Desktop/MyGame/third/ruan_chuang/icon.png",
+                "hdpi": "C:/Users/qq864/Desktop/MyGame/third/ruan_chuang/icon.png",
+                "xhdpi": "C:/Users/qq864/Desktop/MyGame/third/ruan_chuang/icon.png",
+                "xxhdpi": "C:/Users/qq864/Desktop/MyGame/third/ruan_chuang/icon.png"
+              }
+            },
+            "oppo": {}
+          }
+        },
+        "statics": {},
         "audio": {
           "mp3": {
             "description": "Android平台录音支持MP3格式文件"
           }
+        }
+      }
+    },
+    "nativePlugins": {
+      "OppoHealthPlugin": {
+        "__plugin_info__": {
+          "name": "OppoHealthPlugin",
+          "description": "健康服务插件",
+          "platforms": "Android",
+          "url": "",
+          "android_package_name": "",
+          "ios_bundle_id": "",
+          "isCloud": false,
+          "bought": -1,
+          "pid": "",
+          "parameters": {}
         }
       }
     },

@@ -4,7 +4,7 @@ var __commonJS = (cb, mod) => function __require() {
 };
 var require_app_css = __commonJS({
   "app.css.js"(exports) {
-    const _style_0 = {};
+    const _style_0 = { "icon": { "": { "width": "36rpx", "height": "36rpx", "backgroundSize": "cover", "backgroundPosition": "center", "backgroundRepeat": "no-repeat" } } };
     exports.styles = [_style_0];
   }
 });

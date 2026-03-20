@@ -7,39 +7,39 @@ import { httpRequest } from "../utils/api"
  */
 
 // 1.1 创建家庭组
-// POST /family/groups
+// POST /family/group
 const createGroup = (data) => {
-  return httpRequest('/family/groups', 'POST', data)
+  return httpRequest('/family/group', 'POST', data)
 }
 
 // 1.2 获取自己所在家庭组及成员
-// GET /family/groups/me
+// GET /family/group/me
 const getMyGroup = () => {
-  return httpRequest('/family/groups/me', 'GET')
+  return httpRequest('/family/group/me', 'GET')
 }
 
 // 1.3 申请加入家庭组
-// POST /family/groups/{groupId}/apply
+// POST /family/group/{groupId}/apply
 const applyJoinGroup = (groupId) => {
-  return httpRequest(`/family/groups/${groupId}/apply`, 'POST')
+  return httpRequest(`/family/group/${groupId}/apply`, 'POST')
 }
 
 // 1.4 邀请成员
-// POST /family/groups/{groupId}/invite
+// POST /family/group/{groupId}/invite
 const inviteMember = (groupId, phoneNumber, data) => {
-  return httpRequest(`/family/groups/${groupId}/invite?phoneNumber=${phoneNumber}`, 'POST', data)
+  return httpRequest(`/family/group/${groupId}/invite?phoneNumber=${phoneNumber}`, 'POST', data)
 }
 
 // 1.5 组长审批申请
-// POST /family/groups/{groupId}/approve
+// POST /family/group/{groupId}/approve
 const approveApply = (groupId, data) => {
-  return httpRequest(`/family/groups/${groupId}/approve`, 'POST', data)
+  return httpRequest(`/family/group/${groupId}/approve`, 'POST', data)
 }
 
 // 1.7 成员主动退出
-// POST /family/groups/{groupId}/quit
+// POST /family/group/{groupId}/quit
 const quitGroup = (groupId) => {
-  return httpRequest(`/family/groups/${groupId}/quit`, 'POST')
+  return httpRequest(`/family/group/${groupId}/quit`, 'POST')
 }
 
 /**
@@ -49,21 +49,21 @@ const quitGroup = (groupId) => {
  */
 
 // 2.1 查看本人申请/邀请历史
-// GET /family/groups/my/apply-records
+// GET /family/group/my/apply-records
 const getMyApplyRecords = (params) => {
-  return httpRequest('/family/groups/my/apply-records', 'GET', params)
+  return httpRequest('/family/group/my/apply-records', 'GET', params)
 }
 
 // // 2.2 查看本人收到的邀请
-// // GET /family/groups/my/invite-records
+// // GET /family/group/my/invite-records
 // const getMyInviteRecords = (params) => {
-//   return httpRequest('/family/groups/my/invite-records', 'GET', params)
+//   return httpRequest('/family/group/my/invite-records', 'GET', params)
 // }
 
 // 2.3 组长查询待审批申请
-// GET /family/groups/{groupId}/pending-applies
+// GET /family/group/{groupId}/pending-applies
 const getPendingApplies = (groupId, params) => {
-  return httpRequest(`/family/groups/${groupId}/pending-applies`, 'GET', params)
+  return httpRequest(`/family/group/${groupId}/pending-applies`, 'GET', params)
 }
 
 /**
@@ -73,18 +73,18 @@ const getPendingApplies = (groupId, params) => {
  */
 
 // 3.1 查询家庭组成员健康与用药数据
-// GET /family/groups/{groupId}/health?date=
+// GET /family/group/{groupId}/health?date=
 const getGroupHealthData = (groupId) => {
   return httpRequest(
-    `/family/groups/${groupId}/health`,
+    `/family/group/${groupId}/health`,
     'GET'
   )
 }
 
 // 3.2 查询当天异常告警
-// GET /family/groups/{groupId}/alarms
+// GET /family/group/{groupId}/alarms
 const getGroupAlarms = (groupId) => {
-  return httpRequest(`/family/groups/${groupId}/alarms`, 'GET')
+  return httpRequest(`/family/group/${groupId}/alarms`, 'GET')
 }
 
 

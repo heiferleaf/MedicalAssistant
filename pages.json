@@ -107,6 +107,18 @@
 			"style": {
 				"navigationBarTitleText": "邀请成员"
 			}
+		},
+		{
+			"path": "pages/mine/Settings",
+			"style": {
+				"navigationBarTitleText": "设置"
+			}
+		},
+		{
+			"path": "pages/test/health",
+			"style": {
+				"navigationBarTitleText": "健康信息"
+			}
 		}
 
 	],

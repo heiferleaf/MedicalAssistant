@@ -6,7 +6,7 @@
 			<header class="header-section">
 				<view class="top-row">
 					<text class="page-title">个人中心</text>
-					<view class="settings-btn" @tap="toSettings">
+					<view class="settings-btn" @tap="uni.navigateTo({ url: '/pages/mine/Settings' })">
 						<image class="icon" src="../../static/Mine/settings.svg" />
 					</view>
 				</view>

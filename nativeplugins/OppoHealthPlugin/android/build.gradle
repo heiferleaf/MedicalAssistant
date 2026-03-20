@@ -1,0 +1,10 @@
+repositories {
+    maven {
+        url 'https://maven.columbus.heytapmobi.com/repository/heytap-health-releases/'
+        allowInsecureProtocol = true
+        credentials {
+            username "healthUser"
+            password "8174a9eac1264495b593a9d5ab221491"
+        }
+    }
+}

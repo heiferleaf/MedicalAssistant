@@ -93,13 +93,15 @@ async function handleRefreshToken() {
   const userId = uni.getStorageSync("userId");
   const refreshToken = uni.getStorageSync("refreshToken");
 
+  console.log("尝试刷新 Token，userId:", userId, "refreshToken:", refreshToken);
   if (!userId || !refreshToken) return false;
   return new Promise((resolve) => {
     uni.request({
       url: BASE_URL + "/user/refresh",
       method: "POST",
-      data: { userId, refreshToken },
+      data: { "userId": userId, "refreshToken": refreshToken },
       success: (res) => {
+        console.log("刷新 Token 响应:", res);
         if (res.data.code === 200) {
           // 刷新成功：data 字段为字符串类型的 newAccessToken
           uni.setStorageSync("accessToken", res.data.data);

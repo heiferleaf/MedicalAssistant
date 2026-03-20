@@ -28,8 +28,9 @@ export default {
                 { id: 1, name: "拍照识药", icon: "/static/Home/camera.svg", color: "#06b6d4" },
                 { id: 2, name: "就医清单", icon: "/static/Home/medical-list.svg", color: "#3539ff" },
                 { id: 3, name: "家庭管理", icon: "/static/Home/family.svg", color: "#10b981" },
-                { id: 4, name: "AI 咨询", icon: "/static/Home/ai-assistant.svg", color: "#0ea5e9" },
-                { id: 5, name: "用药提醒", icon: "/static/Home/reminder.svg", color: "#ef4444" },
+                // { id: 4, name: "AI 咨询", icon: "/static/Home/ai-assistant.svg", color: "#0ea5e9" },
+                { id: 4, name: "用药提醒", icon: "/static/Home/reminder.svg", color: "#ef4444" },
+                { id: 5, name: "健康信息", icon: "/static/Home/reminder.svg", color: "#8b5cf6" },
             ],
         };
     },
@@ -39,8 +40,9 @@ export default {
                 1: "/pages/scan/DrugScan",
                 2: "/pages/medical/Prepare",
                 3: "/pages/family/index",
-                4: "/pages/ai/Assistant",
-                5: "/pages/reminder/Reminder",
+                // 4: "/pages/ai/Assistant",
+                4: "/pages/reminder/Reminder",
+                5: "/pages/test/health",
             };
             if (routes[funcId]) uni.navigateTo({ url: routes[funcId] });
         },
@@ -91,7 +93,7 @@ export default {
 
 /* 每个工具 */
 .tool-item {
-    width: 23%;
+    width: 25%;
     flex-shrink: 0;
 
     display: flex;
