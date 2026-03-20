@@ -41,7 +41,7 @@ public interface UserMapper{
     /**
      * 检查用户手机号是否存在
      *
-     * @param username 用户手机
+     * @param phoneNumber 用户手机
      * @return 存在返回1，不存在返回0
      */
     int existsByUserPhoneNumber(@Param("phoneNumber") String phoneNumber);
@@ -59,4 +59,6 @@ public interface UserMapper{
      * @return
      */
     User findByPhoneNumber(@Param("phoneNumber") String phoneNumber);
+
+    int updateUserInfo(@Param("user") User user);
 }

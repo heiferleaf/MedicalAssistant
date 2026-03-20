@@ -1,25 +1,32 @@
 package com.whu.medicalbackend.service.serviceImpl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.whu.medicalbackend.dto.UserInfoDTO;
 import com.whu.medicalbackend.dto.UserLoginDto;
 import com.whu.medicalbackend.dto.UserRegisterDto;
 import com.whu.medicalbackend.entity.User;
-import com.whu.medicalbackend.exception.PasswordIncorrectException;
-import com.whu.medicalbackend.exception.UserAlreadyExistsException;
-import com.whu.medicalbackend.exception.UserNotFoundException;
-import com.whu.medicalbackend.exception.UserPhoneAlreadyExistsException;
+import com.whu.medicalbackend.exception.*;
+import com.whu.medicalbackend.mapper.FamilyMemberMapper;
 import com.whu.medicalbackend.mapper.UserMapper;
 import com.whu.medicalbackend.repository.UserRepository;
+import com.whu.medicalbackend.service.FamilyGroupService;
 import com.whu.medicalbackend.service.UserService;
 import com.whu.medicalbackend.util.PasswordUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class UserServiceImpl implements UserService{
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private FamilyMemberMapper familyMemberMapper;
+    @Autowired
+    private FamilyCacheService familyCacheService;
 
     @Override
     public User register(UserRegisterDto dto) {
@@ -57,5 +64,37 @@ public class UserServiceImpl implements UserService{
         }
 
         return user;
+    }
+
+    @Override
+    public User modify(UserInfoDTO dto) {
+        User user = userRepository.findByUsername(dto.getUsername());
+        if(user == null || !user.getId().equals(dto.getId())) {
+            throw new BusinessException("user not found");
+        }
+        user.setNickname(dto.getNewNickname());
+        user.setPassword(PasswordUtil.encrypt(dto.getNewPassword()));
+        user.setPhoneNumber(dto.getNewPhoneNumber());
+        user.setUpdateTime(LocalDateTime.now());
+        if(userRepository.updateUserInfo(user) != 1) {
+            throw new BusinessException("修改用户信息失败");
+        }
+
+        // 数据库修改成功，采用 cache aside 方式，更新缓存
+        if (familyMemberMapper.checkUserInGroup(user.getId())) {
+            Long groupId = familyMemberMapper.getGroupIdByUserId(user.getId());
+            updateCacheMemberDate(groupId, user.getId());
+        }
+
+        return user;
+    }
+
+    private void updateCacheMemberDate(Long groupId, Long userId) {
+        familyCacheService.removeMemberFromCache(groupId, userId);
+        try {
+            familyCacheService.syncSingleMemberToCache(groupId, userId);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException("刷新用户家庭组数据失败");
+        }
     }
 }

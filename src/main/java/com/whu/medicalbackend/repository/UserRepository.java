@@ -43,4 +43,11 @@ public class UserRepository{
     public boolean existsByUserPhoneNumber(String phoneNumber) {
         return userMapper.existsByUserPhoneNumber(phoneNumber) > 0;
     }
+
+    /**
+     * 修改用户信息
+     */
+    public int updateUserInfo(User user) {
+        return userMapper.updateUserInfo(user);
+    }
 }
