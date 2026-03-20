@@ -43,30 +43,59 @@
 				</view>
 			</view>
 
-			<view class="med-list">
-				<view v-for="(item, index) in taskList" :key="item.id" class="med-card"
-					:class="getStatusClass(item.status)">
+			<!-- ── 无任务状态 ── -->
+			<view v-if="taskList.length === 0" class="empty-card">
+				<view class="ec-blob1"></view>
+				<view class="ec-blob2"></view>
+				<view class="ec-center">
+					<view class="ec-graphic">
+						<view class="ec-outer" :style="blobOuterStyle"></view>
+						<view class="ec-inner" :style="blobInnerStyle"></view>
+						<view class="ec-icon-wrap">
+							<view class="ec-dots">
+								<view class="ec-dot-g"></view>
+								<view class="ec-dot-b"></view>
+							</view>
+							<text class="ec-spa-icon">🌿</text>
+						</view>
+					</view>
+					<text class="ec-title">今日没有服药任务</text>
+					<text class="ec-sub">享受健康生活的一天吧！</text>
+				</view>
+			</view>
+
+			<!-- ── 有任务状态 ── -->
+			<view v-else class="task-area">
+				<!-- 叠影层：仅任务 > 1 时显示 -->
+				<template v-if="taskList.length > 1">
+					<view class="stack-3"></view>
+					<view class="stack-2"></view>
+				</template>
+
+				<!-- 只展示第一条任务，复用原有 med-card 样式 -->
+				<view class="med-card" :class="getStatusClass(taskList[0].status)">
 					<view class="med-info-left">
 						<view class="time-box">
-							<text class="time-text">{{ item.timePoint }}</text>
+							<text class="time-text">{{ taskList[0].timePoint }}</text>
 							<view class="status-dot"></view>
 						</view>
 						<view class="name-box">
-							<text class="med-name">{{ item.medicineName }}</text>
-							<text class="med-dosage">{{ item.dosage }}</text>
+							<text class="med-name">{{ taskList[0].medicineName }}</text>
+							<text class="med-dosage">{{ taskList[0].dosage }}</text>
 						</view>
 					</view>
-
 					<view class="med-action">
-						<view v-if="item.status === 1" class="status-done-text">
+						<view v-if="taskList[0].status === 1" class="status-done-text">
 							<text class="iconfont icon-check"></text>
 							<text>已服</text>
 						</view>
-						<button v-else-if="item.status === 0" class="take-btn"
-							@tap="handleTaskClick(item, index)">服用</button>
-						<text v-else-if="item.status === 2" class="status-missed-text">！漏服</text>
+						<button v-else-if="taskList[0].status === 0" class="take-btn"
+							@tap="handleTaskClick(taskList[0], 0)">服用</button>
+						<text v-else-if="taskList[0].status === 2" class="status-missed-text">！漏服</text>
 					</view>
 				</view>
+
+				<text class="task-hint">在用药提醒中查看所有任务</text>
 			</view>
 		</view>
 
@@ -102,6 +131,9 @@ export default {
 			],
 			healthData: { steps: 6234, heartRate: 72 },
 			taskList: [],
+			blobOuterStyle: {},
+			blobInnerStyle: {},
+			_blobTimer: null,
 		};
 	},
 	computed: {
@@ -115,7 +147,13 @@ export default {
 		this.applyGlobalSettings();
 		this.fetchTasks();
 		this.initData();
+		this._startBlobAnimation();
 	},
+	
+	beforeDestroy() {
+	  if (this._blobTimer) clearInterval(this._blobTimer); // 新增
+	},
+	
 	methods: {
 		// 读取全局设置
 		applyGlobalSettings() {
@@ -167,6 +205,33 @@ export default {
 		toNotification() { uni.navigateTo({ url: "/pages/notification/notification" }); },
 		toMedicationList() { uni.navigateTo({ url: "/pages/medication/list" }); },
 		toHealthDetail() { uni.navigateTo({ url: "/pages/health/detail" }); },
+
+		_startBlobAnimation() {
+		  const outerFrames = [
+		    'linear-gradient(135deg, rgba(96,165,250,0.2), rgba(52,211,153,0.2))',
+		  ]
+		  const borderFrames = [
+		    { outer: '60% 40% 30% 70% / 60% 30% 70% 40%', inner: '50% 60% 40% 50% / 40% 50% 60% 50%' },
+		    { outer: '30% 60% 70% 40% / 50% 60% 30% 60%', inner: '60% 40% 50% 60% / 60% 40% 50% 40%' },
+		    { outer: '50% 50% 40% 60% / 30% 70% 50% 50%', inner: '40% 60% 60% 40% / 50% 40% 60% 60%' },
+		    { outer: '70% 30% 50% 50% / 60% 40% 60% 40%', inner: '55% 45% 45% 55% / 45% 55% 45% 55%' },
+		  ]
+		  let i = 0
+		  const next = () => {
+		    const f = borderFrames[i % borderFrames.length]
+		    this.blobOuterStyle = {
+		      borderRadius: f.outer,
+		      transition: 'border-radius 2.5s ease-in-out',
+		    }
+		    this.blobInnerStyle = {
+		      borderRadius: f.inner,
+		      transition: 'border-radius 2s ease-in-out',
+		    }
+		    i++
+		  }
+		  next()
+		  this._blobTimer = setInterval(next, 2600)
+		},
 
 		async fetchTasks() {
 			try {
@@ -373,7 +438,178 @@ export default {
 	}
 }
 
-/* 服药卡片样式 */
+/* ────────────────────────────────────────
+   新增：无任务空状态
+──────────────────────────────────────── */
+.empty-card {
+	position: relative;
+	min-height: 680rpx;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	background: #ffffff;
+	border-radius: 80rpx;
+	overflow: hidden;
+	border: 1rpx solid #f1f5f9;
+	box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.ec-blob1 {
+	position: absolute;
+	top: -80rpx;
+	right: -80rpx;
+	width: 380rpx;
+	height: 380rpx;
+	background: rgba(191, 219, 254, 0.4);
+	border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+	filter: blur(60rpx);
+}
+
+.ec-blob2 {
+	position: absolute;
+	bottom: -96rpx;
+	left: -64rpx;
+	width: 440rpx;
+	height: 440rpx;
+	background: rgba(167, 243, 208, 0.3);
+	border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+	filter: blur(60rpx);
+}
+
+.ec-center {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	position: relative;
+	z-index: 10;
+}
+
+.ec-graphic {
+	position: relative;
+	width: 320rpx;
+	height: 320rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 48rpx;
+}
+
+.ec-outer {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(52, 211, 153, 0.2));
+	border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
+
+.ec-inner {
+	position: absolute;
+	top: 32rpx;
+	left: 32rpx;
+	right: 32rpx;
+	bottom: 32rpx;
+	background: linear-gradient(225deg, rgba(255, 255, 255, 0.85), rgba(239, 246, 255, 0.5));
+	border-radius: 50%;
+	box-shadow: inset 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.ec-icon-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12rpx;
+	position: relative;
+	z-index: 1;
+}
+
+.ec-dots {
+	display: flex;
+	flex-direction: row;
+	gap: 12rpx;
+}
+
+.ec-dot-g {
+	width: 20rpx;
+	height: 20rpx;
+	border-radius: 50%;
+	background: #34d399;
+	box-shadow: 0 0 24rpx rgba(52, 211, 153, 0.5);
+}
+
+.ec-dot-b {
+	width: 20rpx;
+	height: 20rpx;
+	border-radius: 50%;
+	background: #60a5fa;
+	box-shadow: 0 0 24rpx rgba(96, 165, 250, 0.5);
+}
+
+.ec-spa-icon {
+	font-size: 88rpx;
+	line-height: 1;
+}
+
+.ec-title {
+	font-size: 36rpx;
+	font-weight: 700;
+	color: #1e293b;
+}
+
+.ec-sub {
+	font-size: 28rpx;
+	color: #94a3b8;
+	font-weight: 500;
+	margin-top: 16rpx;
+}
+
+/* ────────────────────────────────────────
+   新增：有任务堆叠区域
+──────────────────────────────────────── */
+.task-area {
+	position: relative;
+	padding-bottom: 56rpx;
+}
+
+/* 第三层（最底，最窄最透明） */
+.stack-3 {
+	position: absolute;
+	left: 88rpx;
+	right: 88rpx;
+	bottom: 28rpx;
+	height: 100rpx;
+	background: rgba(255, 255, 255, 0.45);
+	border-radius: 40rpx;
+	border: 1rpx solid rgba(226, 232, 240, 0.4);
+	box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.03);
+}
+
+/* 第二层（中间） */
+.stack-2 {
+	position: absolute;
+	left: 44rpx;
+	right: 44rpx;
+	bottom: 42rpx;
+	height: 100rpx;
+	background: rgba(255, 255, 255, 0.72);
+	border-radius: 40rpx;
+	border: 1rpx solid rgba(226, 232, 240, 0.75);
+	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.task-hint {
+	display: block;
+	text-align: center;
+	font-size: 24rpx;
+	color: #94a3b8;
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	margin-top: 16rpx;
+}
+
+/* ────────────────────────────────────────
+   原有：服药卡片样式（完全不变，仅新增
+   position/z-index/margin-bottom 覆盖）
+──────────────────────────────────────── */
 .med-card {
 	background: white;
 	padding: 36rpx;
@@ -384,6 +620,10 @@ export default {
 	margin-bottom: 24rpx;
 	border: 2rpx solid #f1f5f9;
 	box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.02);
+
+	/* 新增：确保主卡片在叠影层之上 */
+	position: relative;
+	z-index: 2;
 
 	@media (prefers-color-scheme: dark) {
 		background: #1e293b;
@@ -549,56 +789,80 @@ export default {
    暗黑模式全局覆盖样式 (通过 .dark-mode 类触发)
 ==================================================== */
 .dark-mode.container {
-    background-color: #0f172a; /* 页面深色底色 */
+	background-color: #0f172a;
 
-    /* 1. 头部区域 */
-    .header {
-        .user-info .welcome-text .name {
-            color: #ffffff;
-        }
+	/* 1. 头部区域 */
+	.header {
+		.user-info .welcome-text .name {
+			color: #ffffff;
+		}
 
-        .notification-btn {
-            background: #1e293b;
-        }
+		.notification-btn {
+			background: #1e293b;
+		}
 
-        .date-section .week-tag {
-            background: rgba(99, 102, 241, 0.2);
-        }
-    }
+		.date-section .week-tag {
+			background: rgba(99, 102, 241, 0.2);
+		}
+	}
 
-    /* 2. 任务标题区域 */
-    .section-box {
-        .section-title .title-text {
-            color: #ffffff;
-        }
-    }
+	/* 2. 任务标题区域 */
+	.section-box {
+		.section-title .title-text {
+			color: #ffffff;
+		}
+	}
 
-    /* 3. 服药卡片基础样式 */
-    .med-card {
-        background: #1e293b;
-        border-color: #334155;
+	/* 3. 服药卡片基础样式 */
+	.med-card {
+		background: #1e293b;
+		border-color: #334155;
 
-        .med-info-left {
-            .time-box .time-text {
-                color: #e2e8f0;
-            }
+		.med-info-left {
+			.time-box .time-text {
+				color: #e2e8f0;
+			}
 
-            .name-box .med-name {
-                color: #ffffff;
-            }
-        }
+			.name-box .med-name {
+				color: #ffffff;
+			}
+		}
 
-        /* 漏服状态下的卡片深色适配 */
-        &.is-missed {
-            background: rgba(225, 29, 72, 0.1);
-            border-color: rgba(225, 29, 72, 0.2);
-            /* 注意：这里的红色文字和红点因为对比度尚可，可以保留原有的 #e11d48，或者按需微调 */
-        }
-        
-        /* 待服药状态下，按钮如果需要暗化可以加在这里 */
-        &.is-pending {
-            border-color: rgba(99, 102, 241, 0.5);
-        }
-    }
+		/* 漏服状态下的卡片深色适配 */
+		&.is-missed {
+			background: rgba(225, 29, 72, 0.1);
+			border-color: rgba(225, 29, 72, 0.2);
+		}
+
+		/* 待服药状态下，按钮如果需要暗化可以加在这里 */
+		&.is-pending {
+			border-color: rgba(99, 102, 241, 0.5);
+		}
+	}
+
+	/* 4. 空状态暗色适配（新增） */
+	.empty-card {
+		background: #1e293b;
+		border-color: #334155;
+
+		.ec-title {
+			color: #ffffff;
+		}
+
+		.ec-inner {
+			background: linear-gradient(225deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.5));
+		}
+	}
+
+	/* 5. 堆叠层暗色适配（新增） */
+	.stack-3 {
+		background: rgba(30, 41, 59, 0.45);
+		border-color: rgba(51, 65, 85, 0.4);
+	}
+
+	.stack-2 {
+		background: rgba(30, 41, 59, 0.72);
+		border-color: rgba(51, 65, 85, 0.75);
+	}
 }
 </style>

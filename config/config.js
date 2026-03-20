@@ -3,7 +3,7 @@
 let BASE_URL = "";
 let WS_BASE_URL = "";
 
-const USE_SIMULATOR = false; // 是否使用模拟器
+const USE_SIMULATOR = true; // 是否使用模拟器
 
 if (process.env.NODE_ENV === "production") {
   // 开发环境：点击“运行”时生效
@@ -12,8 +12,8 @@ if (process.env.NODE_ENV === "production") {
   WS_BASE_URL = "ws://8.148.94.242:8080/ws";
 } else if (process.env.NODE_ENV === "development" && USE_SIMULATOR) {
   // 生产环境：点击“发行”打包时自动生效
-  BASE_URL = "http://10.135.2.86:8080/api";
-  WS_BASE_URL = "ws://10.135.2.86:8080/ws";
+  BASE_URL = "http://8.148.94.242:8080/api";
+  WS_BASE_URL = "ws://8.148.94.242:8080/ws";
 } else {
   BASE_URL = "http://localhost:8080/api";
   WS_BASE_URL = "ws://localhost:8080/ws";
