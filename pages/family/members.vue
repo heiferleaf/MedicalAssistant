@@ -3,12 +3,12 @@
         <view class="header">
             <view class="header-left">
                 <view class="icon-btn" @click="uni.navigateBack()">
-                    <image class="icon-md" src="../../static/Register/back.png" mode="aspectFit"></image>
+                    <image class="icon-md" src="/static/Register/back.png" mode="aspectFit"></image>
                 </view>
                 <text class="header-title">家庭管理</text>
             </view>
             <view class="icon-btn" @click="goToSettings">
-                <image class="icon-md" src="../../static/Mine/settings.svg" mode="aspectFit"></image>
+                <image class="icon-md" src="/static/Mine/settings.svg" mode="aspectFit"></image>
             </view>
         </view>
 
@@ -18,7 +18,7 @@
                 <view class="family-card">
                     <view class="card-info">
                         <view class="cover-image-wrapper">
-                            <image class="cover-image" src="../../static/family/family_cover.png" mode="aspectFill">
+                            <image class="cover-image" src="/static/family/family_cover.png" mode="aspectFill">
                             </image>
                         </view>
                         <view class="text-info">
@@ -36,11 +36,11 @@
             <view class="section-padding action-grid">
                 <view class="action-btn" hover-class="action-btn-hover"
                     @click="navigateTo(`/pages/family/invite?groupId=${groupInfo.groupId}`)">
-                    <image class="icon-sm mr-2" src="../../static/family/person_add.svg" mode="aspectFit"></image>
+                    <image class="icon-sm mr-2" src="/static/family/person_add.svg" mode="aspectFit"></image>
                     <text class="action-text">邀请成员</text>
                 </view>
                 <view class="action-btn" hover-class="action-btn-hover" @click="openApplyCenter">
-                    <image class="icon-sm mr-2" src="../../static/family/verified_user.svg" mode="aspectFit"></image>
+                    <image class="icon-sm mr-2" src="/static/family/verified_user.svg" mode="aspectFit"></image>
                     <text class="action-text">审批中心</text>
                 </view>
             </view>
@@ -66,7 +66,7 @@
                                     }}</text>
                             </view>
                         </view>
-                        <image class="icon-sm icon-chevron" src="../../static/Home/right-arrow.svg" mode="aspectFit">
+                        <image class="icon-sm icon-chevron" src="/static/Home/right-arrow.svg" mode="aspectFit">
                         </image>
                     </view>
                 </view>

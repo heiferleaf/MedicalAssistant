@@ -2,11 +2,11 @@
   <view class="page-container">
     <view class="header">
       <view class="icon-btn" @click="goBack">
-        <image class="icon" src="../../static/Register/back.png" mode="aspectFit"></image>
+        <image class="icon" src="/static/Register/back.png" mode="aspectFit"></image>
       </view>
       <text class="header-title">健康看板</text>
       <view class="icon-btn" @click="goNotifications">
-        <image class="icon" src="../../static/Home/warning.svg" mode="aspectFit"></image>
+        <image class="icon" src="/static/Home/warning.svg" mode="aspectFit"></image>
       </view>
     </view>
 
@@ -16,12 +16,12 @@
         <text class="section-title">药品服用情况</text>
         <view class="empty-card">
           <view class="empty-icon-wrapper">
-            <image class="icon-huge" src="../../static/Health/pill-active.svg" mode="aspectFit"></image>
+            <image class="icon-huge" src="/static/Health/pill-active.svg" mode="aspectFit"></image>
           </view>
           <text class="empty-title">暂无记录</text>
           <text class="empty-desc">您还没有添加任何药品服用记录</text>
           <button class="btn-add" hover-class="btn-add-hover" @click="addRecord">
-            <image class="icon-sm mr-1" src="../../static/Health/plus-circle.svg" mode="aspectFit"></image>
+            <image class="icon-sm mr-1" src="/static/Health/plus-circle.svg" mode="aspectFit"></image>
             <text>添加记录</text>
           </button>
         </view>
@@ -34,9 +34,9 @@
           <view class="indicator-card" @click="viewDetail('blood_pressure')">
             <view class="card-header">
               <view class="icon-box bg-red-light">
-                <image class="icon" src="../../static/Home/heart.svg" mode="aspectFit"></image>
+                <image class="icon" src="/static/Home/heart.svg" mode="aspectFit"></image>
               </view>
-              <image class="icon-sm chevron" src="../../static/Home/right-arrow.svg" mode="aspectFit"></image>
+              <image class="icon-sm chevron" src="/static/Home/right-arrow.svg" mode="aspectFit"></image>
             </view>
             <text class="card-label">血压</text>
             <view class="card-value-box">
@@ -52,9 +52,9 @@
           <view class="indicator-card" @click="viewDetail('blood_sugar')">
             <view class="card-header">
               <view class="icon-box bg-blue-light">
-                <image class="icon" src="../../static/Prepare/blood-sugar.svg" mode="aspectFit"></image>
+                <image class="icon" src="/static/Prepare/blood-sugar.svg" mode="aspectFit"></image>
               </view>
-              <image class="icon-sm chevron" src="../../static/Home/right-arrow.svg" mode="aspectFit"></image>
+              <image class="icon-sm chevron" src="/static/Home/right-arrow.svg" mode="aspectFit"></image>
             </view>
             <text class="card-label">血糖</text>
             <view class="card-value-box">

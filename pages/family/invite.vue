@@ -2,7 +2,7 @@
   <view class="page-container">
     <view class="header">
       <view class="back-btn" @click="uni.navigateBack()">
-        <image class="icon-sm" src="../../static/Register/back.png" mode="aspectFit"></image>
+        <image class="icon-sm" src="/static/Register/back.png" mode="aspectFit"></image>
       </view>
       <text class="header-title">添加家庭成员</text>
       <view class="placeholder"></view> </view>
@@ -12,7 +12,7 @@
         
         <view class="hero-section">
           <view class="icon-wrapper">
-            <image class="icon-lg" src="../../static/family/person_add_blue.svg" mode="aspectFit"></image>
+            <image class="icon-lg" src="/static/family/person_add_blue.svg" mode="aspectFit"></image>
           </view>
           <text class="hero-title">邀请成员</text>
           <text class="hero-desc">与您的家人联系，共同管理健康并分享设备访问权限。</text>
@@ -22,7 +22,7 @@
           <view class="form-group">
             <text class="label">手机号码</text>
             <view class="input-wrapper">
-              <image class="input-icon" src="../../static/family/call.svg" mode="aspectFit"></image>
+              <image class="input-icon" src="/static/family/call.svg" mode="aspectFit"></image>
               <input 
                 class="custom-input" 
                 type="number" 
@@ -37,7 +37,7 @@
           <view class="form-group">
             <text class="label">备注信息</text>
             <view class="input-wrapper">
-              <image class="textarea-icon" src="../../static/DrugScan/note.svg" mode="aspectFit"></image>
+              <image class="textarea-icon" src="/static/DrugScan/note.svg" mode="aspectFit"></image>
               <textarea 
                 class="custom-textarea" 
                 v-model="remark"
@@ -50,13 +50,13 @@
           <view class="btn-container">
             <button class="submit-btn" hover-class="submit-btn-hover" @click="handleInvite">
               <text>发送邀请</text>
-              <image class="icon-md ml-2" src="../../static/ai/send.svg" mode="aspectFit"></image>
+              <image class="icon-md ml-2" src="/static/ai/send.svg" mode="aspectFit"></image>
             </button>
           </view>
         </view>
 
         <view class="info-box">
-          <image class="icon-sm shrink-0 mt-1" src="../../static/Mine/info.svg" mode="aspectFit"></image>
+          <image class="icon-sm shrink-0 mt-1" src="/static/Mine/info.svg" mode="aspectFit"></image>
           <text class="info-text">邀请将通过短信发送。您的家人将收到下载应用的链接，并自动加入您的家庭组。</text>
         </view>
         

@@ -11,17 +11,17 @@
 
 		<view class="nav-header">
 			<view class="icon-btn-blur" @tap="goBack">
-				<image class="icon" src="../../static/Health/close.svg"/>
+				<image class="icon" src="/static/Health/close.svg"/>
 			</view>
 		</view>
 
 		<view class="ai-info-layer">
 			<view class="info-pill primary-pill pulse-anim">
-				<image class="icon" src="../../static/Health/pill-inactive.svg" style="height: 48rpx;width: 48rpx;"/>
+				<image class="icon" src="/static/Health/pill-inactive.svg" style="height: 48rpx;width: 48rpx;"/>
 				<text class="pill-text">药品名: 阿司匹林肠溶片</text>
 			</view>
 			<view class="info-pill secondary-pill">
-				<image class="icon" src="../../static/Prepare/schedule.svg" style="height: 48rpx;width: 48rpx;"/>
+				<image class="icon" src="/static/Prepare/schedule.svg" style="height: 48rpx;width: 48rpx;"/>
 				<text class="pill-text">频率: 每日一次</text>
 			</view>
 		</view>
@@ -43,7 +43,7 @@
 		<view class="bottom-controls">
 			<view class="tool-row">
 				<view class="tool-btn">
-					<image class="icon" src="../../static/DrugScan/gallery.svg" style="height: 56rpx;width: 56rpx;"/>
+					<image class="icon" src="/static/DrugScan/gallery.svg" style="height: 56rpx;width: 56rpx;"/>
 				</view>
 				
 				<view class="shutter-btn" @tap="handleCapture()">
@@ -51,7 +51,7 @@
 				</view>
 				
 				<view class="tool-btn">
-					<image class="icon" src="../../static/DrugScan/flash-on.svg" style="height: 56rpx;width: 56rpx;"/>
+					<image class="icon" src="/static/DrugScan/flash-on.svg" style="height: 56rpx;width: 56rpx;"/>
 				</view>
 			</view>
 

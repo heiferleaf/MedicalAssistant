@@ -2,7 +2,7 @@
     <view class="page-container">
         <view class="header">
             <view class="back-btn" @click="uni.navigateBack()">
-                <image class="icon-sm" src="../../static/Register/back.png" mode="aspectFit"></image>
+                <image class="icon-sm" src="/static/Register/back.png" mode="aspectFit"></image>
             </view>
             <text class="header-title">欢迎</text>
             <view class="placeholder"></view>
@@ -12,7 +12,7 @@
 
             <view class="hero-section">
                 <view class="icon-wrapper">
-                    <image class="icon-xl" src="../../static/family/family_restroom.svg" mode="aspectFit"></image>
+                    <image class="icon-xl" src="/static/family/family_restroom.svg" mode="aspectFit"></image>
                 </view>
                 <text class="main-title">欢迎来到家庭健康组</text>
                 <text class="sub-title">与您的家人联系，共同管理健康。创建一个新的家庭组或加入现有家庭组。</text>
@@ -20,11 +20,11 @@
 
             <view class="action-section">
                 <button class="btn-primary" hover-class="btn-primary-hover" @click="navigateTo('create')">
-                    <image class="icon-md mr-2" src="../../static/Health/plus-circle.svg" mode="aspectFit"></image>
+                    <image class="icon-md mr-2" src="/static/Health/plus-circle.svg" mode="aspectFit"></image>
                     <text>创建家庭组</text>
                 </button>
                 <button class="btn-outline" hover-class="btn-outline-hover" @click="navigateTo('join')">
-                    <image class="icon-md mr-2" src="../../static/family/group_add.svg" mode="aspectFit"></image>
+                    <image class="icon-md mr-2" src="/static/family/group_add.svg" mode="aspectFit"></image>
                     <text>加入家庭组</text>
                 </button>
             </view>
@@ -38,7 +38,7 @@
                 <view class="invite-card" v-for="invite in inviteList" :key="invite.id">
                     <view class="card-top">
                         <view class="avatar">
-                            <image class="avatar-img" src="../../static/avatars/avatar2.svg" mode="aspectFill"></image>
+                            <image class="avatar-img" src="/static/avatars/avatar2.svg" mode="aspectFill"></image>
                         </view>
                         <view class="invite-info">
                             <text class="info-label">邀请来自</text>

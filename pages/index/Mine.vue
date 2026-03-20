@@ -23,7 +23,7 @@
 							<text class="badge-text">LV.4 活跃用户</text>
 						</view>
 					</view>
-					<image class="icon" src="../../static/Mine/right-arrow.svg" />
+					<image class="icon" src="/static/Mine/right-arrow.svg" />
 				</view>
 			</header>
 
@@ -47,31 +47,31 @@
 					<view class="menu-item" hover-class="hover-gray" @tap="navigateTo('history')">
 						<view class="menu-left">
 							<view class="menu-icon bg-blue-light">
-								<image class="icon" src="../../static/Health/clock-history.svg" />
+								<image class="icon" src="/static/Health/clock-history.svg" />
 							</view>
 							<text class="menu-text">服药记录</text>
 						</view>
-						<image class="icon" src="../../static/Mine/right-arrow.svg" />
+						<image class="icon" src="/static/Mine/right-arrow.svg" />
 					</view>
 					<view class="divider"></view>
 					<view class="menu-item" hover-class="hover-gray" @tap="navigateTo('report')">
 						<view class="menu-left">
 							<view class="menu-icon bg-purple-light">
-								<image class="icon" src="../../static/Mine/report.svg" />
+								<image class="icon" src="/static/Mine/report.svg" />
 							</view>
 							<text class="menu-text">健康报告</text>
 						</view>
-						<image class="icon" src="../../static/Mine/right-arrow.svg" />
+						<image class="icon" src="/static/Mine/right-arrow.svg" />
 					</view>
 					<view class="divider"></view>
 					<view class="menu-item" hover-class="hover-gray" @tap="navigateTo('doctor')">
 						<view class="menu-left">
 							<view class="menu-icon bg-orange-light">
-								<image class="icon" src="../../static/Mine/doctor.svg" />
+								<image class="icon" src="/static/Mine/doctor.svg" />
 							</view>
 							<text class="menu-text">我的医生</text>
 						</view>
-						<image class="icon" src="../../static/Mine/right-arrow.svg" />
+						<image class="icon" src="/static/Mine/right-arrow.svg" />
 					</view>
 				</view>
 
@@ -79,11 +79,11 @@
 					<view class="menu-item" hover-class="hover-gray" @tap="navigateTo('help')">
 						<view class="menu-left">
 							<view class="menu-icon bg-slate-light">
-								<image class="icon" src="../../static/Mine/help.svg" />
+								<image class="icon" src="/static/Mine/help.svg" />
 							</view>
 							<text class="menu-text">帮助与反馈</text>
 						</view>
-						<image class="icon" src="../../static/Mine/right-arrow.svg" />
+						<image class="icon" src="/static/Mine/right-arrow.svg" />
 					</view>
 				</view>
 			</section>

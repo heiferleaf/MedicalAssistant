@@ -2,7 +2,7 @@
   <view class="page-container">
     <view class="header">
       <view class="back-btn" @click="uni.navigateBack()">
-        <image class="icon-sm" src="../../static/Register/back.png" mode="aspectFit"></image>
+        <image class="icon-sm" src="/static/Register/back.png" mode="aspectFit"></image>
       </view>
       <text class="header-title">申请加入家庭组</text>
     </view>
@@ -12,7 +12,7 @@
         
         <view class="text-center pb-8">
           <view class="icon-wrapper">
-            <image class="icon-lg" src="../../static/family/group_add.svg" mode="aspectFit"></image>
+            <image class="icon-lg" src="/static/family/group_add.svg" mode="aspectFit"></image>
           </view>
           <text class="main-title">申请加入家庭组</text>
           <text class="sub-title">输入您的家人的家庭组 ID，申请加入并共享健康数据。</text>
@@ -35,11 +35,11 @@
 
           <button class="submit-btn" hover-class="submit-btn-hover" @click="submitApply">
             <text>提交入组申请</text>
-            <image class="icon-md ml-2" src="../../static/ai/send.svg" mode="aspectFit"></image>
+            <image class="icon-md ml-2" src="/static/ai/send.svg" mode="aspectFit"></image>
           </button>
 
           <view class="info-card">
-            <image class="icon-xs mt-1" src="../../static/Mine/info.svg" mode="aspectFit"></image>
+            <image class="icon-xs mt-1" src="/static/Mine/info.svg" mode="aspectFit"></image>
             <text class="info-text">注意：同一个组在 48 小时内仅能申请一次。</text>
           </view>
         </view>

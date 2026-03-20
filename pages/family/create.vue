@@ -2,7 +2,7 @@
   <view class="page-container">
     <view class="nav-bar">
       <view class="back-btn" @click="uni.navigateBack()">
-        <image class="back-icon" src="../../static/Register/back.png" mode="aspectFit" />
+        <image class="back-icon" src="/static/Register/back.png" mode="aspectFit" />
       </view>
       <text class="title">创建家庭组</text>
       <view class="placeholder"></view>
@@ -11,7 +11,7 @@
     <scroll-view scroll-y class="content-scroll">
       <view class="header-section">
         <view class="icon-wrapper">
-          <image class="icon-group" src="../../static/family/group_add.svg" mode="aspectFit" />
+          <image class="icon-group" src="/static/family/group_add.svg" mode="aspectFit" />
         </view>
         <text class="main-title">创建家庭组</text>
         <text class="sub-title">建立一个私密的健康管理空间，邀请家人共同关注用药情况。</text>

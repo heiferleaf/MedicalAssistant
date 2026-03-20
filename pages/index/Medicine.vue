@@ -8,10 +8,10 @@
 					<text class="page-title">健康数据</text>
 					<view class="action-btns">
 						<view class="icon-btn" @tap="openCalendar">
-							<image class="icon" src="../../static/Health/calendar.svg"/>
+							<image class="icon" src="/static/Health/calendar.svg"/>
 						</view>
 						<view class="icon-btn" @tap="addData">
-							<image class="icon" src="../../static/Health/plus-circle.svg"/>
+							<image class="icon" src="/static/Health/plus-circle.svg"/>
 						</view>
 					</view>
 				</view>
@@ -26,7 +26,7 @@
 							</view>
 						</view>
 						<view class="trend-icon">
-							<image class="icon" src="../../static/Home/trend-up.svg"/>
+							<image class="icon" src="/static/Home/trend-up.svg"/>
 						</view>
 					</view>
 					
@@ -48,7 +48,7 @@
 					<view class="stat-card half">
 						<view class="stat-header">
 							<view class="icon-tag bg-rose">
-								<image class="icon" src="../../static/Home/heart.svg"/>
+								<image class="icon" src="/static/Home/heart.svg"/>
 							</view>
 							<text class="stat-label">心率</text>
 						</view>
@@ -62,7 +62,7 @@
 					<view class="stat-card half">
 						<view class="stat-header">
 							<view class="icon-tag bg-blue">
-								<image class="icon" src="../../static/Prepare/blood pressure.svg"/>
+								<image class="icon" src="/static/Prepare/blood pressure.svg"/>
 							</view>
 							<text class="stat-label">血压</text>
 						</view>
@@ -77,7 +77,7 @@
 				<view class="stat-card full sleep-card">
 					<view class="sleep-left">
 						<view class="icon-tag-large bg-indigo">
-							<image class="icon" src="../../static/Prepare/sleep.svg" style="height: 64rpx;width:64rpx;"/>
+							<image class="icon" src="/static/Prepare/sleep.svg" style="height: 64rpx;width:64rpx;"/>
 						</view>
 						<view class="sleep-info">
 							<text class="stat-label">昨晚睡眠</text>
@@ -96,7 +96,7 @@
 					<view class="stat-header space-between">
 						<view class="flex-row">
 							<view class="icon-tag bg-orange">
-								<image class="icon" src="../../static/Prepare/walk.svg" style="height: 48rpx;width: 48rpx;"/>
+								<image class="icon" src="/static/Prepare/walk.svg" style="height: 48rpx;width: 48rpx;"/>
 							</view>
 							<text class="stat-label">今日步数</text>
 						</view>
