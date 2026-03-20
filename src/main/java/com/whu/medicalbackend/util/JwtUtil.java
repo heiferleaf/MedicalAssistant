@@ -20,7 +20,7 @@ public class JwtUtil {
     public static String createAccessToken(Long userId) {
         return Jwts.builder()
                 .setSubject(userId.toString())
-                .setExpiration(new Date(System.currentTimeMillis() +  10 * 1000))
+                .setExpiration(new Date(System.currentTimeMillis() + 15 * 60 * 1000))
                 // 1. 修改算法为 HS256
                 // 2. 传入包装后的 KEY
                 .signWith(KEY, SignatureAlgorithm.HS256)
