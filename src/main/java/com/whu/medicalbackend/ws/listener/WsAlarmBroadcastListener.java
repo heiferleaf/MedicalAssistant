@@ -65,6 +65,7 @@ public class WsAlarmBroadcastListener{
         String jsonPayload = objectMapper.writeValueAsString(event.getData());
 
         memberIds.forEach(memberId -> {
+            logger.info("向家庭组{ } 的用户{ } 广播消息，{}", memberId, groupId, jsonPayload);
             String userIdStr = memberId.toString();
             Long userId = Long.valueOf(userIdStr);
             // 发送给在线用户

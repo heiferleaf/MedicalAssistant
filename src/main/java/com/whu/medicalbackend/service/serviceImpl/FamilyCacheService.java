@@ -7,7 +7,7 @@ import com.whu.medicalbackend.entity.User;
 import com.whu.medicalbackend.exception.BusinessException;
 import com.whu.medicalbackend.mapper.FamilyMemberMapper;
 import com.whu.medicalbackend.mapper.UserMapper;
-import com.whu.medicalbackend.util.RedisKeyBuilderUtil; // 引入工具类
+import com.whu.medicalbackend.util.RedisKeyBuilderUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +23,7 @@ public class FamilyCacheService {
 
     /**
      * 将单个成员信息同步到 Redis Hash
-     * 场景：审批通过、邀请成功后实时调用
+     * 场景：创建家庭成功、审批通过、邀请成功后实时调用
      */
     public void syncSingleMemberToCache(Long groupId, Long userId) throws JsonProcessingException {
         User user = userMapper.findByUserId(userId);
@@ -40,7 +40,7 @@ public class FamilyCacheService {
                 .setStatus("active")
                 .build();
 
-        // 使用工具类构建 Key: ws:family:members:{groupId}
+        // 使用工具类构建 Key: family:members:{groupId}
         String key = RedisKeyBuilderUtil.getMemberHashKey(groupId);
         redisService.putWithHash(key, userId.toString(), objectMapper.writeValueAsString(vo));
     }

@@ -22,9 +22,7 @@ public class UserInfoDTO {
     @Pattern(regexp = "^[0-9a-zA-Z_]+$", message = "昵称只能包含大小写字母，数字、以及_")
     private String newNickname;
 
-    @NotBlank(message = "密码不能为空")
-    @Pattern(regexp = "^.{6,20}$", message = "密码长度为6-20位")
-    @Pattern(regexp = "^[0-9a-zA-Z_]+$", message = "密码只能包含大小写字母，数字、以及_")
+    @Pattern(regexp = "^$|^[0-9a-zA-Z_]{6,20}$", message = "密码格式错误（长度6-20位，仅限字母数字下划线）")
     private String newPassword;
 
 

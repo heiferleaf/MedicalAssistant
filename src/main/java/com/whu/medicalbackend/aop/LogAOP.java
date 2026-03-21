@@ -17,6 +17,9 @@ public class LogAOP{
 
     }
 
+    @Pointcut("execution(* com.whu.medicalbackend.ws.listener.*.*(..))")
+    public void checkListener() {}
+
     @Before("checkRefresh()")
     public void adviceBefore(JoinPoint joinPoint) {
         String className = joinPoint.getSignature().getDeclaringTypeName();
@@ -33,5 +36,10 @@ public class LogAOP{
         System.out.println("调用位置: " + className + "." + methodName);
         System.out.println("传入参数: " + params);
         System.out.println("==== AOP 日志结束 ====");
+    }
+
+    @Before("checkListener()")
+    public void adviceAfter(JoinPoint joinPoint) {
+        System.out.println("【debug】=====广播开始=====");
     }
 }
