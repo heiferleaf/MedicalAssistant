@@ -218,7 +218,6 @@ export default {
 			if (routes[funcId]) uni.navigateTo({ url: routes[funcId] });
 		},
 		toProfile() { uni.navigateTo({ url: "/pages/profile/profile" }); },
-		toNotification() { uni.navigateTo({ url: "/pages/notification/notification" }); },
 		toMedicationList() { uni.navigateTo({ url: "/pages/medication/list" }); },
 		toHealthDetail() { uni.navigateTo({ url: "/pages/health/detail" }); },
 
@@ -476,7 +475,7 @@ export default {
 ──────────────────────────────────────── */
 .empty-card {
 	position: relative;
-	min-height: 680rpx;
+	min-height: 580rpx;
 	display: flex;
 	flex-direction: column;
 	align-items: center;

@@ -112,27 +112,40 @@ function handleMessage(pushData) {
 
   let title = "系统提醒";
   let content = "";
-
-  // 1. 根据不同类型匹配通知文案
+  // 1. 根据不同类型匹配并动态拼接通知文案
   switch (type) {
     case "medicine_alarm":
       title = "健康告警 ⚠️";
-      content = `有成员漏服了药物，请及时提醒他服药哦！`;
+      // 提取：姓名、药品名
+      const alarmMember = pushData.memberName || "有成员";
+      const alarmMedicine = pushData.medicineName || "药物";
+      content = `${alarmMember} 漏服了 [${alarmMedicine}]，请及时提醒他服药哦！`;
       break;
+
     case "medicine_update":
       title = "健康数据更新";
-      content = `有成员更新了最新的健康体征数据`;
+      // 提取：姓名、药品名、状态
+      const updateMember = pushData.memberName || "有成员";
+      const updateMedicine = pushData.medicineName || "药物";
+      const statusText = pushData.status === 1 ? "已完成服用" : "更新了服药状态";
+      content = `${updateMember} 的 [${updateMedicine}] ${statusText}`;
       break;
+
     case "join_success":
       title = "家庭新成员";
-      content = `欢迎新成员加入家庭组`;
+      // 提取：新成员昵称
+      const newMember = pushData.targetNickname || "新用户";
+      content = `欢迎新成员 [${newMember}] 加入家庭组！`;
       break;
+
     case "member_leave":
       title = "成员变动";
-      content = `有成员已退出当前家庭组`;
+      // 提取：退出成员昵称
+      const leaveMember = pushData.targetNickname || "成员";
+      content = `成员 [${leaveMember}] 已退出当前家庭组`;
       break;
+
     default:
-      // 如果有未定义的类型，给一个兜底提醒或者干脆不提醒
       title = "新消息";
       content = "您有一条新的健康云通知";
   }
