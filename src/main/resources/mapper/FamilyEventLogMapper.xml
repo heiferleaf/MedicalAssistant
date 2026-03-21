@@ -15,7 +15,7 @@
             u.nickname as memberName,
             l.content as medicineName,
             DATE_FORMAT(l.create_time, '%Y-%m-%d %H:%i:%s') as alarmTime
-        FROM t_family_event_log l
+        FROM family_event_log l
                  LEFT JOIN t_user u ON l.user_id = u.id
         WHERE l.group_id = #{groupId}
           AND l.event_type = 'ALARM_MISSED'

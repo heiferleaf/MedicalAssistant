@@ -1,5 +1,6 @@
 package com.whu.medicalbackend.controller;
 
+import com.whu.medicalbackend.dto.UserInfoDTO;
 import com.whu.medicalbackend.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.common.Result;
 import com.whu.medicalbackend.common.ResultCode;
@@ -11,11 +12,9 @@ import com.whu.medicalbackend.service.UserService;
 import com.whu.medicalbackend.util.JwtUtil;
 import com.whu.medicalbackend.util.RedisKeyBuilderUtil;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 
@@ -24,6 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @RestController
+@Slf4j
 @RequestMapping("/api/user")
 public class UserController {
 
@@ -66,18 +66,28 @@ public class UserController {
 
         // 2. 转换为VO
         UserVO userVO = new UserVO.Builder().
-                        setAccessToken(accessToken).
-                        setRefreshToken(refreshToken).
                         build(user, accessToken, refreshToken);
 
         // 3. 返回成功结果
         return Result.success("登录成功", userVO);
     }
 
+    /**
+     * 用户修改个人信息接口
+     */
+    @PutMapping("/modify")
+    public Result<UserVO> modify(@Valid @RequestBody UserInfoDTO dto) {
+        User user = userService.modify(dto);
+        UserVO userVO = new UserVO.Builder().build(user);
+        return Result.success(userVO);
+    }
+
     @PostMapping("/refresh")
     public Result<String> refresh(@RequestBody Map<String, String> params) {
         String userId   = params.get("userId");
         String appRT    = params.get("refreshToken");
+
+        log.info("appRT={}", appRT);
 
         String key      = RedisKeyBuilderUtil.getAuthRefreshTokenKey(userId);
         String serverRT = redis.get(key);

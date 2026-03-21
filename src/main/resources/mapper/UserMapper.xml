@@ -91,4 +91,10 @@ Mapper 的xml 文件
         FROM t_user
         WHERE phone_number = #{phoneNumber}
     </select>
+
+    <update id="updateUserInfo" parameterType="User">
+        UPDATE t_user
+        SET password = #{user.password}, nickname = #{user.nickname}, phone_number = #{user.phoneNumber}, update_time = #{user.updateTime}
+        WHERE id = #{user.id} AND username = #{user.username}
+    </update>
 </mapper>
