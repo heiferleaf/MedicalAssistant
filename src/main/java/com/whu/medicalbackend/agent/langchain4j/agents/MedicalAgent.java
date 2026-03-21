@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.whu.medicalbackend.agent.langchain4j.tools.ocr.OcrDrugRecognitionTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.family.FamilyAlarmTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.family.FamilyHealthSnapshotTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.family.FamilyInviteTool;
@@ -71,7 +72,8 @@ public class MedicalAgent {
                         MedicineQueryTool medicineQueryTool,
                         MedicineAddTool medicineAddTool,
                         PredictTool predictTool,
-                        RagTool ragTool) {
+                        RagTool ragTool,
+                        OcrDrugRecognitionTool ocrDrugRecognitionTool) {
 
         this.medicalExpert = AiServices.builder(MedicalExpert.class)
                 .chatModel(chatModel)
@@ -80,7 +82,7 @@ public class MedicalAgent {
                        taskQueryTodayTool, taskUpdateStatusTool, taskQueryHistoryTool,
                        familyQueryTool, familyHealthSnapshotTool, familyAlarmTool, familyInviteTool,
                        medicineQueryTool, medicineAddTool,
-                       predictTool, ragTool)
+                       predictTool, ragTool, ocrDrugRecognitionTool)
                 .build();
     }
 
@@ -121,6 +123,9 @@ public class MedicalAgent {
                 - queryMyMedicines: Query all medicines saved by the user
                 - addMedicine: Add a new medicine to the user's medicine library
 
+                OCR/IMAGE RECOGNITION TOOLS:
+                - recognizeDrugFromImage: Recognize drug information from an image using OCR. Use this when user uploads a photo of a drug package (e.g., "帮我识别这个药", "扫描药盒", "识别图片中的药品"). This tool returns the recognized drug information, but does NOT create plans or add medicines automatically.
+
                 DRUG ADVERSE REACTION PREDICTION TOOLS:
                 - predictAdverseReactions: Predict potential drug adverse reactions based on clinical information
                 - analyzeAdverseReactionRisk: Analyze drug adverse reaction risks based on symptoms and medications
@@ -142,6 +147,7 @@ public class MedicalAgent {
                 - ALWAYS use inviteFamilyMember when the user wants to invite someone to the family group
                 - ALWAYS use queryMyMedicines when the user asks about their medicine cabinet or medicine library
                 - ALWAYS use addMedicine when the user wants to ADD a new medicine to their cabinet (e.g., "add aspirin to my medicine cabinet", "我要添加布洛芬到药箱")
+                - ALWAYS use recognizeDrugFromImage when the user uploads an image of a drug package and asks to recognize it (e.g., "帮我识别这个药", "扫描药盒", "识别图片中的药品")
                 - ALWAYS use predictAdverseReactions when the user asks about drug safety, side effects, or adverse reactions
                 - ALWAYS use analyzeAdverseReactionRisk when the user wants to assess medication risks
                 - ALWAYS use queryMedicalKnowledge when the user asks general medical questions, symptoms, diseases, treatments, or needs professional medical information
