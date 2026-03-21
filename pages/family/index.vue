@@ -1,7 +1,7 @@
 <template>
     <view class="page-container">
-		<view class="padding"></view>
-        <view class="header">
+        <view class="padding"></view>
+        <view class="header" v-show="showPage">
             <view class="back-btn" @click="uni.navigateBack()">
                 <image class="icon-sm" src="/static/Register/back.png" mode="aspectFit"></image>
             </view>
@@ -9,7 +9,7 @@
             <view class="placeholder"></view>
         </view>
 
-        <scroll-view scroll-y class="main-content">
+        <scroll-view scroll-y class="main-content" v-show="showPage">
 
             <view class="hero-section">
                 <view class="icon-wrapper">
@@ -33,7 +33,7 @@
             <view class="invite-section">
                 <view class="section-header" v-if="inviteList.length > 0">
                     <text class="section-title">收到的邀请</text>
-                    <view class="badge"><text class="badge-text">{{ inviteList.length }} 新</text></view>
+                    <view class="badge"><text class="badge-text">{{ inviteList.filter(item => item.status === 'pending' && item.type === 'invite').length }} 新</text></view>
                 </view>
 
                 <view class="invite-card" v-for="invite in inviteList" :key="invite.id">
@@ -43,14 +43,16 @@
                         </view>
                         <view class="invite-info">
                             <text class="info-label">邀请来自</text>
-                            <text class="inviter-name">{{ invite.inviterNickname }}</text>
+                            <text class="inviter-name">{{ invite.groupName }}</text>
                             <text class="invite-quote">{{ invite.remark }}</text>
                         </view>
                     </view>
 
-                    <view class="card-actions">
-                        <button class="btn-reject" hover-class="btn-reject-hover" @click="handleInvite(invite, 'reject')">拒绝</button>
-                        <button class="btn-accept" hover-class="btn-accept-hover" @click="handleInvite(invite, 'accept')">同意</button>
+                    <view class="card-actions" v-if="invite.status == 'pending' && invite.type == 'invite'">
+                        <button class="btn-reject" hover-class="btn-reject-hover"
+                            @click="handleInvite(invite, 'reject')">拒绝</button>
+                        <button class="btn-accept" hover-class="btn-accept-hover"
+                            @click="handleInvite(invite, 'accept')">同意</button>
                     </view>
                 </view>
             </view>
@@ -68,6 +70,7 @@ export default {
         return {
             userStatus: null, // 1: 组长, 0: 组员, null: 无家庭组
             loading: true,
+            showPage: false,
             inviteList: [] // 存储待处理邀请
         };
     },
@@ -87,10 +90,12 @@ export default {
                     this.autoNavigate();
                 } else {
                     this.userStatus = null;
+                    this.showPage = true; // 显示页面，等待用户操作
                     // 2. 只有在没有家庭组时，才获取邀请列表
                     await this.fetchInvites();
                 }
             } catch (e) {
+                this.showPage = true; // 显示页面，等待用户操作
                 console.error("获取状态失败", e);
                 await this.fetchInvites();
             } finally {
@@ -102,7 +107,8 @@ export default {
             try {
                 const inviteRes = await familyApi.getMyApplyRecords();
                 // 过滤出 pending 状态的记录
-                this.inviteList = (inviteRes || []).filter(item => item.status === 'pending' && item.type === 'invite');
+                // this.inviteList = (inviteRes || []).filter(item => item.status === 'pending' && item.type === 'invite');
+                this.inviteList = inviteRes || [];
                 console.log("待处理邀请列表：", JSON.stringify(this.inviteList));
             } catch (e) {
                 console.error("获取邀请列表失败", e);
@@ -163,8 +169,10 @@ $text-sub: #64748b;
 $border-color: #e2e8f0;
 
 .padding {
-  height: 64rpx; /* 顶部留白，适配状态栏 */
+    height: 64rpx;
+    /* 顶部留白，适配状态栏 */
 }
+
 /* 图标尺寸工具 */
 .icon-sm {
     width: 40rpx;
