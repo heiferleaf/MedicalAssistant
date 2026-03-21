@@ -65,12 +65,15 @@ public class WsAlarmBroadcastListener{
         String jsonPayload = objectMapper.writeValueAsString(event.getData());
 
         memberIds.forEach(memberId -> {
-            logger.info("向家庭组{ } 的用户{ } 广播消息，{}", memberId, groupId, jsonPayload);
+            logger.info("向家庭组{} 的用户{} 广播消息，{}", memberId, groupId, jsonPayload);
             String userIdStr = memberId.toString();
             Long userId = Long.valueOf(userIdStr);
             // 发送给在线用户
             Boolean isOnline = redisService.hasMember(userIdStr);
-            if(Boolean.FALSE.equals(isOnline)) return;
+            if(Boolean.FALSE.equals(isOnline)) {
+                logger.info("用户{}不在线", memberId);
+                return;
+            }
 
             WebSocketSession session = sessionManager.get(userId);
             if (session != null && session.isOpen()) {
@@ -81,6 +84,8 @@ public class WsAlarmBroadcastListener{
                     // 忽略发送异常
                     logger.error("【WS广播】物理推送失败: {}", userId);
                 }
+            } else {
+                logger.error("【WS广播】用户{}会话未找到", userId);
             }
         });
     }

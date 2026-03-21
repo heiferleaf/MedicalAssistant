@@ -26,7 +26,7 @@ public class WsHandler extends TextWebSocketHandler {
         if(userId != null) {
             sessionManager.add(userId, session);
 
-            // 使用工具类构建在线状态的 Hash Key: ws:online:members
+            // 使用工具类构建在线状态的 Hash Key: family:online:members
             String onlineKey = RedisKeyBuilderUtil.getOnlineMemberKey();
             redisService.putWithHash(onlineKey, userId.toString(), "1");
 
