@@ -125,6 +125,12 @@
 			"style": {
 				"navigationBarTitleText": "个人信息"
 			}
+		},
+		{
+			"path": "pages/test/camera",
+			"style": {
+				"navigationBarTitleText": "识别"
+			}
 		}
 	],
 	"globalStyle": {

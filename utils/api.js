@@ -53,8 +53,9 @@ const responseInterceptor = async (response, resolve, reject) => {
     handleLogout();
     reject(response);
   } else {
+    console.log("请求失败，状态码:", statusCode, "响应数据:", data);
     uni.showToast({
-      title: `网络错误: ${data.code || statusCode}`,
+      title: `${data.message || '请求失败'}`,
       icon: "none",
     });
     reject(response);

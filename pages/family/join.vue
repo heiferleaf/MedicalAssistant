@@ -28,7 +28,7 @@
                 type="text" 
                 v-model="groupId" 
                 maxlength="10" 
-                placeholder="请输入 10 位家庭组编号" 
+                placeholder="请输入家庭组编号" 
                 placeholder-class="placeholder-text"
               />
             </view>
