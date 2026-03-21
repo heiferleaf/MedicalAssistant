@@ -55,6 +55,7 @@ export default {
 .page-container {
   /* 关键：锁定窗口高度，禁止外层滚动 */
   height: 100vh;
+  padding: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -65,5 +66,6 @@ export default {
   /* 关键：必须设置 overflow: hidden，确保内部子页面能自适应高度 */
   overflow: hidden;
   position: relative;
+  padding: 0;
 }
 </style>
