@@ -200,6 +200,8 @@
 </template>
 
 <script>
+import { BASE_URL } from '../../config/config';
+
 export default {
   data() {
     return {
@@ -464,13 +466,11 @@ export default {
           otherInfo: this.documentInfo.otherInfo || ''
         }
 
-        // TODO: 改成你的后端真实地址
-        const baseUrl = 'http://localhost:8080'
 
         const accessToken = uni.getStorageSync('accessToken') || ''
 
         const res = await uni.request({
-          url: `${baseUrl}/api/medical/prepare/pdf`,
+          url: `${BASE_URL}/medical/prepare/pdf`,
           method: 'POST',
           data: payload,
           header: {
@@ -505,7 +505,7 @@ export default {
         }
 
         // 拼完整URL（后端可能返回相对路径）
-        const fileUrl = /^https?:\/\//.test(fileUrlRaw) ? fileUrlRaw : `${baseUrl}${fileUrlRaw}`
+        const fileUrl = /^https?:\/\//.test(fileUrlRaw) ? fileUrlRaw : `${BASE_URL}${fileUrlRaw}`
 
         uni.showModal({
           title: 'PDF生成成功',

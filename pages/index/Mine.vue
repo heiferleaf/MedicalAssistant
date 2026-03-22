@@ -153,6 +153,8 @@
 </template>
 
 <script>
+import { BASE_URL } from '../../config/config';
+
 export default {
   data() {
     return {
@@ -179,7 +181,10 @@ export default {
       this.createTime = uni.getStorageSync("createTime") || "";
     },
     getAvatar() {
-      return `${baseURL}/api/user/avatar/random`;
+      const id = uni.getStorageSync("userId") || 1;
+      // 用 userId 做简单哈希，映射到 1-100
+      const index = (Math.abs(Number(id)) % 100) + 1;
+      return `http://8.148.94.242/avatar/file/avatar_${index}.svg`;
     },
     toSettings() {
       uni.navigateTo({ url: "/pages/mine/Settings" });

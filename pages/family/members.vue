@@ -168,6 +168,7 @@
 
 <script>
 import familyApi from '../../api/family';
+import { BASE_URL } from '../../config/config';
 export default {
     data() {
         return {
@@ -208,7 +209,10 @@ export default {
     },
     methods: {
         getAvatar(userId) {
-            return `${baseURL}/api/user/avatar/random`;
+            const id = userId || uni.getStorageSync("userId") || 1;
+            // 用 userId 做简单哈希，映射到 1-100
+            const index = (Math.abs(Number(id)) % 100) + 1;
+            return `http://8.148.94.242/avatar/file/avatar_${index}.svg`;
         },
         async initData() {
             await this.fetchData();
