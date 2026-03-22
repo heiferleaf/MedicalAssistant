@@ -36,17 +36,20 @@
 			
 			<!-- 底部输入区 -->
 			<view class="footer">
-				<!-- 快捷短语 -->
-				<ShortcutBar
-					:shortcuts="shortcuts"
-					@click="handleShortcut"
-				/>
+				<!-- 图片预览区域 -->
+				<view v-if="showImagePreview && scanImage" class="image-preview-bar">
+					<!-- H5 环境使用 img 标签 -->
+					<img v-if="isH5" :src="scanImageBase64 ? `data:image/jpeg;base64,${scanImageBase64}` : scanImage" class="preview-image"/>
+					<image v-else :src="scanImage" mode="aspectFill" class="preview-image"/>
+					<view class="remove-btn" @click="removeImage">
+						<image src="/static/Register/close.png" class="remove-icon"/>
+					</view>
+				</view>
 				
 				<!-- 输入框 -->
 				<ChatInput
 					@send="sendMessage"
-					@add="handleAdd"
-					@voice="handleVoice"
+					@camera="handleCamera"
 				/>
 			</view>
 		</view>
@@ -58,14 +61,12 @@
 import ChatHeader from './components/ChatHeader.vue';
 import ChatView from './views/ChatView.vue';
 import ChatInput from './components/ChatInput.vue';
-import ShortcutBar from './components/ShortcutBar.vue';
 import SessionSidebar from './components/SessionSidebar.vue';
 
 // 导入工具函数
 import { 
 	createMessage, 
 	createMessageWithAction,
-	defaultShortcuts, 
 	StorageKeys,
 	getFromStorage,
 	setToStorage,
@@ -84,7 +85,6 @@ export default {
 		ChatHeader,
 		ChatView,
 		ChatInput,
-		ShortcutBar,
 		SessionSidebar
 	},
 	data() {
@@ -94,13 +94,58 @@ export default {
 			currentSessionId: '',
 			sessionId: '',
 			userId: '',
-			shortcuts: defaultShortcuts,
 			showSidebar: false,
 			scrollToMsgId: '',
-			loading: false
+			loading: false,
+			// 新增：拍照传来的图片
+			scanImage: '',
+			// 新增：显示图片预览区域
+			showImagePreview: false,
+			// 图片 Base64 数据（用于发送）
+			scanImageBase64: ''
 		}
 	},
-	onLoad() {
+	computed: {
+		isH5() {
+			// #ifdef H5
+			return true;
+			// #endif
+			return false;
+		}
+	},
+	onLoad(options) {
+		// 检查是否从拍照识别跳转过来
+		if (options.from === 'scan') {
+			// 从缓存中读取图片
+			const imageData = uni.getStorageSync('last_scan_image');
+			if (imageData) {
+				this.scanImage = imageData;
+				this.showImagePreview = true;
+				
+				// #ifdef H5
+				// H5 端保存的是路径，需要从 localStorage 读取 Base64
+				if (imageData.includes('/images/drug_')) {
+					const fileName = imageData.split('/').pop();
+					const base64 = uni.getStorageSync('drug_image_' + fileName);
+					if (base64) {
+						this.scanImageBase64 = base64;
+						console.log('从本地加载图片 Base64，长度:', base64.length);
+					} else {
+						console.error('未找到图片数据:', fileName);
+					}
+				} else {
+					// 兼容旧逻辑（直接存 Base64）
+					this.scanImageBase64 = imageData;
+					console.log('接收到 Base64 图片，长度:', imageData.length);
+				}
+				// #endif
+				
+				// #ifdef APP-PLUS
+				// App 端保存的是路径
+				console.log('接收到拍照图片:', imageData);
+				// #endif
+			}
+		}
 		this.init();
 	},
 	methods: {
@@ -184,7 +229,37 @@ export default {
 			if (localMessages && Array.isArray(localMessages)) {
 				// 有本地缓存，直接使用
 				console.log('从本地存储加载消息:', localMessages.length);
-				this.messages = localMessages;
+				
+				// 修复图片消息的 imagePath
+				this.messages = localMessages.map(msg => {
+					if (msg.type === 'image' && msg.imagePath) {
+						// 如果是图片消息，确保 imagePath 是有效的图片 URL
+						if (msg.imagePath.startsWith('blob:')) {
+							// blob URL 已失效，标记为无效
+							console.warn('图片 URL 已失效:', msg.imagePath.substring(0, 50) + '...');
+							msg.imagePath = ''; // 清空，不显示
+						} else if (!msg.imagePath.startsWith('data:') && !msg.imagePath.startsWith('http')) {
+							// 可能是本地路径或纯 Base64
+							if (msg.imagePath.startsWith('/images/')) {
+								// 本地路径，尝试从 localStorage 读取
+								const fileName = msg.imagePath.split('/').pop();
+								const base64 = uni.getStorageSync('drug_image_' + fileName);
+								if (base64) {
+									msg.imagePath = `data:image/jpeg;base64,${base64}`;
+								} else {
+									console.warn('localStorage 中未找到图片数据:', fileName);
+									msg.imagePath = ''; // 清空，不显示
+								}
+							} else {
+								// 可能是纯 Base64 数据，添加前缀
+								console.log('检测到纯 Base64 数据，添加前缀');
+								msg.imagePath = `data:image/jpeg;base64,${msg.imagePath}`;
+							}
+						}
+					}
+					return msg;
+				});
+				
 				this.scrollToBottom();
 			} else {
 				// 没有本地缓存，从后端加载
@@ -295,8 +370,11 @@ export default {
 		
 		// 发送消息
 		async sendMessage(content) {
-			// 空值检查
-			if (!content || !content.trim()) {
+			// 检查是否有图片
+			const hasImage = this.showImagePreview && this.scanImage;
+			
+			// 空值检查（如果没有图片，则需要文字内容）
+			if (!hasImage && (!content || !content.trim())) {
 				console.warn('sendMessage: 消息内容为空，已忽略');
 				return;
 			}
@@ -305,12 +383,31 @@ export default {
 			const currentSession = this.sessions.find(s => s.sessionId === this.sessionId);
 			if (currentSession && currentSession.needsNaming) {
 				// 直接使用用户第一句话作为会话名称（截取前 20 个字）
-				currentSession.summary = content.substring(0, 20);
+				currentSession.summary = content ? content.substring(0, 20) : '图片识别';
 				currentSession.needsNaming = false;
 			}
 			
 			// 添加用户消息
-			const userMsg = createMessage('user', content);
+			let userMsg;
+			if (hasImage) {
+				// 如果有图片，创建图片消息
+				// 确保 imagePath 是完整的 data URL，这样保存到本地存储后才能直接显示
+				console.log('创建图片消息，scanImageBase64 长度:', this.scanImageBase64 ? this.scanImageBase64.length : 0);
+				const fullImageDataUrl = this.scanImageBase64 ? `data:image/jpeg;base64,${this.scanImageBase64}` : this.scanImage;
+				console.log('imagePath 设置:', fullImageDataUrl.substring(0, 50) + '...');
+				
+				userMsg = {
+					id: Date.now().toString(),
+					role: 'user',
+					type: 'image',
+					content: content || '帮我识别这个药品',
+					imagePath: fullImageDataUrl,
+					createdAt: new Date().toISOString()
+				};
+			} else {
+				// 纯文字消息
+				userMsg = createMessage('user', content);
+			}
 			this.messages.push(userMsg);
 			this.scrollToBottom();
 			
@@ -321,10 +418,35 @@ export default {
 			this.loading = true;
 			
 			try {
+				// 准备发送给 AI 的消息
+				let messageToSend = content || '帮我识别这个药品';
+				
+				// 如果有图片，需要转换为 Base64 并发送给 AI
+				if (hasImage) {
+					console.log('开始转换图片为 Base64...');
+					console.log('scanImage 类型:', typeof this.scanImage);
+					console.log('scanImage 长度:', this.scanImage ? this.scanImage.length : 'null');
+					console.log('scanImage 前 50 字符:', this.scanImage ? this.scanImage.substring(0, 50) : 'null');
+					
+					const base64 = await this.imageToBase64(this.scanImage);
+					console.log('图片转换成功，长度:', base64.length);
+					console.log('base64 前 50 字符:', base64.substring(0, 50));
+					
+					// 构造特殊的消息格式，告诉 AI 调用 OCR 工具
+					messageToSend = `用户发送了一张药物图片，请使用 recognizeDrugFromImage 工具识别图片中的药物信息。图片数据：${base64}`;
+				}
+				
+				console.log('发送消息给 AI:', messageToSend.substring(0, 100) + '...');
+				console.log('请求参数:', {
+					user_id: this.userId,
+					session_id: this.sessionId,
+					message_length: messageToSend.length
+				});
+				
 				const response = await agentApi.chat({
 					user_id: this.userId,
 					session_id: this.sessionId,
-					message: content,
+					message: messageToSend,
 					type: 'chat'
 				});
 				
@@ -332,6 +454,11 @@ export default {
 				
 				// 移除加载状态
 				this.messages.pop();
+				
+				// 移除图片预览（在发送成功后）
+				if (hasImage) {
+					this.removeImage();
+				}
 				
 				// 检查是否有操作卡片数据
 				if (response.action_type && response.action_data) {
@@ -701,20 +828,57 @@ export default {
 			return '';
 		},
 		
-		// 处理快捷短语
-		handleShortcut(shortcut) {
-			this.sendMessage(shortcut.text);
+		// 处理相机按钮（拍照识别）
+		handleCamera() {
+			console.log('点击相机按钮，跳转拍照识别');
+			uni.navigateTo({
+				url: '/pages/scan/DrugScan?from=chat',
+				animationType: 'fade-in',
+				animationDuration: 300
+			});
 		},
 		
-		// 处理添加按钮
-		handleAdd() {
-			console.log('点击添加按钮');
+		// 移除图片
+		removeImage() {
+			// #ifdef H5
+			// H5 端：清理缓存的图片数据
+			if (this.scanImage && this.scanImage.includes('/images/drug_')) {
+				const fileName = this.scanImage.split('/').pop();
+				uni.removeStorageSync('drug_image_' + fileName);
+				console.log('清理图片缓存:', fileName);
+			}
+			// #endif
+			
+			this.scanImage = '';
+			this.scanImageBase64 = '';
+			this.showImagePreview = false;
+			uni.removeStorageSync('last_scan_image');
 		},
 		
-		// 处理语音按钮
-		handleVoice() {
-			console.log('点击语音按钮');
-			// TODO: 实现语音功能
+		// 图片转 Base64
+		imageToBase64(imagePath) {
+			return new Promise((resolve, reject) => {
+				// #ifdef APP-PLUS
+				// App 端：路径需要转换
+				plus.io.resolveLocalFileSystemURL(imagePath, (entry) => {
+					entry.file((file) => {
+						const reader = new plus.io.FileReader();
+						reader.onload = (e) => {
+							const base64 = e.target.result.split(',')[1]; // 去掉 data:image/jpeg;base64, 前缀
+							resolve(base64);
+						};
+						reader.onerror = reject;
+						reader.readAsDataURL(file);
+					});
+				}, reject);
+				// #endif
+				
+				// #ifdef H5
+				// H5 端：直接使用已加载的 Base64 数据
+				console.log('H5 端直接使用 Base64 数据，长度:', this.scanImageBase64 ? this.scanImageBase64.length : 0);
+				resolve(this.scanImageBase64 || '');
+				// #endif
+			});
 		},
 		
 		// 加载更多消息
@@ -1130,13 +1294,48 @@ export default {
 }
 
 .footer {
-	padding: 20rpx 30rpx;
+	z-index: 100;
 	background: rgba(255, 255, 255, 0.9);
 	backdrop-filter: blur(20px);
-	border-top: 1rpx solid #e2e8f0;
 	@media (prefers-color-scheme: dark) { 
 		background: rgba(15, 23, 42, 0.9); 
-		border-color: #1e293b; 
+	}
+	
+	// 图片预览条
+	.image-preview-bar {
+		display: flex;
+		align-items: center;
+		background: #f1f5f9;
+		border-radius: 12rpx;
+		padding: 12rpx;
+		margin: 20rpx 30rpx 0;
+		position: relative;
+		
+		.preview-image {
+			width: 120rpx;
+			height: 120rpx;
+			border-radius: 8rpx;
+			object-fit: cover;
+		}
+		
+		.remove-btn {
+			position: absolute;
+			top: -16rpx;
+			right: -16rpx;
+			width: 48rpx;
+			height: 48rpx;
+			background: #ef4444;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			box-shadow: 0 2rpx 8rpx rgba(239, 68, 68, 0.3);
+			
+			.remove-icon {
+				width: 28rpx;
+				height: 28rpx;
+			}
+		}
 	}
 }
 </style>

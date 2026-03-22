@@ -18,7 +18,7 @@
 						:role="msg.role"
 						:type="msg.type"
 						:content="msg.content"
-						:image="msg.image"
+						:image="msg.imagePath || msg.image"
 						:actionType="msg.actionType"
 						:actionData="msg.actionData"
 						@action-confirm="handleActionConfirm"

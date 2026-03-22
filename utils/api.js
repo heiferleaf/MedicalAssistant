@@ -15,7 +15,7 @@ const requestInterceptor = (config) => {
 };
 
 // 响应拦截器
-const responseInterceptor = async (response, resolve, reject) => {
+const responseInterceptor = async (response, resolve, reject, originalConfig = {}) => {
   uni.hideLoading();
 
   const { statusCode, data } = response;
@@ -36,14 +36,16 @@ const responseInterceptor = async (response, resolve, reject) => {
     if (isOk) {
       console.log("Token 刷新成功，重试请求...");
       // 重新发起请求，此时请求拦截器会自动带上最新的 token
-      httpRequest(
-        originalConfig.url,
-        originalConfig.method,
-        originalConfig.data,
-        originalConfig.header,
-      )
-        .then((retryRes) => resolve(retryRes))
-        .catch((err) => reject(err));
+      if (originalConfig && originalConfig.url) {
+        httpRequest(
+          originalConfig.url,
+          originalConfig.method,
+          originalConfig.data,
+          originalConfig.header,
+        )
+          .then((retryRes) => resolve(retryRes))
+          .catch((err) => reject(err));
+      }
     } else {
       console.log("Token 刷新失败，强制退出...");
       handleLogout();

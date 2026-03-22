@@ -124,8 +124,18 @@ export default {
       uni.showLoading({ title: "准备传输中..." });
 
       try {
-        // 将图片存入全局缓存，方便 AI 页面读取
+        // #ifdef H5
+        // H5 端：压缩并保存到本地
+        const savedPath = await this.compressAndSaveImage(this.tempThumb);
+        uni.setStorageSync("last_scan_image", savedPath);
+        console.log('图片已保存到本地:', savedPath);
+        // #endif
+        
+        // #ifdef APP-PLUS
+        // App 端：直接保存路径
         uni.setStorageSync("last_scan_image", this.tempThumb);
+        console.log('图片路径已保存:', this.tempThumb);
+        // #endif
 
         // 跳转到 AI 对话页
         uni.navigateTo({
@@ -135,8 +145,81 @@ export default {
           },
         });
       } catch (e) {
+        console.error('图片处理失败:', e);
         uni.showToast({ title: "图片处理失败", icon: "none" });
       }
+    },
+    
+    // H5 端压缩并保存图片
+    async compressAndSaveImage(imagePath) {
+      return new Promise((resolve, reject) => {
+        console.log('开始压缩图片，路径:', imagePath);
+        
+        // 使用 Image 对象压缩
+        const img = new Image();
+        img.onload = () => {
+          // 计算压缩后的尺寸（最大宽度 600px，高度按比例）
+          const maxWidth = 600;
+          const scale = Math.min(1, maxWidth / img.width);
+          const width = img.width * scale;
+          const height = img.height * scale;
+          
+          console.log('原始尺寸:', img.width, 'x', img.height);
+          console.log('压缩尺寸:', width, 'x', height);
+          
+          // 创建 Canvas
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // 转换为 Blob（质量 0.6，进一步压缩）
+          canvas.toBlob((blob) => {
+            if (blob) {
+              console.log('压缩成功，压缩后大小:', blob.size, 'bytes');
+              
+              // 保存到临时目录
+              const fileName = `drug_${Date.now()}.jpg`;
+              const savedPath = `/images/${fileName}`;
+              
+              // 使用 localStorage 存储 Base64
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64 = reader.result.split(',')[1];
+                console.log('Base64 长度:', base64.length);
+                
+                // 检查是否超过 localStorage 限制（5MB）
+                try {
+                  // 测试存储
+                  const testKey = 'test_storage_' + Date.now();
+                  uni.setStorageSync(testKey, base64);
+                  uni.removeStorageSync(testKey);
+                  
+                  // 存储成功
+                  uni.setStorageSync('drug_image_' + fileName, base64);
+                  console.log('图片已存储，文件名:', fileName, '大小:', base64.length);
+                  resolve(savedPath);
+                } catch (e) {
+                  console.error('存储失败，图片太大:', e);
+                  uni.showToast({ 
+                    title: '图片太大，请重新拍摄', 
+                    icon: 'none',
+                    duration: 2000
+                  });
+                  resolve(imagePath); // 返回原始路径
+                }
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            } else {
+              reject(new Error('压缩失败'));
+            }
+          }, 'image/jpeg', 0.6);
+        };
+        img.onerror = () => reject(new Error('加载图片失败'));
+        img.src = imagePath;
+      });
     },
   },
 };

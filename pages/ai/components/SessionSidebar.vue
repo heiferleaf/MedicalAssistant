@@ -26,7 +26,6 @@
 							<text class="edit-text">编辑</text>
 						</view>
 					</view>
-					<text class="session-preview">{{ session.lastMessage || '暂无消息' }}</text>
 					<text v-if="session.unread" class="unread-tag">{{ session.unread }}</text>
 				</view>
 				<view class="session-delete" @click.stop="$emit('delete', session, index)">
@@ -251,60 +250,52 @@ $bg-light: #F8FAFC;
 			}
 			
 			.session-info {
-				flex: 1;
-				overflow: hidden;
-				display: flex;
-				flex-direction: column;
-				gap: 8rpx;
-				
-				.session-title-wrapper {
+					flex: 1;
+					overflow: hidden;
 					display: flex;
-					align-items: center;
-					gap: 12rpx;
+					flex-direction: column;
+					gap: 8rpx;
 					
-					.session-title {
-						font-size: 28rpx;
-						font-weight: 600;
-						color: $text-primary;
-						flex: 1;
-						overflow: hidden;
-						text-overflow: ellipsis;
-						white-space: nowrap;
-						@media (prefers-color-scheme: dark) { color: #F1F5F9; }
-					}
-					
-					.edit-btn {
-						padding: 4rpx 12rpx;
-						background: $primary-light;
-						border-radius: 8rpx;
-						flex-shrink: 0;
+					.session-title-wrapper {
+						display: flex;
+						align-items: center;
+						gap: 12rpx;
 						
-						.edit-text {
-							font-size: 22rpx;
-							color: $primary;
+						.session-title {
+							font-size: 28rpx;
+							font-weight: 600;
+							color: $text-primary;
+							flex: 1;
+							overflow: hidden;
+							text-overflow: ellipsis;
+							white-space: nowrap;
+							@media (prefers-color-scheme: dark) { color: #F1F5F9; }
+						}
+						
+						.edit-btn {
+							padding: 4rpx 12rpx;
+							background: $primary-light;
+							border-radius: 8rpx;
+							flex-shrink: 0;
+							
+							.edit-text {
+								font-size: 22rpx;
+								color: $primary;
+							}
 						}
 					}
+					
+					.unread-tag {
+						display: inline-block;
+						padding: 4rpx 12rpx;
+						background: $primary;
+						color: #fff;
+						font-size: 20rpx;
+						border-radius: 12rpx;
+						margin-top: 4rpx;
+						align-self: flex-start;
+					}
 				}
-				
-				.session-preview {
-					font-size: 24rpx;
-					color: $text-secondary;
-					overflow: hidden;
-					text-overflow: ellipsis;
-					white-space: nowrap;
-				}
-				
-				.unread-tag {
-					display: inline-block;
-					padding: 4rpx 12rpx;
-					background: $primary;
-					color: #fff;
-					font-size: 20rpx;
-					border-radius: 12rpx;
-					margin-top: 4rpx;
-					align-self: flex-start;
-				}
-			}
 			
 			.session-delete {
 				padding: 16rpx;

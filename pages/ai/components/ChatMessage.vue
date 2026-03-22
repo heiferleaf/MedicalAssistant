@@ -41,8 +41,25 @@
 					:content="content" 
 				/>
 				
-				<!-- 图片消息 -->
-				<image v-if="image" class="msg-img" :src="image" mode="aspectFill"></image>
+				<!-- 图片消息：H5 使用 img 标签，其他平台使用 image 标签 -->
+				<view v-if="image && isH5">
+					<img 
+						:src="image" 
+						class="msg-img"
+						@error="handleImageError"
+						@load="handleImageLoad"
+					/>
+					<!-- 调试：显示 Base64 前缀 -->
+					<view style="font-size: 10px; color: #999; margin-top: 4px;">
+						Base64 前缀：{{ image.substring(0, 30) }}...
+					</view>
+				</view>
+				<image 
+					v-if="!isH5 && image" 
+					class="msg-img" 
+					:src="image" 
+					mode="aspectFill"
+				/>
 				
 				<!-- 加载状态 -->
 				<view v-if="role === 'loading'" class="loading-dots">
@@ -59,7 +76,20 @@
 		<!-- 用户消息：保持原有样式 -->
 		<view v-else :class="['chat-bubble', 'chat-bubble-user']">
 			<text v-if="type === 'text'" class="msg-text">{{ content }}</text>
-			<image v-if="image" class="msg-img" :src="image" mode="aspectFill"></image>
+			<!-- 图片消息：H5 使用 img 标签，其他平台使用 image 标签 -->
+			<img 
+				v-if="isH5 && image" 
+				:src="image" 
+				class="msg-img"
+				@error="handleImageError"
+				@load="handleImageLoad"
+			/>
+			<image 
+				v-if="!isH5 && image" 
+				class="msg-img" 
+				:src="image" 
+				mode="aspectFill"
+			/>
 			<slot></slot>
 		</view>
 	</view>
@@ -113,7 +143,34 @@ export default {
 			default: () => ({})
 		}
 	},
+	data() {
+		return {
+			isH5: uni.getSystemInfoSync().platform === 'web' || window !== undefined
+		};
+	},
+	watch: {
+			image: {
+				immediate: true,
+				handler(newVal) {
+					if (newVal) {
+						console.log('ChatMessage 收到图片:', newVal.substring(0, 50) + '...');
+					} else {
+						console.log('ChatMessage image 为空');
+					}
+				}
+			}
+		},
 	methods: {
+		// 处理图片加载成功
+		handleImageLoad(e) {
+			console.log('图片加载成功:', e);
+		},
+		
+		// 处理图片加载失败
+		handleImageError(e) {
+			console.error('图片加载失败:', e);
+		},
+		
 		// 处理确认操作
 		handleActionConfirm(data) {
 			this.$emit('action-confirm', {
@@ -210,6 +267,8 @@ $primary: #3B82F6;
 	height: 240rpx;
 	border-radius: 20rpx;
 	margin-bottom: 16rpx;
+	display: block;
+	object-fit: cover;
 }
 
 .loading-dots {
