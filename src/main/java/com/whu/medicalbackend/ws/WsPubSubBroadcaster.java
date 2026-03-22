@@ -19,7 +19,7 @@ import java.io.IOException;
 @Slf4j
 @Component
 public class WsPubSubBroadcaster{
-    private static final String CHANNLE_PREFIX = "ws:group:";
+    private static final String CHANNEL_PREFIX = "ws:group:";
 
     @Autowired
     private WebSocketSessionManager sessionManager;
@@ -43,7 +43,7 @@ public class WsPubSubBroadcaster{
             try {
                 BroadcastMessage msg = new BroadcastMessage(userId, jsonPayload, instance);
                 String json = objectMapper.writeValueAsString(msg);
-                redisTemplate.convertAndSend(CHANNLE_PREFIX + groupId, json);
+                redisTemplate.convertAndSend(CHANNEL_PREFIX + groupId, json);
             } catch (JsonProcessingException e) {
                 log.error("【Pub/Sub】发布消息失败, userId={}", userId, e);
             }
