@@ -208,7 +208,7 @@ export default {
     },
     methods: {
         getAvatar(userId) {
-            return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+            return `${baseURL}/api/user/avatar/random`;
         },
         async initData() {
             await this.fetchData();

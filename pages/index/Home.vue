@@ -186,8 +186,7 @@ export default {
 			this.userInfo.name = username;
 		},
 		getAvatar() {
-			const userId = uni.getStorageSync("userId") || "defaultUser";
-			return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+			return `${baseURL}/api/user/avatar/random`;
 		},
 		getStatusClass(status) {
 			const map = { 0: "is-pending", 1: "is-done", 2: "is-missed" };

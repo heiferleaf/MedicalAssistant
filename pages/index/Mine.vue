@@ -179,8 +179,7 @@ export default {
       this.createTime = uni.getStorageSync("createTime") || "";
     },
     getAvatar() {
-      const userId = uni.getStorageSync("userId") || "defaultUser";
-      return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+      return `${baseURL}/api/user/avatar/random`;
     },
     toSettings() {
       uni.navigateTo({ url: "/pages/mine/Settings" });
