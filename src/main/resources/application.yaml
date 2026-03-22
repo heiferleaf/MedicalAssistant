@@ -80,3 +80,7 @@ agent:
 
 printpdf:
   output-dir: ./uploads/printpdf
+
+# Redis Pub/Sub 判断的实例依据
+app:
+  instance-id: ${INSTANCE_ID:local}

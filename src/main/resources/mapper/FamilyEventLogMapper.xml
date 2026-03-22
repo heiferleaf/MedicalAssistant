@@ -13,7 +13,7 @@
         SELECT
             l.id as alarmId,
             u.nickname as memberName,
-            l.content as medicineName,
+            l.event_content as medicineName,
             DATE_FORMAT(l.create_time, '%Y-%m-%d %H:%i:%s') as alarmTime
         FROM family_event_log l
                  LEFT JOIN t_user u ON l.user_id = u.id

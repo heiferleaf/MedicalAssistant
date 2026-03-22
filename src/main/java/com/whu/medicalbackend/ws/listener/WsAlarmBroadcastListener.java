@@ -9,6 +9,7 @@ import com.whu.medicalbackend.mapper.UserMapper;
 import com.whu.medicalbackend.service.serviceImpl.FamilyCacheService;
 import com.whu.medicalbackend.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.ws.WebSocketSessionManager;
+import com.whu.medicalbackend.ws.WsPubSubBroadcaster;
 import com.whu.medicalbackend.ws.event.FamilyPushEvent;
 import com.whu.medicalbackend.ws.event.UserTaskMedicineRemindEvent;
 import org.slf4j.Logger;
@@ -41,7 +42,8 @@ public class WsAlarmBroadcastListener{
     private FamilyGroupMapper groupMapper;
     @Autowired
     private UserMapper userMapper;
-
+    @Autowired
+    private WsPubSubBroadcaster wsPubSubBroadcaster;
     /**
      * 使用 @Async 确保广播不阻塞主业务流程（如审批事务）
      */
@@ -75,18 +77,7 @@ public class WsAlarmBroadcastListener{
                 return;
             }
 
-            WebSocketSession session = sessionManager.get(userId);
-            if (session != null && session.isOpen()) {
-                try {
-                    session.sendMessage(new TextMessage(jsonPayload));
-                    logger.debug("【WS广播】成功推送到在线用户: {}", userId);
-                } catch (IOException e) {
-                    // 忽略发送异常
-                    logger.error("【WS广播】物理推送失败: {}", userId);
-                }
-            } else {
-                logger.error("【WS广播】用户{}会话未找到", userId);
-            }
+           wsPubSubBroadcaster.pushToUser(userId, jsonPayload, groupId);
         });
     }
 
@@ -98,18 +89,9 @@ public class WsAlarmBroadcastListener{
 
         if(Boolean.FALSE.equals(isOnline)) return;
 
-        // 在线的用户广播消息提醒
-        WebSocketSession session = sessionManager.get(userId);
-        if (session != null && session.isOpen()) {
-            String jsonPayload = objectMapper.writeValueAsString(event.getData());
-            try {
-                session.sendMessage(new TextMessage(jsonPayload));
-                logger.debug("【WS广播】成功推送到在线用户: {}", userId);
-            } catch (IOException e) {
-                // 忽略发送异常
-                logger.error("【WS广播】物理推送失败: {}", userId);
-            }
-        }
+        String jsonPayload = objectMapper.writeValueAsString(event.getData());
+
+        wsPubSubBroadcaster.pushToUser(userId, jsonPayload, Long.valueOf(0));
     }
 
     private void SmsHandle(Long groupId) {
