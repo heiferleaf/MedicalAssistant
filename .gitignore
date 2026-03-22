@@ -1,3 +1,7 @@
 node_modules
 unpackage
 .hbuilderx
+
+package-lock.json
+dist/
+.cache/
