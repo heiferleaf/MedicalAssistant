@@ -84,15 +84,15 @@ export default {
           });
         } else {
           // 处理业务限制（如：48小时重复申请、组已满等）
-          uni.showToast({
-            title: res.message || '申请失败',
-            icon: 'none',
-            duration: 2000
-          });
+          // uni.showToast({
+          //   title: res.message || '申请失败',
+          //   icon: 'none',
+          //   duration: 2000
+          // });
         }
       } catch (e) {
         console.error(e);
-        uni.showToast({ title: '网络繁忙', icon: 'none' });
+        // uni.showToast({ title: '网络繁忙', icon: 'none' });
       } finally {
         this.submitting = false;
       }

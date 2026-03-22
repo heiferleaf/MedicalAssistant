@@ -135,7 +135,7 @@ export default {
           },
         });
       } catch (e) {
-        uni.showToast({ title: "图片处理失败", icon: "none" });
+        // uni.showToast({ title: "图片处理失败", icon: "none" });
       }
     },
   },

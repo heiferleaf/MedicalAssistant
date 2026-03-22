@@ -539,7 +539,7 @@ export default {
               }
 
               if (!resp.ok) {
-                uni.showToast({ title: '打开失败', icon: 'none' })
+                // uni.showToast({ title: '打开失败', icon: 'none' })
                 return
               }
 
@@ -547,7 +547,7 @@ export default {
               const blobUrl = window.URL.createObjectURL(blob)
               window.open(blobUrl, '_blank')
             } catch (e) {
-              uni.showToast({ title: '打开失败', icon: 'none' })
+              // uni.showToast({ title: '打开失败', icon: 'none' })
             }
             // #endif
 

@@ -82,11 +82,11 @@ export default {
             });
           }, 1500);
         } else {
-          uni.showToast({ title: res.message || '创建失败', icon: 'none' });
+          // uni.showToast({ title: res.message || '创建失败', icon: 'none' });
         }
       } catch (e) {
         console.error("报错显示：", e)
-        uni.showToast({ title: '网络请求异常', icon: 'none' });
+        // uni.showToast({ title: '网络请求异常', icon: 'none' });
       } finally {
         this.submitting = false;
       }

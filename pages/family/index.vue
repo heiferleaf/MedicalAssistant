@@ -153,7 +153,7 @@ export default {
                 this.checkUserFamilyStatus();
             } catch (e) {
                 console.error(e);
-                uni.showToast({ title: '操作失败', icon: 'none' });
+                // uni.showToast({ title: '操作失败', icon: 'none' });
             } finally {
                 uni.hideLoading();
             }

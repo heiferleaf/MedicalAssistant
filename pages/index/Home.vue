@@ -296,7 +296,7 @@ export default {
 				this.taskList[index].operateTime = new Date().toISOString();
 				uni.showToast({ title: "已服药", icon: "success" });
 			} catch (e) {
-				uni.showToast({ title: "操作失败", icon: "none" });
+				// uni.showToast({ title: "操作失败", icon: "none" });
 			}
 		},
 	},

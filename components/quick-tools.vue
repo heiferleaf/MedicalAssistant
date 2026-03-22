@@ -31,7 +31,7 @@ export default {
                 // { id: 4, name: "AI 咨询", icon: "/static/Home/ai-assistant.svg", color: "#0ea5e9" },
                 { id: 4, name: "用药提醒", icon: "/static/Home/reminder.svg", color: "#ef4444" },
                 // { id: 5, name: "健康信息", icon: "/static/Home/reminder.svg", color: "#8b5cf6" },
-                { id: 6, name: "拍照识别", icon: "/static/Home/reminder.svg", color: "#f59e0b" },
+                // { id: 6, name: "拍照识别", icon: "/static/Home/reminder.svg", color: "#f59e0b" },
             ],
         };
     },
@@ -44,7 +44,7 @@ export default {
                 // 4: "/pages/ai/Assistant",
                 4: "/pages/reminder/Reminder",
                 // 5: "/pages/test/health",
-                6: "/pages/test/camera",
+                // 6: "/pages/test/camera",
             };
             if (routes[funcId]) uni.navigateTo({ url: routes[funcId] });
         },

@@ -1,5 +1,6 @@
 <template>
 	<view class="container">
+		<view class="padding"></view>
 		<!-- Header -->
 		<view class="header">
 			<text class="title">系统通知</text>
@@ -210,6 +211,9 @@ export default {
 .icon-color-join_success    { color: #006a2d; }
 .icon-color-member_leave    { color: #595c5e; }
 
+.padding {
+	height:64rpx;
+}
 /* ===== 整体容器 ===== */
 .container {
 	min-height: 100vh;
