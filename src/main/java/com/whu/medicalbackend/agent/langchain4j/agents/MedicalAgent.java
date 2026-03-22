@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.whu.medicalbackend.agent.langchain4j.tools.ocr.OcrDrugRecognitionTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.family.FamilyAlarmTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.family.FamilyHealthSnapshotTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.family.FamilyInviteTool;
@@ -71,7 +72,8 @@ public class MedicalAgent {
                         MedicineQueryTool medicineQueryTool,
                         MedicineAddTool medicineAddTool,
                         PredictTool predictTool,
-                        RagTool ragTool) {
+                        RagTool ragTool,
+                        OcrDrugRecognitionTool ocrDrugRecognitionTool) {
 
         this.medicalExpert = AiServices.builder(MedicalExpert.class)
                 .chatModel(chatModel)
@@ -80,7 +82,7 @@ public class MedicalAgent {
                        taskQueryTodayTool, taskUpdateStatusTool, taskQueryHistoryTool,
                        familyQueryTool, familyHealthSnapshotTool, familyAlarmTool, familyInviteTool,
                        medicineQueryTool, medicineAddTool,
-                       predictTool, ragTool)
+                       predictTool, ragTool, ocrDrugRecognitionTool)
                 .build();
     }
 
@@ -108,7 +110,7 @@ public class MedicalAgent {
 
                 MEDICATION TASK TOOLS:
                 - getTodayTasks: Get today's medication tasks
-                - updateTaskStatus: Update the status of a medication task (0=not taken, 1=taken, 2=missed)
+                - updateTaskStatus: Update the status of a medication task. Use this when user reports TAKING a medicine (e.g., "I took aspirin at 8am", "I just ate my medicine"). Status: 0=not taken, 1=taken, 2=missed
                 - getHistoryTasks: Query historical medication tasks
 
                 FAMILY GROUP TOOLS:
@@ -120,6 +122,9 @@ public class MedicalAgent {
                 MEDICINE TOOLS:
                 - queryMyMedicines: Query all medicines saved by the user
                 - addMedicine: Add a new medicine to the user's medicine library
+
+                OCR/IMAGE RECOGNITION TOOLS:
+                - recognizeDrugFromImage: Recognize drug information from an image using OCR. Use this when user uploads a photo of a drug package (e.g., "帮我识别这个药", "扫描药盒", "识别图片中的药品"). This tool returns the recognized drug information, but does NOT create plans or add medicines automatically.
 
                 DRUG ADVERSE REACTION PREDICTION TOOLS:
                 - predictAdverseReactions: Predict potential drug adverse reactions based on clinical information
@@ -134,14 +139,15 @@ public class MedicalAgent {
                 - ALWAYS use updatePlan when the user wants to modify an existing medication plan
                 - ALWAYS use deletePlan when the user wants to delete a medication plan
                 - ALWAYS use getTodayTasks when the user asks about today's tasks or daily schedule
-                - ALWAYS use updateTaskStatus when the user wants to mark a task as taken or missed
+                - ALWAYS use updateTaskStatus when the user REPORTS TAKING a medicine (e.g., "I took aspirin", "I just took my medicine", "I forgot to take my medicine", "morning medicine done", "药已经吃了")
                 - ALWAYS use getHistoryTasks when the user asks about past medication history
                 - ALWAYS use queryMyFamilyGroup when the user asks about their family group or family members
                 - ALWAYS use getFamilyHealthSnapshot when the user asks about family health or medication status
                 - ALWAYS use getFamilyAlarms when the user asks about family alarms or reminders
                 - ALWAYS use inviteFamilyMember when the user wants to invite someone to the family group
-                - ALWAYS use queryMyMedicines when the user asks about their medicine library
-                - ALWAYS use addMedicine when the user wants to add a medicine to their library
+                - ALWAYS use queryMyMedicines when the user asks about their medicine cabinet or medicine library
+                - ALWAYS use addMedicine when the user wants to ADD a new medicine to their cabinet (e.g., "add aspirin to my medicine cabinet", "我要添加布洛芬到药箱")
+                - ALWAYS use recognizeDrugFromImage when the user uploads an image of a drug package and asks to recognize it (e.g., "帮我识别这个药", "扫描药盒", "识别图片中的药品")
                 - ALWAYS use predictAdverseReactions when the user asks about drug safety, side effects, or adverse reactions
                 - ALWAYS use analyzeAdverseReactionRisk when the user wants to assess medication risks
                 - ALWAYS use queryMedicalKnowledge when the user asks general medical questions, symptoms, diseases, treatments, or needs professional medical information
@@ -177,6 +183,11 @@ public class MedicalAgent {
                 - When user wants to UPDATE a plan, summarize the changes and ask "请确认是否修改此用药计划？"
                 - When user wants to DELETE a plan, ask "请确认是否删除此用药计划？"
                 - After user confirms (says "好的", "确认", "yes", "可以", "执行", etc.), call the tool.
+                
+                CRITICAL: FOR MEDICINE AND TASK OPERATIONS!
+                - When user wants to add medicine to cabinet (e.g., "添加布洛芬到药箱"), you MUST call addMedicine tool FIRST, then include [ACTION:addMedicine] in your response
+                - When user reports taking medicine (e.g., "我吃了阿司匹林", "药已吃"), you MUST call updateTaskStatus tool FIRST, then include [ACTION:updateTaskStatus] in your response
+                - After calling these tools, ALWAYS include the action marker in your response so frontend can show confirmation card!
                 """)
         String medical(@MemoryId String memoryId, @V("userId") String userId, @UserMessage String userMessage);
     }
