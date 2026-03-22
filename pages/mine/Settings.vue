@@ -1,5 +1,13 @@
 <template>
     <view class="container" :class="{ 'dark-mode': isDarkMode }">
+        <view class="padding"></view>
+        <view class="nav-bar">
+            <view class="back-btn" @click="uni.navigateBack()">
+                <image class="back-icon" src="/static/Register/back.png" mode="aspectFit" />
+            </view>
+            <text class="title">创建家庭组</text>
+            <view class="placeholder"></view>
+        </view>
         <view class="settings-group">
             <view class="group-title">显示与外观</view>
             <view class="card">
@@ -18,17 +26,8 @@
                         <text class="item-title" :style="{ fontSize: fontSize + 'px' }">系统字体大小</text>
                         <text class="item-desc">当前: {{ fontSize }}px</text>
                     </view>
-                    <slider 
-                        class="font-slider" 
-                        :value="fontSize" 
-                        min="12" 
-                        max="24" 
-                        step="2" 
-                        activeColor="#6366f1" 
-                        backgroundColor="#e2e8f0" 
-                        @change="onFontChange" 
-                        @changing="onFontChanging"
-                    />
+                    <slider class="font-slider" :value="fontSize" min="12" max="24" step="2" activeColor="#6366f1"
+                        backgroundColor="#e2e8f0" @change="onFontChange" @changing="onFontChanging" />
                 </view>
             </view>
         </view>
@@ -91,7 +90,7 @@ export default {
             this.isDarkMode = e.detail.value;
             const themeStr = this.isDarkMode ? 'dark' : 'light';
             uni.setStorageSync('app_theme', themeStr);
-            
+
             // 提示用户
             uni.showToast({
                 title: '主题已切换，部分页面需重启生效',
@@ -111,7 +110,7 @@ export default {
         onFontChange(e) {
             this.fontSize = e.detail.value;
             uni.setStorageSync('app_font_size', this.fontSize);
-            
+
             uni.showToast({
                 title: '字体大小已保存',
                 icon: 'success'
@@ -134,16 +133,84 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-/* 页面底层背景 */
+/* 颜色变量 */
+$primary: #4d88ff;
+$bg-color: #ffffff;
+$text-main: #0f172a;
+$text-sub: #64748b;
+$border-color: #e2e8f0;
+
+.padding {
+  height: 64rpx; /* 顶部留白，适配状态栏 */
+}
+
+/* 顶部导航栏 */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 32rpx;
+  background-color: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  .back-btn {
+    width: 64rpx;
+    height: 64rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    margin-right: 20rpx;
+    transition: all 0.3s ease;
+  }
+
+  .back-btn:active {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .back-icon {
+    width: 32rpx;
+    height: 32rpx;
+  }
+
+  .icon-back {
+    font-size: 48rpx;
+    color: $text-main;
+  }
+
+  .title {
+    font-size: 36rpx;
+    font-weight: bold;
+    color: $text-main;
+    flex: 1;
+    text-align: center;
+  }
+
+  .placeholder {
+    width: 80rpx;
+  }
+}
+
 .container {
     min-height: 100vh;
-    background-color: #f8fafc;
+    background-color: $bg-color;
     padding: 30rpx;
     transition: background-color 0.3s ease;
 
     /* 暗黑模式底层背景 */
     &.dark-mode {
         background-color: #0f172a;
+
+        .nav-bar {
+            background-color: #1e293b;
+
+            .title {
+                color: #f1f5f9;
+            }
+        }
 
         .group-title {
             color: #94a3b8;
@@ -152,15 +219,18 @@ export default {
         .card {
             background-color: #1e293b;
             box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
-            
+
             .item-title {
                 color: #f1f5f9;
             }
-            .item-desc, .version-text, .arrow {
+
+            .item-desc,
+            .version-text,
+            .arrow {
                 color: #64748b;
             }
         }
-        
+
         .divider {
             background-color: #334155;
         }
@@ -196,7 +266,7 @@ export default {
     &.font-item {
         flex-direction: column;
         align-items: flex-start;
-        
+
         .item-left {
             width: 100%;
             display: flex;
@@ -256,7 +326,7 @@ export default {
 .footer-tips {
     text-align: center;
     margin-top: 60rpx;
-    
+
     text {
         font-size: 22rpx;
         color: #cbd5e1;

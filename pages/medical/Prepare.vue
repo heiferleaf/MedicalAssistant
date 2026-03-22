@@ -3,32 +3,23 @@
   <view class="page-container">
     <!-- 顶部导航栏 -->
     <view class="header">
-      <view class="header-left">
-        <view class="back-btn" @click="goBack">
-          <image class="back-icon" src="/static/Register/back.png" mode="aspectFit" />
+      <view class="padding"></view>
+      <view class="header-bottom">
+        <view class="header-left">
+          <view class="back-btn" @click="goBack">
+            <image class="back-icon" src="/static/Register/back.png" mode="aspectFit" />
+          </view>
+          <text class="page-title">就医准备单</text>
         </view>
-        <text class="page-title">就医准备单</text>
-      </view>
-      <view class="header-right">
-        <button class="action-btn" @click="shareDocument">
-          <image class="share-icon" src="/static/Prepare/share.svg" mode="aspectFit" />
-        </button>
-        <button class="action-btn" @click="exportDocument">
-          <image class="export-icon" src="/static/Mine/export.svg" mode="aspectFit" />
-        </button>
+        <view class="header-right">
+          <image class="icon" src="/static/Prepare/share.svg" />
+          <image class="icon" src="/static/Mine/export.svg" />
+        </view>
       </view>
     </view>
 
     <!-- 主要内容区域 -->
-    <scroll-view 
-      class="main-content"
-      scroll-y
-      :show-scrollbar="false"
-      :scroll-x="false"
-      :refresher-enabled="true"
-      :refresher-triggered="refreshing"
-      @refresherrefresh="onRefresh"
-    >
+    <scroll-view class="main-content" scroll-y :show-scrollbar="false" :scroll-x="false">
       <!-- 基本信息 -->
       <view class="basic-info">
         <view class="info-row">
@@ -39,12 +30,7 @@
         <view class="info-row">
           <image class="info-icon" src="/static/Prepare/department.svg" mode="aspectFit" />
           <text class="info-label">就诊科室：</text>
-          <picker 
-            mode="selector" 
-            :range="departments" 
-            :value="departmentIndex"
-            @change="onDepartmentChange"
-          >
+          <picker mode="selector" :range="departments" :value="departmentIndex" @change="onDepartmentChange">
             <view class="info-value picker-value">
               <text>{{ documentInfo.department }}</text>
               <image class="picker-arrow" src="/static/Health/down.svg" mode="aspectFit" />
@@ -59,11 +45,7 @@
         <view class="info-row">
           <image class="info-icon" src="/static/Health/calendar.svg" mode="aspectFit" />
           <text class="info-label">就诊日期：</text>
-          <picker 
-            mode="date" 
-            :value="visitDate" 
-            @change="onDateChange"
-          >
+          <picker mode="date" :value="visitDate" @change="onDateChange">
             <view class="info-value picker-value">
               <text>{{ documentInfo.visitDate }}</text>
               <image class="picker-arrow" src="/static/Health/down.svg" mode="aspectFit" />
@@ -83,14 +65,10 @@
             <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
           </button>
         </view>
-        
+
         <view class="medication-list">
-          <view 
-            class="medication-item"
-            v-for="med in documentInfo.medications"
-            :key="med.id"
-            @click="toMedicationDetail(med.id)"
-          >
+          <view class="medication-item" v-for="med in documentInfo.medications" :key="med.id"
+            @click="toMedicationDetail(med.id)">
             <view class="medication-header">
               <image class="pill-icon" src="/static/Health/pill-active.svg" mode="aspectFit" />
               <text class="medication-name">{{ med.name }}</text>
@@ -113,7 +91,7 @@
             </view>
           </view>
         </view>
-        
+
         <view class="section-footer">
           <text class="footer-text">共 {{ documentInfo.medications.length }} 种药品</text>
         </view>
@@ -130,13 +108,9 @@
             <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
           </button>
         </view>
-        
+
         <view class="health-data-list">
-          <view 
-            class="health-data-item"
-            v-for="data in documentInfo.healthData"
-            :key="data.id"
-          >
+          <view class="health-data-item" v-for="data in documentInfo.healthData" :key="data.id">
             <view class="data-header">
               <text class="data-date">{{ data.date }}</text>
               <view class="data-indicator">
@@ -153,7 +127,7 @@
             </view>
           </view>
         </view>
-        
+
         <view class="section-footer">
           <text class="footer-text">最近7天异常数据</text>
         </view>
@@ -170,34 +144,24 @@
             <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
           </button>
         </view>
-        
+
         <view class="questions-list">
-          <view 
-            class="question-item"
-            v-for="(question, index) in documentInfo.questions"
-            :key="index"
-          >
+          <view class="question-item" v-for="(question, index) in documentInfo.questions" :key="index">
             <text class="question-index">•</text>
             <text class="question-text">{{ question }}</text>
           </view>
         </view>
-        
+
         <view class="questions-input" v-if="showQuestionInput">
-          <textarea 
-            class="question-textarea"
-            placeholder="请输入您想问医生的问题..."
-            placeholder-class="textarea-placeholder"
-            v-model="newQuestion"
-            maxlength="200"
-            auto-height
-          />
+          <textarea class="question-textarea" placeholder="请输入您想问医生的问题..." placeholder-class="textarea-placeholder"
+            v-model="newQuestion" maxlength="200" auto-height />
           <view class="textarea-actions">
             <text class="char-count">{{ newQuestion.length }}/200</text>
             <button class="cancel-btn" @click="cancelAddQuestion">取消</button>
             <button class="add-btn" @click="addQuestion" :disabled="!newQuestion.trim()">添加</button>
           </view>
         </view>
-        
+
         <button class="add-question-btn" @click="showAddQuestion" v-if="!showQuestionInput">
           <image class="add-icon" src="/static/Health/plus-circle.svg" mode="aspectFit" />
           <text class="add-text">添加问题</text>
@@ -212,16 +176,10 @@
             <text class="section-title">其他信息</text>
           </view>
         </view>
-        
+
         <view class="other-info">
-          <textarea 
-            class="other-textarea"
-            placeholder="其他需要告知医生的信息，如过敏史、既往病史等..."
-            placeholder-class="textarea-placeholder"
-            v-model="documentInfo.otherInfo"
-            maxlength="500"
-            auto-height
-          />
+          <textarea class="other-textarea" placeholder="其他需要告知医生的信息，如过敏史、既往病史等..."
+            placeholder-class="textarea-placeholder" v-model="documentInfo.otherInfo" maxlength="500" auto-height />
           <text class="char-count">{{ documentInfo.otherInfo.length }}/500</text>
         </view>
       </view>
@@ -242,6 +200,8 @@
 </template>
 
 <script>
+import { BASE_URL } from '../../config/config';
+
 export default {
   data() {
     return {
@@ -479,7 +439,7 @@ export default {
       uni.showLoading({
         title: '生成分享图中...'
       })
-      
+
       setTimeout(() => {
         uni.hideLoading()
         uni.showToast({
@@ -506,13 +466,11 @@ export default {
           otherInfo: this.documentInfo.otherInfo || ''
         }
 
-        // TODO: 改成你的后端真实地址
-        const baseUrl = 'http://localhost:8080'
 
         const accessToken = uni.getStorageSync('accessToken') || ''
 
         const res = await uni.request({
-          url: `${baseUrl}/api/medical/prepare/pdf`,
+          url: `${BASE_URL}/medical/prepare/pdf`,
           method: 'POST',
           data: payload,
           header: {
@@ -547,7 +505,7 @@ export default {
         }
 
         // 拼完整URL（后端可能返回相对路径）
-        const fileUrl = /^https?:\/\//.test(fileUrlRaw) ? fileUrlRaw : `${baseUrl}${fileUrlRaw}`
+        const fileUrl = /^https?:\/\//.test(fileUrlRaw) ? fileUrlRaw : `${BASE_URL}${fileUrlRaw}`
 
         uni.showModal({
           title: 'PDF生成成功',
@@ -645,12 +603,25 @@ export default {
 /* 头部导航栏 */
 .header {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: space-between;
   padding: 60rpx 32rpx 24rpx;
   background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
   border-radius: 0 0 32rpx 32rpx;
   box-shadow: 0 4rpx 20rpx rgba(45, 107, 255, 0.15);
+}
+
+.padding {
+  height: 64rpx;
+  /* 顶部留白，适配状态栏 */
+}
+
+.header-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .header-left {
@@ -692,6 +663,11 @@ export default {
   gap: 20rpx;
 }
 
+.icon {
+  width: 48rpx;
+  height: 48rpx;
+}
+
 .action-btn {
   display: flex;
   align-items: center;
@@ -699,10 +675,7 @@ export default {
 
   height: 64rpx;
   width: 64rpx;
-  padding: 0;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 32rpx;
-  border: none;
+  background: transparent;
 }
 
 .share-icon,
@@ -737,7 +710,7 @@ export default {
   display: flex;
   align-items: center;
   margin-bottom: 24rpx;
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -771,7 +744,7 @@ export default {
   background: rgba(77, 142, 255, 0.1);
   border-radius: 16rpx;
   transition: all 0.3s ease;
-  
+
   &:active {
     background: rgba(77, 142, 255, 0.2);
   }
@@ -863,7 +836,7 @@ export default {
   border-radius: 20rpx;
   border: 2rpx solid rgba(77, 142, 255, 0.1);
   transition: all 0.3s ease;
-  
+
   &:active {
     background: rgba(77, 142, 255, 0.1);
   }
@@ -893,17 +866,17 @@ export default {
   border-radius: 16rpx;
   font-size: 22rpx;
   font-weight: 500;
-  
+
   &.status-normal {
     background: rgba(16, 185, 129, 0.1);
     color: #10b981;
   }
-  
+
   &.status-warning {
     background: rgba(245, 158, 11, 0.1);
     color: #f59e0b;
   }
-  
+
   &.status-danger {
     background: rgba(255, 107, 107, 0.1);
     color: #ff6b6b;
@@ -918,7 +891,7 @@ export default {
   display: flex;
   align-items: center;
   margin-bottom: 12rpx;
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -1013,12 +986,12 @@ export default {
   border-radius: 16rpx;
   font-size: 22rpx;
   font-weight: 500;
-  
+
   &.status-warning {
     background: rgba(245, 158, 11, 0.1);
     color: #f59e0b;
   }
-  
+
   &.status-danger {
     background: rgba(255, 107, 107, 0.1);
     color: #ff6b6b;
@@ -1106,7 +1079,7 @@ export default {
 .cancel-btn {
   background: rgba(180, 191, 211, 0.1);
   color: #87909c;
-  
+
   &:active {
     background: rgba(180, 191, 211, 0.2);
   }
@@ -1115,11 +1088,11 @@ export default {
 .add-btn {
   background: rgba(77, 142, 255, 0.1);
   color: #4d8eff;
-  
+
   &:active {
     background: rgba(77, 142, 255, 0.2);
   }
-  
+
   &[disabled] {
     background: rgba(180, 191, 211, 0.1);
     color: #b4bfd3;
@@ -1137,7 +1110,7 @@ export default {
   border: 2rpx dashed rgba(77, 142, 255, 0.3);
   border-radius: 20rpx;
   transition: all 0.3s ease;
-  
+
   &:active {
     background: linear-gradient(135deg, rgba(77, 142, 255, 0.15) 0%, rgba(45, 107, 255, 0.1) 100%);
   }
@@ -1204,13 +1177,11 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 28rpx 0;
-  border-radius: 48rpx;
-  border: none;
+  padding: 0;
   font-size: 28rpx;
   font-weight: 600;
   transition: all 0.3s ease;
-  
+
   &:active {
     transform: scale(0.98);
   }
@@ -1220,13 +1191,13 @@ export default {
   background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
   border: 2rpx solid rgba(77, 142, 255, 0.2);
   box-shadow: 0 4rpx 16rpx rgba(45, 107, 255, 0.1);
-  
+
   .btn-icon {
     width: 32rpx;
     height: 32rpx;
     margin-right: 12rpx;
   }
-  
+
   .btn-text {
     color: #4d8eff;
   }
@@ -1235,13 +1206,13 @@ export default {
 .generate-btn {
   background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
   box-shadow: 0 8rpx 32rpx rgba(45, 107, 255, 0.3);
-  
+
   .btn-icon {
     width: 32rpx;
     height: 32rpx;
     margin-right: 12rpx;
   }
-  
+
   .btn-text {
     color: #ffffff;
   }

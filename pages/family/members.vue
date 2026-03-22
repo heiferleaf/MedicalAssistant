@@ -1,14 +1,18 @@
 <template>
     <view class="page-container">
+        <view class="padding"></view>
         <view class="header">
             <view class="header-left">
                 <view class="icon-btn" @click="uni.navigateBack()">
                     <image class="icon-md" src="/static/Register/back.png" mode="aspectFit"></image>
                 </view>
                 <text class="header-title">家庭管理</text>
+
             </view>
-            <view class="icon-btn" @click="goToSettings">
-                <image class="icon-md" src="/static/Mine/settings.svg" mode="aspectFit"></image>
+            <view class="header-right">
+                <view class="icon-btn" style="margin-left: auto;margin-right: 0;" @click="showAlarmModal = true">
+                    <image class="icon-md" src="/static/family/warning.svg" mode="aspectFit"></image>
+                </view>
             </view>
         </view>
 
@@ -24,7 +28,7 @@
                         <view class="text-info">
                             <text class="tag">主家庭组</text>
                             <text class="title">幸福一家人</text>
-                            <text class="desc">家庭 ID: 4</text>
+                            <text class="desc">家庭 ID: {{ groupInfo.groupId }}</text>
                         </view>
                     </view>
                     <button class="btn-manage" hover-class="btn-manage-hover" @click="manageDetails">
@@ -33,7 +37,7 @@
                 </view>
             </view>
 
-            <view class="section-padding action-grid">
+            <view class="section-padding action-grid" v-if="userRole == 'leader'">
                 <view class="action-btn" hover-class="action-btn-hover"
                     @click="navigateTo(`/pages/family/invite?groupId=${groupInfo.groupId}`)">
                     <image class="icon-sm mr-2" src="/static/family/person_add.svg" mode="aspectFit"></image>
@@ -125,11 +129,46 @@
                 </scroll-view>
             </view>
         </view>
+        <view class="modal-overlay" v-if="showAlarmModal" @click="showAlarmModal = false">
+            <view class="modal-content" @click.stop>
+                <view class="modal-header">
+                    <text class="modal-title text-warning">⚠️ 漏服药提醒</text>
+                    <view class="close-btn" @click="showAlarmModal = false">
+                        <text class="close-icon">✕</text>
+                    </view>
+                </view>
+
+                <scroll-view scroll-y class="alarm-list-scroll">
+                    <view v-if="alarmList.length === 0" class="empty-state">
+                        <text class="empty-text">暂无新的漏服记录</text>
+                    </view>
+
+                    <view class="alarm-card" v-for="alarm in alarmList" :key="alarm.alarmId">
+                        <view class="alarm-top">
+                            <view class="alarm-icon-box">
+                                <image class="alarm-icon" :src="getAvatar(alarm.memberId)" mode="aspectFit"></image>
+                            </view>
+
+                            <view class="alarm-info">
+                                <view class="name-time">
+                                    <text class="name">{{ alarm.memberName }}</text>
+                                    <text class="time">{{ alarm.alarmTime.substring(0, 16) }}</text>
+                                </view>
+                                <text class="remark">
+                                    漏服药品：<text class="medicine-name">{{ alarm.medicineName }}</text>
+                                </text>
+                            </view>
+                        </view>
+                    </view>
+                </scroll-view>
+            </view>
+        </view>
     </view>
 </template>
 
 <script>
 import familyApi from '../../api/family';
+import { BASE_URL } from '../../config/config';
 export default {
     data() {
         return {
@@ -140,6 +179,16 @@ export default {
             loading: false,
             showApplyModal: false, // 控制弹窗显示
             applyList: [],        // 申请列表数据
+            healthData: [],
+            showAlarmModal: false, // 控制弹窗显示隐藏
+            alarmList: [           // 你的接口数据
+                {
+                    "alarmId": 123,
+                    "memberName": "张三",
+                    "medicineName": "降压药A",
+                    "alarmTime": "2026-03-20 08:36:10"
+                }
+            ]
         };
     },
     onLoad() {
@@ -160,11 +209,26 @@ export default {
     },
     methods: {
         getAvatar(userId) {
-            return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+            const id = userId || uni.getStorageSync("userId") || 1;
+            // 用 userId 做简单哈希，映射到 1-100
+            const index = (Math.abs(Number(id)) % 100) + 1;
+            return `http://8.148.94.242/avatar/file/avatar_${index}.svg`;
         },
         async initData() {
             await this.fetchData();
             await this.getMessage();
+            await this.getHealth();
+            await this.getAlarms();
+        },
+        async getHealth() {
+            let res = await familyApi.getGroupHealthData(this.groupInfo.groupId);
+            this.healthData = res.members;
+
+            console.log("家庭组健康数据: ", this.healthData);
+        },
+        async getAlarms() {
+            let res = await familyApi.getGroupAlarms(this.groupInfo.groupId);
+            console.log("家庭组健康报警: ", res);
         },
 
         // 点击“审批中心”时触发
@@ -210,7 +274,8 @@ export default {
                 // 只要 res 存在、是数组且长度大于 0，就设为 true
                 if (res && Array.isArray(res) && res.length > 0) {
                     this.hasNewApply = true;
-                    this.applyList = (res || []).filter(item => item.status === 'pending');
+                    // this.applyList = (res || []).filter(item => item.status === 'pending');
+                    this.applyList = res || [];
                     this.hasNewApply = this.applyList.length > 0;
                     console.log("检测到新申请: ", res[0]);
                 } else {
@@ -248,10 +313,18 @@ export default {
             }
         },
 
-        // 点击成员进入对应健康数据页面 [cite: 36]
+        // 点击成员进入对应健康数据页面
         goToHealthData(member) {
+            // 1. 在 healthData 数组中找到匹配的项
+            const targetData = this.healthData.find(item => item.userId === member.userId);
+
+            // 2. 将找到的对象转为 JSON 字符串并进行 URI 编码
+            // 如果没找到对应的数据，默认传一个空的编码字符串，防止报错
+            const healthDataString = targetData ? encodeURIComponent(JSON.stringify(targetData)) : '';
+
+            // 3. 带着新参数跳转
             uni.navigateTo({
-                url: `/pages/family/data?userId=${member.user_id}&userName=${member.nickname}&groupId=${this.groupInfo.groupId}`
+                url: `/pages/family/data?healthData=${healthDataString}`
             });
         },
 
@@ -285,6 +358,11 @@ $card-bg: #ffffff;
 $text-main: #0f172a;
 $text-sub: #64748b;
 $border-color: #e2e8f0;
+
+.padding {
+    height: 64rpx;
+    /* 顶部留白，适配状态栏 */
+}
 
 /* 通用图标尺寸 */
 .icon-sm {
@@ -338,11 +416,19 @@ $border-color: #e2e8f0;
     position: sticky;
     top: 0;
     z-index: 10;
+    background-color: #f5f6f8;
 
     .header-left {
         display: flex;
         align-items: center;
         gap: 24rpx;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        margin-left: auto;
+        margin-right: 0;
     }
 
     .icon-btn {
@@ -631,168 +717,308 @@ $border-color: #e2e8f0;
 
 /* 弹窗蒙层 */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 999;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end; /* 默认让弹窗在底部，也可改为 center 让它居中 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    /* 默认让弹窗在底部，也可改为 center 让它居中 */
 }
 
 /* 弹窗内容容器 */
 .modal-content {
-  background-color: #ffffff;
-  border-radius: 40rpx 40rpx 0 0;
-  width: 100%;
-  max-height: 80vh; /* 最高不超过屏幕 80% */
-  display: flex;
-  flex-direction: column;
-  padding-bottom: env(safe-area-inset-bottom);
-  animation: slideUp 0.3s ease-out;
+    background-color: #ffffff;
+    border-radius: 40rpx 40rpx 0 0;
+    width: 100%;
+    max-height: 80vh;
+    /* 最高不超过屏幕 80% */
+    display: flex;
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: slideUp 0.3s ease-out;
 }
 
 @keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
 }
 
 /* 弹窗头部 */
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 32rpx 40rpx;
-  border-bottom: 2rpx solid #f1f5f9;
-  
-  .modal-title {
-    font-size: 36rpx;
-    font-weight: bold;
-    color: #0f172a;
-  }
-  
-  .close-btn {
-    width: 64rpx;
-    height: 64rpx;
-    background-color: #f8fafc;
-    border-radius: 50%;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    
-    .close-icon {
-      font-size: 32rpx;
-      color: #64748b;
+    padding: 32rpx 40rpx;
+    border-bottom: 2rpx solid #f1f5f9;
+
+    .modal-title {
+        font-size: 36rpx;
+        font-weight: bold;
+        color: #0f172a;
     }
-  }
+
+    .close-btn {
+        width: 64rpx;
+        height: 64rpx;
+        background-color: #f8fafc;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .close-icon {
+            font-size: 32rpx;
+            color: #64748b;
+        }
+    }
 }
 
 /* 滚动列表区 */
 .apply-list-scroll {
-  flex: 1;
-  padding: 32rpx 40rpx;
-  min-height: 400rpx;
+    flex: 1;
+    padding: 32rpx 40rpx;
+    min-height: 400rpx;
 }
 
 .empty-state {
-  display: flex;
-  justify-content: center;
-  padding-top: 100rpx;
-  .empty-text { color: #94a3b8; font-size: 28rpx; }
+    display: flex;
+    justify-content: center;
+    padding-top: 100rpx;
+
+    .empty-text {
+        color: #94a3b8;
+        font-size: 28rpx;
+    }
 }
 
 /* 单个申请卡片 */
 .apply-card {
-  width: 100%; /* 确保它占满父容器可用宽度 */
-  box-sizing: border-box; /* 核心修复：让内边距和边框向内收缩，不往外撑 */
-  
-  width: 90%;
-  background-color: #f8fafc;
-  border: 2rpx solid #e2e8f0;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
-  
-  .apply-top {
-    display: flex;
-    gap: 24rpx;
-    margin-bottom: 32rpx;
-    
-    .apply-avatar {
-      width: 96rpx;
-      height: 96rpx;
-      border-radius: 50%;
-      background-color: #e2e8f0;
-      flex-shrink: 0;
-    }
-    
-    .apply-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      
-      .name-time {
+    width: 100%;
+    /* 确保它占满父容器可用宽度 */
+    box-sizing: border-box;
+    /* 核心修复：让内边距和边框向内收缩，不往外撑 */
+
+    width: 90%;
+    background-color: #f8fafc;
+    border: 2rpx solid #e2e8f0;
+    border-radius: 24rpx;
+    padding: 32rpx;
+    margin-bottom: 24rpx;
+
+    .apply-top {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8rpx;
-        
-        .name { font-size: 32rpx; font-weight: bold; color: #0f172a; }
-        .time { font-size: 24rpx; color: #94a3b8; }
-      }
-      
-      .remark {
-        font-size: 26rpx;
-        color: #64748b;
-        font-style: italic;
-        line-height: 1.4;
-      }
+        gap: 24rpx;
+        margin-bottom: 32rpx;
+
+        .apply-avatar {
+            width: 96rpx;
+            height: 96rpx;
+            border-radius: 50%;
+            background-color: #e2e8f0;
+            flex-shrink: 0;
+        }
+
+        .apply-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            .name-time {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8rpx;
+
+                .name {
+                    font-size: 32rpx;
+                    font-weight: bold;
+                    color: #0f172a;
+                }
+
+                .time {
+                    font-size: 24rpx;
+                    color: #94a3b8;
+                }
+            }
+
+            .remark {
+                font-size: 26rpx;
+                color: #64748b;
+                font-style: italic;
+                line-height: 1.4;
+            }
+        }
     }
-  }
-  
-  /* 操作按钮 */
-  .apply-actions {
+
+    /* 操作按钮 */
+    .apply-actions {
+        display: flex;
+        gap: 24rpx;
+
+        .btn-reject,
+        .btn-agree {
+            flex: 1;
+            height: 80rpx;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16rpx;
+            font-size: 28rpx;
+            font-weight: 600;
+            margin: 0;
+
+            /* 抹平原生 button 默认 margin */
+            &::after {
+                border: none;
+            }
+        }
+
+        .btn-reject {
+            background-color: #ffffff;
+            color: #475569;
+            border: 2rpx solid #cbd5e1;
+        }
+
+        .btn-reject-hover {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border-color: #fca5a5;
+        }
+
+        .btn-agree {
+            background-color: #4d88ff;
+            color: #ffffff;
+        }
+
+        .btn-agree-hover {
+            opacity: 0.9;
+            transform: scale(0.98);
+        }
+    }
+
+    /* 已处理状态文本 */
+    .apply-status {
+        text-align: right;
+        padding-top: 16rpx;
+        border-top: 2rpx dashed #cbd5e1;
+
+        .status-text {
+            font-size: 26rpx;
+            color: #94a3b8;
+        }
+    }
+}
+
+/* 滚动列表 */
+.alarm-list-scroll {
+    max-height: 600rpx; /* 限制最高高度 */
+}
+
+/* 空状态 */
+.empty-state {
+    padding: 60rpx 0;
+    text-align: center;
+}
+.empty-text {
+    font-size: 28rpx;
+    color: #999;
+}
+
+/* 卡片样式 */
+.alarm-card {
+    background-color: #FFF9F5; /* 微微带点橙色背景，提示漏服 */
+    border: 1px solid #FFE0B2;
+    border-radius: 16rpx;
+    padding: 24rpx;
+    margin-bottom: 20rpx;
+}
+.alarm-top {
     display: flex;
-    gap: 24rpx;
-    
-    .btn-reject, .btn-agree {
-      flex: 1;
-      height: 80rpx;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 16rpx;
-      font-size: 28rpx;
-      font-weight: 600;
-      margin: 0; /* 抹平原生 button 默认 margin */
-      &::after { border: none; }
-    }
-    
-    .btn-reject {
-      background-color: #ffffff;
-      color: #475569;
-      border: 2rpx solid #cbd5e1;
-    }
-    .btn-reject-hover { background-color: #fee2e2; color: #dc2626; border-color: #fca5a5; }
-    
-    .btn-agree {
-      background-color: #4d88ff;
-      color: #ffffff;
-    }
-    .btn-agree-hover { opacity: 0.9; transform: scale(0.98); }
-  }
-  
-  /* 已处理状态文本 */
-  .apply-status {
-    text-align: right;
-    padding-top: 16rpx;
-    border-top: 2rpx dashed #cbd5e1;
-    .status-text { font-size: 26rpx; color: #94a3b8; }
-  }
+    align-items: flex-start;
+    margin-bottom: 20rpx;
+}
+.alarm-icon-box {
+    width: 80rpx;
+    height: 80rpx;
+    border-radius: 50%;
+    background-color: #FFE0B2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 20rpx;
+    flex-shrink: 0;
+}
+.alarm-icon {
+    width: 84rpx;
+    height: 84rpx;
+}
+.alarm-info {
+    flex: 1;
+}
+.name-time {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10rpx;
+}
+.name {
+    font-size: 30rpx;
+    font-weight: bold;
+    color: #333;
+}
+.time {
+    font-size: 24rpx;
+    color: #999;
+}
+.remark {
+    font-size: 28rpx;
+    color: #666;
+}
+.medicine-name {
+    color: #E53935; /* 药品名称标红高亮 */
+    font-weight: bold;
+}
+
+/* 操作按钮 */
+.alarm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 20rpx;
+    border-top: 1px dashed #FFE0B2;
+    padding-top: 20rpx;
+}
+.btn-read, .btn-remind {
+    margin: 0;
+    padding: 0 30rpx;
+    height: 56rpx;
+    line-height: 56rpx;
+    font-size: 26rpx;
+    border-radius: 28rpx;
+}
+.btn-read {
+    background-color: #F5F5F5;
+    color: #666;
+}
+.btn-read-hover {
+    background-color: #E0E0E0;
+}
+.btn-remind {
+    background-color: #FF9800;
+    color: #FFF;
+}
+.btn-remind-hover {
+    background-color: #F57C00;
 }
 </style>

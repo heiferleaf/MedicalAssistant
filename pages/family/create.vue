@@ -1,5 +1,6 @@
 <template>
   <view class="page-container">
+		<view class="padding"></view>
     <view class="nav-bar">
       <view class="back-btn" @click="uni.navigateBack()">
         <image class="back-icon" src="/static/Register/back.png" mode="aspectFit" />
@@ -97,6 +98,9 @@ export default {
 
 
 <style lang="scss" scoped>
+.padding {
+  height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 /* 颜色变量 */
 $primary: #4d88ff;
 $bg-color: #ffffff;

@@ -1,5 +1,6 @@
 <template>
   <view class="profile-page">
+    <view class="padding"></view>
     <!-- 背景装饰与渐变 -->
     <view class="bg-mesh"></view>
     <view class="blob blob-1"></view>
@@ -177,6 +178,9 @@ export default {
 </script>
 
 <style scoped>
+.padding {
+  height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 /* 容器布局 */
 .profile-page { position: relative; min-height: 100vh; background-color: #f5f7f9; overflow: hidden; }
 .bg-mesh { position: fixed; inset: 0; background: radial-gradient(at 0% 0%, #eef5ff 0%, #f5f7f9 100%); z-index: 0; }

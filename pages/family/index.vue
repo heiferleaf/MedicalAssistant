@@ -1,14 +1,15 @@
 <template>
     <view class="page-container">
-        <view class="header">
+        <view class="padding"></view>
+        <view class="header" v-show="showPage">
             <view class="back-btn" @click="uni.navigateBack()">
                 <image class="icon-sm" src="/static/Register/back.png" mode="aspectFit"></image>
             </view>
-            <text class="header-title">欢迎</text>
+            <text class="header-title">家庭组</text>
             <view class="placeholder"></view>
         </view>
 
-        <scroll-view scroll-y class="main-content">
+        <scroll-view scroll-y class="main-content" v-show="showPage">
 
             <view class="hero-section">
                 <view class="icon-wrapper">
@@ -31,25 +32,43 @@
 
             <view class="invite-section">
                 <view class="section-header" v-if="inviteList.length > 0">
-                    <text class="section-title">收到的邀请</text>
-                    <view class="badge"><text class="badge-text">{{ inviteList.length }} 新</text></view>
+                    <text class="section-title">邀请/申请历史</text>
+                    <!-- <view class="badge"><text class="badge-text">{{inviteList.filter(item => item.status === 'pending'
+                        && item.type === 'invite').length }} 新</text></view> -->
                 </view>
 
                 <view class="invite-card" v-for="invite in inviteList" :key="invite.id">
+                    <view class="card-bar"></view>
                     <view class="card-top">
                         <view class="avatar">
                             <image class="avatar-img" src="/static/avatars/avatar2.svg" mode="aspectFill"></image>
                         </view>
                         <view class="invite-info">
-                            <text class="info-label">邀请来自</text>
-                            <text class="inviter-name">{{ invite.inviterNickname }}</text>
-                            <text class="invite-quote">{{ invite.remark }}</text>
+                            <text class="info-label">{{ invite.type === 'invite' ? '邀请来自' : '我申请加入' }}</text>
+                            <text class="inviter-name">{{ invite.groupName }}</text>
+                            <text class="invite-quote">{{ invite.remark || (invite.type === 'invite' ? '邀请你加入家庭组' :
+                                '希望加入该家庭组') }}</text>
                         </view>
                     </view>
 
-                    <view class="card-actions">
-                        <button class="btn-reject" hover-class="btn-reject-hover" @click="handleInvite(invite, 'reject')">拒绝</button>
-                        <button class="btn-accept" hover-class="btn-accept-hover" @click="handleInvite(invite, 'accept')">同意</button>
+                    <view class="card-bottom">
+
+                        <view class="card-actions" v-if="invite.status === 'pending' && invite.type === 'invite'">
+                            <button class="btn-reject" hover-class="btn-reject-hover"
+                                @click="handleInvite(invite, 'reject')">拒绝</button>
+                            <button class="btn-accept" hover-class="btn-accept-hover"
+                                @click="handleInvite(invite, 'accept')">同意</button>
+                        </view>
+
+                        <view class="card-status status-pending"
+                            v-else-if="invite.status === 'pending' && invite.type === 'apply'">
+                            <text>等待对方处理...</text>
+                        </view>
+
+                        <view class="card-status" v-else>
+                            <text :class="getStatusClass(invite.status)">{{ getStatusText(invite.status) }}</text>
+                        </view>
+
                     </view>
                 </view>
             </view>
@@ -67,6 +86,7 @@ export default {
         return {
             userStatus: null, // 1: 组长, 0: 组员, null: 无家庭组
             loading: true,
+            showPage: false,
             inviteList: [] // 存储待处理邀请
         };
     },
@@ -86,10 +106,12 @@ export default {
                     this.autoNavigate();
                 } else {
                     this.userStatus = null;
+                    this.showPage = true; // 显示页面，等待用户操作
                     // 2. 只有在没有家庭组时，才获取邀请列表
                     await this.fetchInvites();
                 }
             } catch (e) {
+                this.showPage = true; // 显示页面，等待用户操作
                 console.error("获取状态失败", e);
                 await this.fetchInvites();
             } finally {
@@ -101,7 +123,8 @@ export default {
             try {
                 const inviteRes = await familyApi.getMyApplyRecords();
                 // 过滤出 pending 状态的记录
-                this.inviteList = (inviteRes || []).filter(item => item.status === 'pending' && item.type === 'invite');
+                // this.inviteList = (inviteRes || []).filter(item => item.status === 'pending' && item.type === 'invite');
+                this.inviteList = inviteRes || [];
                 console.log("待处理邀请列表：", JSON.stringify(this.inviteList));
             } catch (e) {
                 console.error("获取邀请列表失败", e);
@@ -148,6 +171,25 @@ export default {
                 'join': '/pages/family/join'
             };
             uni.navigateTo({ url: urlMap[type] });
+        },
+        // 将英文状态转换为中文显示
+        getStatusText(status) {
+            const statusMap = {
+                'accepted': '已同意',
+                'rejected': '已拒绝',
+                'expired': '已过期'
+            };
+            return statusMap[status] || '未知状态';
+        },
+
+        // 根据不同状态返回不同的 CSS 类名，用于控制字体颜色
+        getStatusClass(status) {
+            const classMap = {
+                'accepted': 'text-success', // 绿色
+                'rejected': 'text-danger',  // 红色
+                'expired': 'text-gray'      // 灰色
+            };
+            return classMap[status] || 'text-gray';
         }
     }
 };
@@ -160,6 +202,12 @@ $card-bg: #ffffff;
 $text-main: #0f172a;
 $text-sub: #64748b;
 $border-color: #e2e8f0;
+
+.padding {
+    height: 64rpx;
+    background-color: $card-bg;
+    /* 顶部留白，适配状态栏 */
+}
 
 /* 图标尺寸工具 */
 .icon-sm {
@@ -355,14 +403,29 @@ $border-color: #e2e8f0;
     .invite-card {
         background-color: $card-bg;
         border-radius: 32rpx;
-        padding: 40rpx;
+        overflow: hidden;
+        /* 🌟 加上这一行，强制裁剪溢出的子元素 */
+        padding: 0 0 40rpx;
         border: 2rpx solid $border-color;
         box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.02);
+        margin-top: 36rpx;
+
+        .card-bar {
+            height: 24rpx;
+            width: 100%;
+            background-color: $primary;
+            /* 💡 既然顶部已经被父元素的 32rpx 圆角裁剪了，这里的 2rpx 就可以去掉了，或者保留也不影响顶部视觉 */
+            // border-radius: 2rpx; 
+            position: relative;
+            left: 0;
+            top: 0;
+        }
 
         .card-top {
             display: flex;
             gap: 32rpx;
             margin-bottom: 40rpx;
+            padding: 40rpx;
 
             .avatar {
                 width: 96rpx;
@@ -491,5 +554,44 @@ $border-color: #e2e8f0;
             }
         }
     }
+}
+
+.card-bottom {
+    margin-top: 20rpx;
+    padding-top: 20rpx;
+    border-top: 1px dashed $primary;
+    display: flex;
+    justify-content: flex-end;
+    /* 靠右对齐 */
+    align-items: center;
+    padding: 10rpx 40rpx 0;
+}
+
+/* 状态文本统一样式 */
+.card-status {
+    font-size: 28rpx;
+    font-weight: 500;
+}
+
+/* 待处理(申请中)的文字样式 */
+.status-pending text {
+    color: #FFA000;
+    /* 橙黄色提示等待 */
+}
+
+/* 动态状态颜色类 */
+.text-success {
+    color: #4CAF50;
+    /* 绿色 - 已同意 */
+}
+
+.text-danger {
+    color: #F44336;
+    /* 红色 - 已拒绝 */
+}
+
+.text-gray {
+    color: #9E9E9E;
+    /* 灰色 - 已过期 */
 }
 </style>

@@ -1,5 +1,6 @@
 <template>
 	<view class="analysis-container">
+		<view class="padding"></view>
 		<view class="status-bar"></view>
 
 		<header class="header">
@@ -116,7 +117,9 @@ $bg-dark: #0F172A;
 	flex-direction: column;
 	@media (prefers-color-scheme: dark) { background-color: $bg-dark; }
 }
-
+.padding {
+	height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 .status-bar { height: var(--status-bar-height); }
 
 .header {

@@ -34,9 +34,16 @@ const responseInterceptor = async (response, resolve, reject) => {
     console.log("Token 过期，尝试刷新...");
     const isOk = await handleRefreshToken();
     if (isOk) {
-      // 换票成功，携带新票重新发起本次请求
       console.log("Token 刷新成功，重试请求...");
-      resolve(retryRes);
+      // 重新发起请求，此时请求拦截器会自动带上最新的 token
+      httpRequest(
+        originalConfig.url,
+        originalConfig.method,
+        originalConfig.data,
+        originalConfig.header,
+      )
+        .then((retryRes) => resolve(retryRes))
+        .catch((err) => reject(err));
     } else {
       console.log("Token 刷新失败，强制退出...");
       handleLogout();
@@ -46,8 +53,9 @@ const responseInterceptor = async (response, resolve, reject) => {
     handleLogout();
     reject(response);
   } else {
+    console.log("请求失败，状态码:", statusCode, "响应数据:", data);
     uni.showToast({
-      title: `网络错误: ${data.code || statusCode}`,
+      title: `${data.message || '请求失败'}`,
       icon: "none",
     });
     reject(response);
@@ -75,7 +83,13 @@ export const httpRequest = (url, method, data = {}, header = {}) => {
         "Content-Type": "application/json",
         ...header,
       },
-      success: (response) => responseInterceptor(response, resolve, reject),
+      success: (response) =>
+        responseInterceptor(response, resolve, reject, {
+          url,
+          method,
+          data,
+          header,
+        }),
       fail: (error) => errorHandler(error, reject),
     };
 
@@ -99,11 +113,12 @@ async function handleRefreshToken() {
     uni.request({
       url: BASE_URL + "/user/refresh",
       method: "POST",
-      data: { "userId": userId, "refreshToken": refreshToken },
+      data: { userId: userId, refreshToken: refreshToken },
       success: (res) => {
         console.log("刷新 Token 响应:", res);
         if (res.data.code === 200) {
           // 刷新成功：data 字段为字符串类型的 newAccessToken
+          console.log("新 Access Token:", res.data.data);
           uni.setStorageSync("accessToken", res.data.data);
           resolve(true);
         } else {

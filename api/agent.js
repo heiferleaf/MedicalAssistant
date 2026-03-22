@@ -4,6 +4,16 @@
 
 import { httpRequest } from '../utils/api';
 
+// OCR
+const ocr = (payload) => {
+  return httpRequest('/ocr/predict', 'POST', payload)
+}
+
+// 健康检查
+const health = () => {
+  return httpRequest('/agent/health', 'GET')
+}
+
 export default {
   // 聊天接口
   chat: (data) => {
@@ -16,6 +26,12 @@ export default {
       message: data.message
     });
   },
+  
+  // 健康检查
+  health,
+  
+  // OCR 识别
+  ocr,
   
   // 获取待确认的 Tool 请求列表
   getPendingRequests: (userId) => {

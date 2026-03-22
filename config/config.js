@@ -1,22 +1,56 @@
 // config.js
 
+// config.js 头部添加常量
+const STORAGE_KEY = 'SYSTEM_NOTIFICATIONS';
+const MAX_MSG_COUNT = 100; // 最大保存100条
+
+// 获取本地存储的消息
+function getLocalMessages() {
+	return uni.getStorageSync(STORAGE_KEY) || [];
+}// 核心逻辑：保存消息并更新未读状态
+function saveAndNotify(newMsg) {
+	let list = getLocalMessages();
+	
+	// 1. 插入新消息到开头
+	const msgItem = {
+		...newMsg,
+		id: Date.now(),
+		time: new Date().toLocaleString(),
+		isRead: false // 标记为未读
+	};
+	list.unshift(msgItem);
+	
+	// 2. 限制数量
+	if (list.length > MAX_MSG_COUNT) {
+		list = list.slice(0, MAX_MSG_COUNT);
+	}
+	
+	// 3. 写入持久化存储
+	uni.setStorageSync(STORAGE_KEY, list);
+	
+	// 4. 通知全局：有新消息（用于首页红点）
+	uni.$emit('NEW_NOTIFICATION_RECEIVED', { hasUnread: true });
+}
+
+
+
 let BASE_URL = "";
 let WS_BASE_URL = "";
 
-const USE_SIMULATOR = false; // 是否使用模拟器
+const USE_SIMULATOR = true; // 是否使用模拟器
 
 if (process.env.NODE_ENV === "production") {
   // 开发环境：点击“运行”时生效
   // 可以是 localhost，也可以是局域网 IP
-  BASE_URL = "http://8.148.94.242:8080/api";
-  WS_BASE_URL = "ws://8.148.94.242:8080/ws";
+  BASE_URL = "http://8.148.94.242:80/api";
+  WS_BASE_URL = "ws://8.148.94.242:80/ws";
 } else if (process.env.NODE_ENV === "development" && USE_SIMULATOR) {
   // 生产环境：点击“发行”打包时自动生效
-  BASE_URL = "http://10.135.2.86:8080/api";
-  WS_BASE_URL = "ws://10.135.2.86:8080/ws";
+  BASE_URL = "http://8.148.94.242:80/api";
+  WS_BASE_URL = "ws://8.148.94.242:80/ws";
 } else {
-  BASE_URL = "http://localhost:8080/api";
-  WS_BASE_URL = "ws://localhost:8080/ws";
+  BASE_URL = "http://localhost:80/api";
+  WS_BASE_URL = "ws://localhost:80/ws";
 }
 
 export { BASE_URL, WS_BASE_URL };
@@ -78,30 +112,45 @@ function handleMessage(pushData) {
 
   let title = "系统提醒";
   let content = "";
-
-  // 1. 根据不同类型匹配通知文案
+  // 1. 根据不同类型匹配并动态拼接通知文案
   switch (type) {
     case "medicine_alarm":
       title = "健康告警 ⚠️";
-      content = `有成员漏服了药物，请及时提醒他服药哦！`;
+      // 提取：姓名、药品名
+      const alarmMember = pushData.memberName || "有成员";
+      const alarmMedicine = pushData.medicineName || "药物";
+      content = `${alarmMember} 漏服了 [${alarmMedicine}]，请及时提醒他服药哦！`;
       break;
+
     case "medicine_update":
       title = "健康数据更新";
-      content = `有成员更新了最新的健康体征数据`;
+      // 提取：姓名、药品名、状态
+      const updateMember = pushData.memberName || "有成员";
+      const updateMedicine = pushData.medicineName || "药物";
+      const statusText = pushData.status === 1 ? "已完成服用" : "更新了服药状态";
+      content = `${updateMember} 的 [${updateMedicine}] ${statusText}`;
       break;
+
     case "join_success":
       title = "家庭新成员";
-      content = `欢迎新成员加入家庭组`;
+      // 提取：新成员昵称
+      const newMember = pushData.targetNickname || "新用户";
+      content = `欢迎新成员 [${newMember}] 加入家庭组！`;
       break;
+
     case "member_leave":
       title = "成员变动";
-      content = `有成员已退出当前家庭组`;
+      // 提取：退出成员昵称
+      const leaveMember = pushData.targetNickname || "成员";
+      content = `成员 [${leaveMember}] 已退出当前家庭组`;
       break;
+
     default:
-      // 如果有未定义的类型，给一个兜底提醒或者干脆不提醒
       title = "新消息";
       content = "您有一条新的健康云通知";
   }
+  // 持久化存储
+  saveAndNotify({ title, content, type, raw: pushData });
 
   // 2. 触发通知栏消息（App 端）
   // #ifdef APP-PLUS
