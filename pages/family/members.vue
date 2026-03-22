@@ -262,7 +262,7 @@ export default {
                 }
             } catch (e) {
                 console.error("报错显示:", e);
-                uni.showToast({ title: '操作失败', icon: 'none' });
+                // uni.showToast({ title: '操作失败', icon: 'none' });
             } finally {
                 uni.hideLoading();
             }
@@ -309,7 +309,7 @@ export default {
                     }
                 }
             } catch (e) {
-                uni.showToast({ title: '加载失败', icon: 'none' });
+                // uni.showToast({ title: '加载失败', icon: 'none' });
             }
         },
 

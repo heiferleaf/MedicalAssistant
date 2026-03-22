@@ -40,7 +40,6 @@
             </view>
             <text class="remember-text">记住密码</text>
           </view>
-          <text class="forget-pwd">找回密码</text>
         </view>
 
         <view class="btn-section">

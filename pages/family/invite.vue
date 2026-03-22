@@ -112,11 +112,11 @@ export default {
           // 成功后延迟返回上一页
           setTimeout(() => uni.navigateBack(), 1500);
         } else {
-          uni.showToast({ title: res.message || '发送失败', icon: 'none' });
+          // uni.showToast({ title: res.message || '发送失败', icon: 'none' });
         }
       } catch (e) {
         console.log("报错显示:", e);
-        uni.showToast({ title: '服务器繁忙', icon: 'none' });
+        // uni.showToast({ title: '服务器繁忙', icon: 'none' });
       } finally {
         uni.hideLoading();
       }

@@ -147,6 +147,7 @@ export default {
       } catch (e) {
         console.error('图片处理失败:', e);
         uni.showToast({ title: "图片处理失败", icon: "none" });
+
       }
     },
     

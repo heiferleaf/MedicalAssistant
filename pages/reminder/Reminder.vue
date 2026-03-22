@@ -55,7 +55,7 @@
         </view>
 
         <view class="timeline-row" v-for="(task, index) in taskList" :key="task.id"
-          @click="handleTaskClick(task, index)">
+          >
           <view class="time-column">
             <text class="time-text">{{ task.timePoint }}</text>
           </view>
@@ -69,13 +69,13 @@
               <text class="card-desc">剂量: {{ task.dosage }}</text>
 
               <view class="card-footer">
-                <view class="status-pill" v-if="task.status === 1">
+                <view class="status-pill" v-if="task.status === 1" @click="handleTaskClick(task, index)">
                   <text class="icon-check">✓</text> 已服用
                 </view>
-                <view class="status-pill pending" v-else-if="task.status === 2">
+                <view class="status-pill warning" v-else-if="task.status === 2" @click="handleTaskClick(task, index)">
                   漏服
                 </view>
-                <view class="status-pill pending" v-else> 待服用 </view>
+                <view class="status-pill pending" v-else @click="handleTaskClick(task, index)"> 待服用 </view>
               </view>
             </view>
           </view>
@@ -312,15 +312,15 @@ export default {
     },
 
     async handleTaskClick(task, index) {
-      if (task.status === 1 || task.status === 2) return;
+      // if (task.status === 1 || task.status === 2) return;
 
       try {
-        const res = await reminderApi.updateTaskStatus(task.id, this.userId, 1);
-        this.taskList[index].status = 1;
+        const res = await reminderApi.updateTaskStatus(task.id, this.userId, (task.status + 1)%3);
+        this.taskList[index].status = (task.status + 1)%3;
         this.taskList[index].operateTime = new Date().toISOString();
-        uni.showToast({ title: "已服药", icon: "success" });
+        uni.showToast({ title: "服药修改", icon: "success" });
       } catch (e) {
-        uni.showToast({ title: "操作失败", icon: "none" });
+        // uni.showToast({ title: "修改失败", icon: "none" });
       }
     },
 
@@ -405,7 +405,7 @@ export default {
         }
         this.showModal = false;
       } catch (e) {
-        uni.showToast({ title: "提交失败", icon: "none" });
+        // uni.showToast({ title: "提交失败", icon: "none" });
       }
     },
 
@@ -421,7 +421,7 @@ export default {
               this.fetchTasks();
               uni.showToast({ title: "已删除" });
             } catch (e) {
-              uni.showToast({ title: "删除失败", icon: "none" });
+              // uni.showToast({ title: "删除失败", icon: "none" });
             }
           }
         },
@@ -449,7 +449,7 @@ export default {
         const data = res.data || res;
         this.historyList = isRefresh ? data : [...this.historyList, ...data];
       } catch (e) {
-        uni.showToast({ title: "加载失败", icon: "none" });
+        // uni.showToast({ title: "加载失败", icon: "none" });
       } finally {
         uni.hideLoading();
       }
@@ -473,6 +473,7 @@ $primary-purple: #9f9af8;
 $card-purple-bg: #ecebff;
 /* 任务卡片背景 */
 $white: #ffffff;
+$red: #f53434;
 $border-radius: 30rpx;
 
 page {
@@ -738,6 +739,10 @@ page {
           font-weight: bold;
           padding: 8rpx 20rpx;
           border-radius: 30rpx;
+          &.warning {
+            background: $white;
+            color: $red;
+          }
 
           &.pending {
             background: $white;
