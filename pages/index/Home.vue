@@ -117,7 +117,7 @@ export default {
 			isDarkMode: false,
 			refreshing: false,
 			userInfo: { name: "小明", avatar: "static/avatars/avatar1.svg", hasNew: true },
-			hasNotification: true,
+			hasNotification: false,
 			medicationList: [
 				{ id: 1, medicineName: "阿司匹林", timePoint: "10:00", dosage: "1片", status: 1 },
 				{ id: 2, medicineName: "降压药", timePoint: "14:00", dosage: "1片", status: 0 },
@@ -154,6 +154,22 @@ export default {
 	  if (this._blobTimer) clearInterval(this._blobTimer); // 新增
 	},
 	
+	onShow() {
+	    // 每次回到首页，检查一次是否有未读消息
+	    this.checkUnreadStatus();
+	},
+	
+	onLoad() {
+	    // 监听 WS 接收到新消息的事件
+	    uni.$on('NEW_NOTIFICATION_RECEIVED', (data) => {
+	        this.hasNotification = data.hasUnread;
+	    });
+	},
+	
+	onUnload() {
+	    uni.$off('NEW_NOTIFICATION_RECEIVED');
+	},
+	
 	methods: {
 		// 读取全局设置
 		applyGlobalSettings() {
@@ -170,8 +186,10 @@ export default {
 			this.userInfo.name = username;
 		},
 		getAvatar() {
-			const userId = uni.getStorageSync("userId") || "defaultUser";
-			return `https://api.dicebear.com/7.x/adventurer/svg?seed=${userId}`;
+			const id = uni.getStorageSync("userId") || 1;
+			// 用 userId 做简单哈希，映射到 1-100
+			const index = (Math.abs(Number(id)) % 100) + 1;
+			return `http://8.148.94.242/avatar/file/avatar_${index}.svg`;
 		},
 		getStatusClass(status) {
 			const map = { 0: "is-pending", 1: "is-done", 2: "is-missed" };
@@ -202,7 +220,6 @@ export default {
 			if (routes[funcId]) uni.navigateTo({ url: routes[funcId] });
 		},
 		toProfile() { uni.navigateTo({ url: "/pages/profile/profile" }); },
-		toNotification() { uni.navigateTo({ url: "/pages/notification/notification" }); },
 		toMedicationList() { uni.navigateTo({ url: "/pages/medication/list" }); },
 		toHealthDetail() { uni.navigateTo({ url: "/pages/health/detail" }); },
 
@@ -231,6 +248,23 @@ export default {
 		  }
 		  next()
 		  this._blobTimer = setInterval(next, 2600)
+		},
+		
+		checkUnreadStatus() {
+		        // 从本地存储读取，判断是否有没有读过的消息
+		        const list = uni.getStorageSync('SYSTEM_NOTIFICATIONS') || [];
+		        this.hasNotification = list.some(item => item.isRead === false);
+		},
+		
+		toNotification() {
+			// 点击进入通知页面
+			uni.navigateTo({
+				url: '/pages/mine/notification', // 你的通知页面路径
+				success: () => {
+					// 只要点进去了，首页红点可以先消失（或者由通知页面处理）
+					this.hasNotification = false;
+				}
+			});
 		},
 
 		async fetchTasks() {
@@ -443,7 +477,7 @@ export default {
 ──────────────────────────────────────── */
 .empty-card {
 	position: relative;
-	min-height: 680rpx;
+	min-height: 580rpx;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
