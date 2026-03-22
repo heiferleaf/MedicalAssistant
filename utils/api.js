@@ -20,16 +20,13 @@ const responseInterceptor = async (response, resolve, reject, originalConfig = {
 
   const { statusCode, data } = response;
   console.log("HTTP 响应:", statusCode, data);
-  if (data.code === 200) {
-    if (data.code === 0 || data.code === 200) {
-      resolve(data.data || data);
-    } else {
-      uni.showToast({
-        title: data.message || "请求失败",
-        icon: "none",
-      });
-      reject(data);
-    }
+  
+  // 兼容不同的响应格式
+  const isSuccess = data.code === 200 || data.code === 0 || data.success === true;
+  
+  if (isSuccess) {
+    // 返回实际数据
+    resolve(data.data || data);
   } else if (data.code === 402) {
     console.log("Token 过期，尝试刷新...");
     const isOk = await handleRefreshToken();

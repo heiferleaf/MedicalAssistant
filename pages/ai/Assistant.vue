@@ -27,6 +27,7 @@
 				:messages="messages"
 				:scrollToMsgId="scrollToMsgId"
 				:loading="loading"
+				:statusText="aiStatusText"
 				@load-more="loadMoreMessages"
 				@scroll-to="scrollToMessage"
 				@action-confirm="handleActionConfirm"
@@ -97,6 +98,7 @@ export default {
 			showSidebar: false,
 			scrollToMsgId: '',
 			loading: false,
+			aiStatusText: '思考中...',
 			// 新增：拍照传来的图片
 			scanImage: '',
 			// 新增：显示图片预览区域
@@ -416,6 +418,12 @@ export default {
 			this.messages.push(loadingMsg);
 			this.scrollToBottom();
 			this.loading = true;
+			this.aiStatusText = '思考中...';
+			
+			// 模拟状态变化（实际应该根据后端返回的工具调用状态来切换）
+			const statusTimer = setTimeout(() => {
+				this.aiStatusText = '调用健康数据库中...';
+			}, 2000);
 			
 			try {
 				// 准备发送给 AI 的消息
@@ -452,8 +460,13 @@ export default {
 				
 				console.log('AI 返回:', response);
 				
+				// 清除状态切换定时器
+				clearTimeout(statusTimer);
+				
 				// 移除加载状态
 				this.messages.pop();
+				this.loading = false;
+				this.aiStatusText = '思考中...';
 				
 				// 移除图片预览（在发送成功后）
 				if (hasImage) {
@@ -689,12 +702,16 @@ export default {
 				
 			} catch (error) {
 				console.error('请求失败:', error);
+				clearTimeout(statusTimer);
 				this.messages.pop();
+				this.loading = false;
+				this.aiStatusText = '思考中...';
 				const errorMsg = createMessage('assistant', '抱歉，网络开小差了，请稍后再试。');
 				this.messages.push(errorMsg);
 				this.scrollToBottom();
 			} finally {
 				this.loading = false;
+				this.aiStatusText = '思考中...';
 				
 				// 检查是否有待确认的请求（Human-in-the-loop）
 				this.checkPendingRequests();
@@ -705,17 +722,49 @@ export default {
 		async checkPendingRequests() {
 			try {
 				const response = await agentApi.getPendingRequests(this.userId);
-				console.log('待确认请求:', response);
+				console.log('待确认请求 response:', response);
 				
-				if (response.success && response.data && response.data.length > 0) {
+				// uni.request 返回的格式是 {data, statusCode, ...}
+				// 真正的数据在 response.data 中
+				const responseData = response.data || response;
+				console.log('responseData:', responseData);
+				
+				// 兼容不同的响应格式
+				let dataList = [];
+				
+				// 格式 1: { code: 200, data: [...] }
+				if (responseData.code === 200 && Array.isArray(responseData.data)) {
+					dataList = responseData.data;
+				}
+				// 格式 2: { success: true, data: [...] }
+				else if (responseData.success && Array.isArray(responseData.data)) {
+					dataList = responseData.data;
+				}
+				// 格式 3: 直接是数组
+				else if (Array.isArray(responseData)) {
+					dataList = responseData;
+				}
+				
+				console.log('dataList:', dataList);
+				
+				if (dataList.length > 0) {
 					// 有待确认的请求
-					const pending = response.data[0];
+					const pending = dataList[0];
 					console.log('检测到待确认请求:', pending);
+					console.log('toolName:', pending.toolName);
+					console.log('toolArguments:', pending.toolArguments);
+					console.log('toolArguments 类型:', typeof pending.toolArguments);
 					
 					// 根据 tool 类型显示不同的卡片
 					if (pending.toolName === 'createPlan') {
-						// 解析参数
-						const planData = JSON.parse(pending.toolArguments);
+						// 解析参数（兼容字符串和对象）
+						let planData;
+						if (typeof pending.toolArguments === 'string') {
+							planData = JSON.parse(pending.toolArguments);
+						} else {
+							planData = pending.toolArguments;
+						}
+						console.log('planData:', planData);
 						
 						// 显示确认卡片
 						const assistantMsg = createMessageWithAction(
@@ -733,9 +782,12 @@ export default {
 						this.scrollToBottom();
 					}
 					// TODO: 其他 tool 类型的处理
+				} else {
+					console.log('没有待确认的请求');
 				}
 			} catch (error) {
 				console.error('检查待确认请求失败:', error);
+				console.error('错误堆栈:', error.stack);
 				// 不显示错误，避免影响用户体验
 			}
 		},
