@@ -25,10 +25,7 @@
                 <text>Lv {{ getUserLevel() }}</text>
               </view>
               <view class="tag">
-                <text>21岁</text>
-              </view>
-              <view class="tag">
-                <text>健康档案</text>
+                <text>成为用户第{{ createTime ? Math.floor((Date.now() - new Date(createTime).getTime()) / (1000 * 60 * 60 * 24)) : 0 }}天</text>
               </view>
             </view>
           </view>
@@ -75,11 +72,11 @@
       <view class="menu-list">
         <view class="menu-item hover-effect" @click="navigateTo('history')">
           <view class="menu-icon-box bg-indigo">
-            <image class="icon" src="../../static/Home/bell.svg" />
+            <image class="icon" src="../../static/Health/clock-history.svg" />
           </view>
           <view class="menu-info">
-            <text class="menu-title">提醒设置</text>
-            <text class="menu-desc">服药、复查提醒</text>
+            <text class="menu-title">服药记录</text>
+            <text class="menu-desc">查看用药任务历史</text>
           </view>
           <view class="menu-action">
             <!-- <text class="badge-num">3</text> -->
@@ -93,20 +90,20 @@
           </view>
           <view class="menu-info">
             <text class="menu-title">家庭成员管理</text>
-            <text class="menu-desc">管理家人健康数据</text>
+            <text class="menu-desc">查看家人健康数据</text>
           </view>
           <view class="menu-action">
             <image class="icon" src="/static/Mine/right-arrow.svg"></image>
           </view>
         </view>
 
-        <view class="menu-item hover-effect" @click="navigateTo('report')">
+        <view class="menu-item hover-effect" @click="navigateTo('camera')">
           <view class="menu-icon-box bg-blue">
-            <image class="icon" src="../../static/Health/clock-history.svg" />
+            <image class="icon" src="../../static/Home/camera.svg" />
           </view>
           <view class="menu-info">
-            <text class="menu-title">历史健康报告</text>
-            <text class="menu-desc">查看历史健康报告</text>
+            <text class="menu-title">拍照识别</text>
+            <text class="menu-desc">拍照提取药物注意事项</text>
           </view>
           <view class="menu-action">
             <image class="icon" src="/static/Mine/right-arrow.svg"></image>
@@ -128,25 +125,11 @@
         </view>
       </view>
 
-      <view class="ai-banner">
-        <view class="ai-info">
-          <text class="ai-title">智能健康助手</text>
-          <text class="ai-desc">基于AI分析您的服药依从性...</text>
-          <button
-            class="ai-btn"
-            hover-class="button-hover"
-            @click="navigateTo('AI')"
-          >
-            立即体验
-          </button>
-        </view>
-        <view class="ai-icon-bg">
-          <image
-            class="icon"
-            style="height: 50rpx; width: 50rpx"
-            src="/static/index/AI.png"
-          ></image>
-        </view>
+            <!-- 退出登录 -->
+      <view class="logout-section">
+        <button class="logout-btn" @click="logout">
+          <text class="logout-text">退出登录</text>
+        </button>
       </view>
     </scroll-view>
   </view>
@@ -201,7 +184,10 @@ export default {
           uni.navigateTo({ url: "/pages/mine/report" });
           break;
         case "prepare":
-          uni.navigateTo({ url: "/pages/medical/prepare" });
+          uni.navigateTo({ url: "/pages/medical/Prepare" });
+          break;
+        case "camera":
+          uni.navigateTo({ url: "/pages/scan/DrugScan" });
           break;
         case "AI":
           uni.navigateTo({ url: "/pages/ai/Assistant" });
@@ -809,15 +795,18 @@ $dark-blue: #3756e8;
 }
 
 .data-unit {
-  font-size: 20rpx;
+  font-size: 28rpx;
   font-weight: normal;
   opacity: 0.7;
+  color: #1b5be4;
 }
 
 .data-label {
-  font-size: 22rpx;
+  font-size: 28rpx;
+  font-weight: 600;
   opacity: 0.7;
   margin-top: 8rpx;
+  color: #4b49e6;
 }
 
 .flex-center {
@@ -1069,5 +1058,32 @@ $dark-blue: #3756e8;
 .tab-text {
   font-size: 20rpx;
   margin-top: 4rpx;
+}
+
+/* 退出登录 */
+.logout-section {
+  margin-top: 48rpx;
+  margin-bottom: 32rpx;
+}
+
+.logout-btn {
+  width: 80%;
+  height: 100rpx;
+  padding: auto;
+  background: linear-gradient(135deg, #2d6bff 0%, #2d6bff 100%);
+  border: 2rpx solid rgba(77, 142, 255, 0.2);
+  border-radius: 50rpx;
+  box-shadow: 0 4rpx 16rpx rgba(45, 107, 255, 0.1);
+  transition: all 0.5s ease;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
 }
 </style>

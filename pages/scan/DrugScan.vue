@@ -1,308 +1,530 @@
 <template>
-	<view class="scan-container">
-		<image 
-			class="camera-mock" 
-			src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfONEhHBAmpy-4FBN77eb5FWS7NT1zqJ-g2aSujEg2Fv2mveCMhxN-yB3hz0T1xb86LUrlfoJugsT9KuojlLqWwJ7E0d5btBybu01U_-Vt5-f6UM5xQtAGHLEIajk2BQLDTHCzyDglf-B_Vf8a_jHgOpZFdH_xMHM9FGFEEBZZXY-TNtE5m4Xcz4Rm0D1qydgVRPKOzkFrC4uTiWy3943mM6h4gGb_ivRAolrIjBquJJRor1Ar-ydBEbaCM3hZu1qSxgGb24xM-GI" 
-			mode="aspectFill"
-		></image>
-		<view class="overlay-gradient"></view>
+  <view class="container">
+    <view class="bg-gradient"></view>
 
-		<view class="padding"></view>
-		<view class="status-bar"></view>
+    <view class="header">
+      <view style="display: flex;width: 100%;">
+        <view class="back-btn" @click="uni.navigateBack()">
+          <image
+            class="icon-sm"
+            src="/static/Register/back.png"
+            mode="aspectFit"
+          ></image>
+        </view>
+        <text class="title">智能拍照识别</text></view
+      >
+      <view class="subtitle-box">
+        <text class="dot">●</text>
+        <text class="subtitle">由 AI 提供医药数字化识别支持</text>
+      </view>
+    </view>
 
-		<view class="nav-header">
-			<view class="icon-btn-blur" @tap="goBack">
-				<image class="icon" src="/static/Health/close.svg"/>
-			</view>
-		</view>
+    <view class="preview-card">
+      <image
+        v-if="tempThumb"
+        :src="tempThumb"
+        mode="aspectFit"
+        class="main-img"
+      ></image>
 
-		<view class="ai-info-layer">
-			<view class="info-pill primary-pill pulse-anim">
-				<image class="icon" src="/static/Health/pill-inactive.svg" style="height: 48rpx;width: 48rpx;"/>
-				<text class="pill-text">药品名: 阿司匹林肠溶片</text>
-			</view>
-			<view class="info-pill secondary-pill">
-				<image class="icon" src="/static/Prepare/schedule.svg" style="height: 48rpx;width: 48rpx;"/>
-				<text class="pill-text">频率: 每日一次</text>
-			</view>
-		</view>
+      <view v-else class="guide-box" @tap="handleCapture">
+        <view class="scan-frame">
+          <view class="frame-line tl"></view>
+          <view class="frame-line tr"></view>
+          <view class="frame-line bl"></view>
+          <view class="frame-line br"></view>
+          <image
+            class="center-icon"
+            src="/static/DrugScan/camera-blue.svg"
+            style="width: 80rpx; height: 80rpx"
+          />
+        </view>
 
-		<view class="scan-wrapper">
-			<view class="scan-box">
-				<view class="corner tl"></view>
-				<view class="corner tr"></view>
-				<view class="corner bl"></view>
-				<view class="corner br"></view>
-				<view class="scan-line"></view>
-			</view>
-			<view class="scan-tips">
-				<text class="tip-title">请将包装上的“用法用量”对准框内</text>
-				<text class="tip-sub">正在智能识别中...</text>
-			</view>
-		</view>
+        <view class="tips-text">
+          <text class="main-tip">点击拍摄药品包装</text>
+          <text class="sub-tip">请确保文字清晰、无反光遮挡</text>
+        </view>
 
-		<view class="bottom-controls">
-			<view class="tool-row">
-				<view class="tool-btn">
-					<image class="icon" src="/static/DrugScan/gallery.svg" style="height: 56rpx;width: 56rpx;"/>
-				</view>
-				
-				<view class="shutter-btn" @tap="handleCapture()">
-					<view class="shutter-inner"></view>
-				</view>
-				
-				<view class="tool-btn">
-					<image class="icon" src="/static/DrugScan/flash-on.svg" style="height: 56rpx;width: 56rpx;"/>
-				</view>
-			</view>
+        <view class="notice-tags">
+          <view class="tag">√ 识别用法</view>
+          <view class="tag">√ 校验剂量</view>
+          <view class="tag">√ 禁忌提醒</view>
+        </view>
+      </view>
+    </view>
 
-			<view class="mode-tabs">
-				<text class="mode-item">扫码添加</text>
-				<view class="mode-item active">
-					<text>AI 识别</text>
-					<view class="active-line"></view>
-				</view>
-				<text class="mode-item">手动录入</text>
-			</view>
-		</view>
+    <view class="footer">
+      <view class="safety-hint">
+        <image
+          src="/static/Health/shield.svg"
+          style="width: 24rpx; height: 24rpx; margin-right: 8rpx"
+        />
+        <text>识别结果仅供参考，请遵循医嘱</text>
+      </view>
+      <button class="btn-primary" style="width:80%;" @tap="handleCapture" v-if="!tempThumb">
+        <view class="ai-sparkle"></view>
+        <text class="btn-text">开始智能识别</text>
+      </button>
+      <view v-else class="button-group">
+        <button class="btn-primary" @tap="handleCancel">
+          <text class="btn-text">取消</text>
+        </button>
 
-		<view class="home-indicator"></view>
-	</view>
+        <button class="btn-primary" @tap="handleCapture">
+          <text class="btn-text">重拍</text>
+        </button>
+
+        <button class="btn-ai-special" @tap="sendToAI">
+          <view class="shimmer"></view>
+          <image
+            class="ai-icon"
+            src="/static/index/AI.png"
+            style="width: 32rpx; height: 32rpx; margin-right: 8rpx"
+          />
+          <text class="btn-text">询问 AI 助手</text>
+        </button>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script>
 export default {
-	methods: {
-		goBack() {
-			uni.navigateBack();
-		},
-		handleCapture() {
-			// 跳转逻辑：模拟拍摄后进入分析页面
-			uni.navigateTo({
-				url: '/pages/scan/Analysis',
-				animationType: 'fade-in',
-				animationDuration: 300
-			});
-		}
-	}
-}
+  data() {
+    return {
+      tempThumb: "", // 用于页面展示的缩略图
+      showMenu: false, // 弹窗控制
+    };
+  },
+  methods: {
+    // 1. 触发拍照（兼容模拟器和真机）
+    handleCapture() {
+      uni.chooseImage({
+        count: 1,
+        sizeType: ["compressed"], // 压缩图片，提升上传速度
+        sourceType: ["camera"], // 只开放相机，如需相册可加入 'album'
+        success: (res) => {
+          this.tempThumb = res.tempFilePaths[0];
+          this.showMenu = true; // 拍完弹出选项
+        },
+        fail: (err) => {
+          console.log("用户取消或权限拒绝", err);
+        },
+      });
+    },
+	handleCancel() {
+	  this.tempThumb = "";
+	  this.showMenu = false;
+	  uni.navigateTo({ url: "/pages/index/index" });
+	},
+
+    // 2. 发送给 AI
+    async sendToAI() {
+      this.showMenu = false;
+      uni.showLoading({ title: "准备传输中..." });
+
+      try {
+        // 将图片存入全局缓存，方便 AI 页面读取
+        uni.setStorageSync("last_scan_image", this.tempThumb);
+
+        // 跳转到 AI 对话页
+        uni.navigateTo({
+          url: "/pages/ai/Assistant?from=scan",
+          success: () => {
+            uni.hideLoading();
+          },
+        });
+      } catch (e) {
+        uni.showToast({ title: "图片处理失败", icon: "none" });
+      }
+    },
+  },
+};
 </script>
 
 <style lang="scss" scoped>
-.scan-container {
-	width: 100vw;
-	height: 100vh;
-	background-color: #000;
-	position: relative;
-	overflow: hidden;
+.container {
+  height: 100vh;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 40rpx;
 }
 
-.padding {
-	height: 64rpx; /* 顶部留白，适配状态栏 */
+.bg-gradient {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 400rpx;
+  background: linear-gradient(180deg, #3b82f6 0%, rgba(59, 130, 246, 0) 100%);
+  z-index: 1;
 }
 
-.camera-mock {
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	opacity: 0.6;
+.header {
+	width:100%;
+  margin-top: 120rpx;
+  text-align: center;
+  z-index: 2;
+  .title {
+    font-size: 48rpx;
+    font-weight: bold;
+    color: #fff;
+    display: block;
+	margin-left: 15%;
+	margin-right: 20%;
+	text-align: center;
+  }
+  .subtitle {
+    font-size: 26rpx;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 10rpx;
+  }
+  .back-btn {
+    width: 80rpx;
+    height: 80rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+
+    &:active {
+      background-color: #f1f5f9;
+    }
+  }
 }
 
-.overlay-gradient {
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 40%, rgba(0,0,0,0.4) 100%);
+.icon-sm {
+  width: 40rpx;
+  height: 40rpx;
+  flex-shrink: 0;
 }
 
-.status-bar {
-	height: var(--status-bar-height);
+.preview-card {
+  width: 100%;
+  height: 600rpx;
+  background: #fff;
+  border-radius: 32rpx;
+  margin-top: 60rpx;
+  box-shadow: 0 20rpx 40rpx rgba(0, 0, 0, 0.05);
+  z-index: 2;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .main-img {
+    width: 100%;
+    height: 100%;
+  }
+  .placeholder {
+    text-align: center;
+    color: #94a3b8;
+    .plus-icon {
+      font-size: 80rpx;
+      margin-bottom: 20rpx;
+    }
+  }
 }
 
-.nav-header {
-	padding: 20rpx 40rpx;
-	.icon-btn-blur {
-		width: 80rpx;
-		height: 80rpx;
-		background: rgba(255, 255, 255, 0.1);
-		backdrop-filter: blur(8px);
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: #fff;
-	}
+.footer {
+  margin-top: auto;
+  margin-bottom: 100rpx;
+  width: 100%;
+  z-index: 2;
+  box-sizing: border-box;
+  padding-left: 20rpx;
+  padding-right: 20rpx;
+  .btn-primary {
+    background: #3b82f6;
+    width: 25%;
+    height: 100rpx;
+    border-radius: 30rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10rpx 20rpx rgba(59, 130, 246, 0.3);
+    .btn-text {
+      color: #fff;
+      font-weight: bold;
+    }
+  }
 }
 
-.ai-info-layer {
-	padding: 60rpx;
-	.info-pill {
-		display: flex;
-		align-items: center;
-		padding: 16rpx 32rpx;
-		border-radius: 100rpx;
-		backdrop-filter: blur(10px);
-		margin-bottom: 24rpx;
-		width: fit-content;
-		
-		&.primary-pill {
-			background: rgba(59, 130, 246, 0.9);
-			box-shadow: 0 8rpx 20rpx rgba(59, 130, 246, 0.3);
-			transform: rotate(-1deg);
-		}
-		&.secondary-pill {
-			background: rgba(79, 70, 229, 0.9);
-			margin-left: 60rpx;
-		}
-		
-		.emoji { margin-right: 12rpx; font-size: 28rpx; }
-		.pill-icon { font-size: 24rpx; margin-right: 12rpx; color: #fff; }
-		.pill-text { color: #fff; font-size: 26rpx; font-weight: 500; }
-	}
+/* 弹窗样式 */
+.mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 998;
 }
 
-.scan-wrapper {
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -45%);
-	display: flex;
-	flex-direction: column;
-	align-items: center;
+.action-sheet {
+  position: fixed;
+  bottom: -600rpx;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 40rpx;
+  transition: all 0.3s ease;
+  z-index: 999;
 
-	.scan-box {
-		width: 500rpx;
-		height: 500rpx;
-		border: 2rpx solid rgba(255, 255, 255, 0.1);
-		position: relative;
-		border-radius: 24rpx;
+  &.sheet-show {
+    bottom: 0;
+  }
 
-		.corner {
-			position: absolute;
-			width: 40rpx;
-			height: 40rpx;
-			border-color: #3B82F6;
-			border-style: solid;
-			&.tl { top: -4rpx; left: -4rpx; border-width: 8rpx 0 0 8rpx; border-top-left-radius: 16rpx; }
-			&.tr { top: -4rpx; right: -4rpx; border-width: 8rpx 8rpx 0 0; border-top-right-radius: 16rpx; }
-			&.bl { bottom: -4rpx; left: -4rpx; border-width: 0 0 8rpx 8rpx; border-bottom-left-radius: 16rpx; }
-			&.br { bottom: -4rpx; right: -4rpx; border-width: 0 8rpx 8rpx 0; border-bottom-right-radius: 16rpx; }
-		}
-
-		.scan-line {
-			position: absolute;
-			width: 100%;
-			height: 4rpx;
-			background: linear-gradient(90deg, transparent, #3B82F6, transparent);
-			box-shadow: 0 0 20rpx #3B82F6;
-			animation: scanMove 3s infinite linear;
-		}
-	}
-	
-	.scan-tips {
-		text-align: center;
-		margin-top: 60rpx;
-		.tip-title { color: #fff; font-size: 34rpx; font-weight: 500; text-shadow: 0 2rpx 10rpx rgba(0,0,0,0.5); display: block; }
-		.tip-sub { color: rgba(255,255,255,0.6); font-size: 24rpx; margin-top: 16rpx; }
-	}
+  .sheet-title {
+    font-size: 24rpx;
+    color: #94a3b8;
+    text-align: center;
+    margin-bottom: 30rpx;
+  }
+  .sheet-item {
+    height: 110rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32rpx;
+    border-bottom: 1rpx solid #f1f5f9;
+    &:active {
+      background: #f8fafc;
+    }
+    &.ai-btn {
+      color: #3b82f6;
+      font-weight: bold;
+    }
+    &.cancel {
+      border: none;
+      color: #ef4444;
+      margin-top: 10rpx;
+    }
+  }
 }
 
-.bottom-controls {
-	position: absolute;
-	bottom: 80rpx;
-	width: 100%;
-	
-	.tool-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0 100rpx;
-		margin-bottom: 60rpx;
-		
-		.tool-btn {
-			width: 100rpx;
-			height: 100rpx;
-			background: rgba(255,255,255,0.1);
-			backdrop-filter: blur(8px);
-			border-radius: 50%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			color: #fff;
-			.material-icons { font-size: 48rpx; }
-		}
-		
-		.shutter-btn {
-			width: 160rpx;
-			height: 160rpx;
-			border: 8rpx solid #fff;
-			border-radius: 50%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			.shutter-inner {
-				width: 130rpx;
-				height: 130rpx;
-				background: #fff;
-				border-radius: 50%;
-			}
-			&:active { transform: scale(0.95); transition: 0.1s; }
-		}
-	}
+/* 在原有样式基础上添加/修改 */
 
-	.mode-tabs {
-		display: flex;
-		justify-content: center;
-		gap: 60rpx;
-		.mode-item {
-			color: rgba(255,255,255,0.5);
-			font-size: 28rpx;
-			font-weight: 600;
-			position: relative;
-			&.active {
-				color: #fff;
-				.active-line {
-					position: absolute;
-					bottom: -12rpx;
-					left: 0;
-					width: 100%;
-					height: 4rpx;
-					background: #3B82F6;
-				}
-			}
-		}
-	}
+.header {
+  margin-top: 100rpx;
+  .title {
+    font-size: 52rpx;
+    letter-spacing: 2rpx;
+  }
+  .subtitle-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 16rpx;
+    .dot {
+      color: #10b981;
+      font-size: 18rpx;
+      margin-right: 12rpx;
+    }
+    .subtitle {
+      font-size: 24rpx;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
 }
 
-.home-indicator {
-	position: absolute;
-	bottom: 20rpx;
-	left: 50%;
-	transform: translateX(-50%);
-	width: 240rpx;
-	height: 8rpx;
-	background: rgba(255,255,255,0.3);
-	border-radius: 100rpx;
+.guide-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 0;
+
+  .scan-frame {
+    width: 200rpx;
+    height: 200rpx;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 40rpx;
+
+    .frame-line {
+      position: absolute;
+      width: 40rpx;
+      height: 40rpx;
+      border: 4rpx solid #3b82f6;
+      &.tl {
+        top: 0;
+        left: 0;
+        border-right: none;
+        border-bottom: none;
+        border-radius: 12rpx 0 0 0;
+      }
+      &.tr {
+        top: 0;
+        right: 0;
+        border-left: none;
+        border-bottom: none;
+        border-radius: 0 12rpx 0 0;
+      }
+      &.bl {
+        bottom: 0;
+        left: 0;
+        border-right: none;
+        border-top: none;
+        border-radius: 0 0 0 12rpx;
+      }
+      &.br {
+        bottom: 0;
+        right: 0;
+        border-left: none;
+        border-top: none;
+        border-radius: 0 0 12rpx 0;
+      }
+    }
+  }
+
+  .tips-text {
+    text-align: center;
+    .main-tip {
+      color: #1e293b;
+      font-size: 34rpx;
+      font-weight: 600;
+      display: block;
+    }
+    .sub-tip {
+      color: #94a3b8;
+      font-size: 24rpx;
+      margin-top: 12rpx;
+      display: block;
+    }
+  }
+
+  .notice-tags {
+    display: flex;
+    gap: 20rpx;
+    margin-top: 60rpx;
+    .tag {
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 20rpx;
+      padding: 8rpx 20rpx;
+      border-radius: 100rpx;
+    }
+  }
 }
 
-@keyframes scanMove {
-	0% { top: 0; opacity: 0; }
-	50% { opacity: 1; }
-	100% { top: 500rpx; opacity: 0; }
+.safety-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24rpx;
+  font-size: 22rpx;
+  color: #94a3b8;
 }
 
-@keyframes pulse {
-	0% { transform: scale(1) rotate(-1deg); }
-	50% { transform: scale(1.05) rotate(-1deg); }
-	100% { transform: scale(1) rotate(-1deg); }
+.btn-primary {
+  /* 增加一个流光渐变 */
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  position: relative;
+  overflow: hidden;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
 }
 
-.pulse-anim {
-	animation: pulse 2s infinite ease-in-out;
+.button-group {
+  display: flex;
+  gap: 20rpx;
+  width: 100%;
+  padding: 0 30rpx;
+  justify-content: space-between;
 }
 
-.material-icons {
-	font-family: 'Material Icons';
-	font-size: 40rpx;
+/* 次要按钮：简约灰/白 */
+.btn-secondary {
+  flex: 1;
+  height: 100rpx;
+  border-radius: 24rpx;
+  background: #f1f5f9;
+  border: 1rpx solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+
+  .btn-text {
+    color: #64748b;
+    font-size: 28rpx;
+    font-weight: 500;
+  }
+
+  &:active {
+    background: #e2e8f0;
+    transform: scale(0.96);
+  }
+}
+
+/* AI 特别按钮：紫色流光 */
+.btn-ai-special {
+  flex: 1; /* 宽度占比更大，视觉重心 */
+  height: 100rpx;
+  border-radius: 24rpx;
+  width: 40%;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden; /* 必须，否则流光会溢出 */
+  box-shadow: 0 10rpx 30rpx rgba(168, 85, 247, 0.3);
+  margin: 0;
+  border: none;
+
+  .btn-text {
+    color: #ffffff;
+    font-size: 30rpx;
+    font-weight: 600;
+    z-index: 2;
+  }
+
+  .ai-icon {
+    z-index: 2;
+    filter: brightness(0) invert(1); /* 图标变白 */
+  }
+
+  /* 核心：流光动画 */
+  .shimmer {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
+    transform: skewX(-20deg);
+    animation: shimmer-run 2.5s infinite;
+    z-index: 1;
+  }
+
+  &:active {
+    transform: scale(0.96);
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes shimmer-run {
+  0% {
+    left: -100%;
+  }
+  50% {
+    left: 150%;
+  }
+  100% {
+    left: 150%;
+  }
 }
 </style>

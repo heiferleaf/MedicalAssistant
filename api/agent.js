@@ -10,7 +10,13 @@ const health = () => {
   return httpRequest('/agent/health', 'GET')
 }
 
+// OCR
+const ocr = (payload) => {
+  return httpRequest('/ocr/predict', 'POST', payload)
+}
+
 export default {
   chat,
-  health
+  health,
+  ocr
 }
