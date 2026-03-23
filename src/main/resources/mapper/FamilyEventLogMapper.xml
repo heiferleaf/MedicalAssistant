@@ -20,7 +20,7 @@
         WHERE l.group_id = #{groupId}
           AND l.event_type = 'ALARM_MISSED'
           AND l.event_time >= CURDATE()
-        ORDER BY l.create_time DESC
+        ORDER BY l.event_time DESC
     </select>
 
 </mapper>
