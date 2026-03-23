@@ -161,7 +161,7 @@ export default {
 
         autoNavigate() {
             if (this.userStatus !== null) {
-                uni.reLaunch({ url: '/pages/family/members' });
+                uni.redirectTo({ url: '/pages/family/members' });
             }
         },
 

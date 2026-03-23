@@ -57,7 +57,7 @@
               >5.2 <text class="data-unit">mmol/L</text></view
             >
             <view class="data-label flex-center">
-              血糖 <image class="icon" src="/static/Mine/trend-down.svg" />
+              血糖
             </view>
           </view>
         </view>
@@ -136,7 +136,6 @@
 </template>
 
 <script>
-import { BASE_URL } from '../../config/config';
 
 export default {
   data() {
@@ -672,7 +671,7 @@ $dark-blue: #3756e8;
   border-bottom-right-radius: 60rpx;
   padding: 0 48rpx 120rpx 48rpx;
 
-  height: 500rpx;
+  height: 300rpx;
 }
 
 .status-bar-placeholder {
@@ -793,16 +792,15 @@ $dark-blue: #3756e8;
 }
 
 .data-value {
-  font-size: 36rpx;
+  font-size: 28rpx;
   font-weight: bold;
   line-height: 1;
 }
 
 .data-unit {
-  font-size: 28rpx;
+  font-size: 16rpx;
   font-weight: normal;
   opacity: 0.7;
-  color: #1b5be4;
 }
 
 .data-label {
@@ -832,14 +830,14 @@ $dark-blue: #3756e8;
 
 /* --- 2. 主体功能区 --- */
 .main-content {
-  margin-top: 100rpx;
+  margin-top: 60rpx;
   padding: 0 48rpx;
   width: 100%;
   height: calc(100vh - 800rpx);
   /* 加上这行，解决水平撑爆的问题 */
   box-sizing: border-box;
 
-  margin-bottom: 200rpx;
+  margin-bottom: 240rpx;
 }
 
 .section-header {
