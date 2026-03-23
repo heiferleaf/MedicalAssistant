@@ -1,22 +1,50 @@
-import { httpRequest } from "../utils/api"
+/**
+ * AI Agent API 接口
+ */
 
-// AI 对话 API
-const chat = (payload) => {
-  return httpRequest('/agent/chat', 'POST', payload)
-}
-
-// 健康检查 API
-const health = () => {
-  return httpRequest('/agent/health', 'GET')
-}
+import { httpRequest } from '../utils/api';
 
 // OCR
 const ocr = (payload) => {
   return httpRequest('/ocr/predict', 'POST', payload)
 }
 
-export default {
-  chat,
-  health,
-  ocr
+// 健康检查
+const health = () => {
+  return httpRequest('/agent/health', 'GET')
 }
+
+export default {
+  // 聊天接口
+  chat: (data) => {
+    // 真正调用后端 API
+    // 后端路径：/api/agent/chat
+    // 后端期望参数：user_id, session_id, message (下划线命名)
+    return httpRequest('/agent/chat', 'POST', {
+      user_id: data.user_id,
+      session_id: data.session_id,
+      message: data.message
+    });
+  },
+  
+  // 健康检查
+  health,
+  
+  // OCR 识别
+  ocr,
+  
+  // 获取待确认的 Tool 请求列表
+  getPendingRequests: (userId) => {
+    return httpRequest(`/agent/tool-execution/pending?userId=${userId}`, 'GET');
+  },
+  
+  // 批准并执行 Tool
+  approveTool: (userId, requestId, editedData) => {
+    return httpRequest(`/agent/tool-execution/approve?userId=${userId}&requestId=${requestId}`, 'POST', editedData);
+  },
+  
+  // 拒绝 Tool 请求
+  rejectTool: (userId, requestId) => {
+    return httpRequest(`/agent/tool-execution/reject?userId=${userId}&requestId=${requestId}`, 'POST');
+  }
+};

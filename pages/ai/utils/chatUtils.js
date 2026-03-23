@@ -76,6 +76,26 @@ export function createMessage(role, content, type = MessageType.TEXT, extra = {}
 }
 
 /**
+ * 创建带操作卡片的消息
+ * @param {String} role - 角色
+ * @param {String} content - 文本内容
+ * @param {String} actionType - 操作类型：plan, medicine, task, family 等
+ * @param {Object} actionData - 操作数据
+ * @returns {Object} 消息对象
+ */
+export function createMessageWithAction(role, content, actionType, actionData = {}) {
+	return {
+		id: generateMessageId(),
+		role,
+		type: 'action',
+		content,
+		actionType,
+		actionData,
+		createdAt: new Date().toISOString()
+	};
+}
+
+/**
  * 快捷短语配置
  */
 export const defaultShortcuts = [
@@ -90,7 +110,8 @@ export const defaultShortcuts = [
 export const StorageKeys = {
 	SESSION_ID: 'agent_session_id',
 	USER_ID: 'userId',
-	ACCESS_TOKEN: 'accessToken'
+	ACCESS_TOKEN: 'accessToken',
+	MESSAGES: 'agent_messages'
 };
 
 /**
@@ -131,6 +152,7 @@ export default {
 	MessageType,
 	MessageRole,
 	createMessage,
+	createMessageWithAction,
 	defaultShortcuts,
 	StorageKeys,
 	getFromStorage,

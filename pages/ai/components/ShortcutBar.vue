@@ -32,7 +32,7 @@ export default {
 <style lang="scss" scoped>
 .shortcut-bar {
 	white-space: nowrap; 
-	margin-bottom: 24rpx;
+	padding: 0 30rpx 24rpx;
 	
 	.shortcut-item {
 		display: inline-flex; 

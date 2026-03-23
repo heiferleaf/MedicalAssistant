@@ -15,35 +15,34 @@ const requestInterceptor = (config) => {
 };
 
 // 响应拦截器
-const responseInterceptor = async (response, resolve, reject) => {
+const responseInterceptor = async (response, resolve, reject, originalConfig = {}) => {
   uni.hideLoading();
 
   const { statusCode, data } = response;
   console.log("HTTP 响应:", statusCode, data);
-  if (data.code === 200) {
-    if (data.code === 0 || data.code === 200) {
-      resolve(data.data || data);
-    } else {
-      uni.showToast({
-        title: data.message || "请求失败",
-        icon: "none",
-      });
-      reject(data);
-    }
+  
+  // 兼容不同的响应格式
+  const isSuccess = data.code === 200 || data.code === 0 || data.success === true;
+  
+  if (isSuccess) {
+    // 返回实际数据
+    resolve(data.data || data);
   } else if (data.code === 402) {
     console.log("Token 过期，尝试刷新...");
     const isOk = await handleRefreshToken();
     if (isOk) {
       console.log("Token 刷新成功，重试请求...");
       // 重新发起请求，此时请求拦截器会自动带上最新的 token
-      httpRequest(
-        originalConfig.url,
-        originalConfig.method,
-        originalConfig.data,
-        originalConfig.header,
-      )
-        .then((retryRes) => resolve(retryRes))
-        .catch((err) => reject(err));
+      if (originalConfig && originalConfig.url) {
+        httpRequest(
+          originalConfig.url,
+          originalConfig.method,
+          originalConfig.data,
+          originalConfig.header,
+        )
+          .then((retryRes) => resolve(retryRes))
+          .catch((err) => reject(err));
+      }
     } else {
       console.log("Token 刷新失败，强制退出...");
       handleLogout();

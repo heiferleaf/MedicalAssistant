@@ -25,10 +25,16 @@ const clearMessages = (sessionId) => {
   return httpRequest(`/agent/sessions/${sessionId}/messages`, 'DELETE')
 }
 
+// 更新会话信息
+const updateSession = (sessionId, data) => {
+  return httpRequest(`/agent/sessions/${sessionId}`, 'PUT', data)
+}
+
 export default {
   getSessions,
   createSession,
   deleteSession,
   getMessages,
-  clearMessages
+  clearMessages,
+  updateSession
 }
