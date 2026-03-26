@@ -6,3 +6,7 @@ venv/
 checkpoint/
 app/services/predict/resources/pytorch_model/model.safetensors
 app/services/predict/resources/Bio_ClinicalBERT_local
+/.DS_Store
+# macOS
+.DS_Store
+**/.DS_Store
