@@ -1,10 +1,12 @@
 # 服务器配置
 server:
   port: 8080
+  # 最大 HTTP 请求大小（支持 Base64 图片）
+  max-http-form-post-size: 50MB
 
-# Flask AI service (same host)
+# Flask AI service (云端服务)
 flask:
-  base-url: ${FLASK_URL:http://127.0.0.1:8001}
+  base-url: ${FLASK_URL:http://8.148.94.242:8001}
   timeout-ms: 120000
 
 # Compatibility: some components expect ai.rag.*
@@ -19,10 +21,20 @@ rag:
     url: ${flask.base-url}
     timeout-ms: ${flask.timeout-ms}
 
-# Spring配置
+# Spring 配置
 spring:
   application:
     name: mediacalbackend
+  
+  # 日志配置
+  main:
+    log-startup-info: true
+
+  # 文件上传大小限制（支持 Base64 图片）
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
   # 数据源配置
   datasource:
@@ -80,3 +92,11 @@ agent:
 
 printpdf:
   output-dir: ./uploads/printpdf
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.whu.medicalbackend: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet: DEBUG

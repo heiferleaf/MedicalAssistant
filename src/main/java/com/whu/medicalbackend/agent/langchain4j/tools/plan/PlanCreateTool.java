@@ -26,7 +26,7 @@ public class PlanCreateTool {
     }
 
     @Tool(value = "Create a new medication plan for the user. IMPORTANT: This tool does NOT actually create the plan. It returns a confirmation marker that the frontend will use to show a confirmation card to the user.")
-    public Map<String, Object> createPlan(
+    public String createPlan(
             @P(value = "The user ID to create the plan for") String userId,
             @P(value = "The name of the medicine") String medicineName,
             @P(value = "The dosage information (e.g., '1 tablet', '500mg')") String dosage,
@@ -35,25 +35,25 @@ public class PlanCreateTool {
             @P(value = "End date in yyyy-MM-dd format (optional)") String endDate,
             @P(value = "Additional notes or remarks (optional)") String remark) {
         
-        logger.info("PlanCreateTool 被调用，userId: {}, medicineName: {}（返回待确认标记）", userId, medicineName);
+        logger.info("PlanCreateTool 被调用，userId: {}, medicineName: {}（返回 ACTION 标记）", userId, medicineName);
         
-        // 不真正创建计划，而是返回待确认标记
-        // 前端会检测到这个标记并显示确认卡片
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("success", true);
-        result.put("pending_confirmation", true);
-        result.put("tool_name", "createPlan");
-        result.put("arguments", new LinkedHashMap<String, Object>() {{
-            put("userId", userId);
-            put("medicineName", medicineName);
-            put("dosage", dosage != null ? dosage : "按医嘱");
-            put("timePoints", timePoints);
-            put("startDate", startDate);
-            put("endDate", endDate);
-            put("remark", remark);
-        }});
-        result.put("message", "请确认是否创建以下用药计划");
+        // 返回 ACTION 标记，前端会检测到这个标记并显示确认卡片
+        StringBuilder response = new StringBuilder();
+        response.append("请确认是否创建以下用药计划：\n\n");
+        response.append("**药品名称**: ").append(medicineName != null ? medicineName : "未知药品").append("\n");
+        response.append("**剂量**: ").append(dosage != null ? dosage : "按医嘱").append("\n");
+        if (timePoints != null && !timePoints.isEmpty()) {
+            response.append("**服药时间**: ").append(String.join(", ", timePoints)).append("\n");
+        }
+        response.append("**开始日期**: ").append(startDate != null ? startDate : "今天").append("\n");
+        if (endDate != null && !endDate.isEmpty()) {
+            response.append("**结束日期**: ").append(endDate).append("\n");
+        }
+        if (remark != null && !remark.isEmpty()) {
+            response.append("**备注**: ").append(remark).append("\n");
+        }
+        response.append("\n[ACTION:plan_confirm]");
         
-        return result;
+        return response.toString();
     }
 }

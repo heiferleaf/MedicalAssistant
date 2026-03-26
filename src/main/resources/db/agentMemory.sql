@@ -53,3 +53,6 @@ ADD COLUMN action_type VARCHAR(64) NULL COMMENT '操作类型：plan, medicine, 
 -- 添加 action_data 字段（如果不存在）
 ALTER TABLE agent_messages 
 ADD COLUMN action_data TEXT NULL COMMENT '操作数据（JSON 格式）' AFTER action_type;
+
+ALTER TABLE agent_messages 
+MODIFY COLUMN content MEDIUMTEXT NOT NULL;

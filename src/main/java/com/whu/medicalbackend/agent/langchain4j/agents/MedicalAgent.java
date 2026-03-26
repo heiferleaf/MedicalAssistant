@@ -53,7 +53,8 @@ public class MedicalAgent {
     
     // 需要用户批准的 tool 名称
     private static final Set<String> REQUIRES_APPROVAL_TOOLS = new HashSet<>(Arrays.asList(
-        "createPlan", "updatePlan", "deletePlan"
+        "createPlan", "updatePlan", "deletePlan",
+        "addMedicine", "updateTaskStatus"
     ));
 
     @Autowired
@@ -193,16 +194,6 @@ public class MedicalAgent {
     }
 
     /**
-     * 对话方法 - 支持 Human-in-the-loop
-     * 返回普通文本（AI 的回复）
-     */
-    public String chat(String sessionId, String userId, String userMessage) {
-        logger.info("执行医疗助手对话：sessionId={}, userId={}, message={}", sessionId, userId, userMessage);
-        String memoryId = userId + "_" + sessionId;
-        return medicalExpert.medical(memoryId, userId, userMessage);
-    }
-    
-    /**
      * 执行 Agent - 支持 Human-in-the-loop
      * 返回结构化结果，包括是否需要用户确认
      */
@@ -250,6 +241,24 @@ public class MedicalAgent {
             result.put("message", "执行失败：" + e.getMessage());
             return result;
         }
+    }
+    
+    /**
+     * 对话方法 - 支持 Human-in-the-loop
+     * 返回普通文本（AI 的回复）或 Tool 的待确认响应
+     */
+    public String chat(String sessionId, String userId, String userMessage) {
+        logger.info("执行医疗助手对话：sessionId={}, userId={}, message 长度={}", sessionId, userId, userMessage.length());
+        
+        // 如果消息包含 Base64 数据，记录前 100 个字符
+        if (userMessage.contains("图片数据：")) {
+            int base64Start = userMessage.indexOf("图片数据：") + 5;
+            String base64Preview = userMessage.substring(base64Start, Math.min(base64Start + 100, userMessage.length()));
+            logger.info("检测到图片消息，Base64 前 100 字符：{}", base64Preview);
+        }
+        
+        String memoryId = userId + "_" + sessionId;
+        return medicalExpert.medical(memoryId, userId, userMessage);
     }
     
     /**
@@ -309,6 +318,8 @@ public class MedicalAgent {
             case "createPlan": return "创建此用药计划";
             case "updatePlan": return "修改此用药计划";
             case "deletePlan": return "删除此用药计划";
+            case "addMedicine": return "添加此药品到药箱";
+            case "updateTaskStatus": return "更新此用药任务状态";
             default: return "执行此操作";
         }
     }

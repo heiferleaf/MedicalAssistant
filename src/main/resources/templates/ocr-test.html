@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR 药物识别测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+
+        .upload-section {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            background: #f8f9ff;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+        }
+
+        .upload-section.dragover {
+            border-color: #764ba2;
+            background: #e8e9ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 14px;
+            color: #999;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .preview-section {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .preview-section.show {
+            display: block;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .result-title {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-content {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-item {
+            margin-bottom: 15px;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            color: #333;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .error-message {
+            display: none;
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #c33;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            background: #4caf50;
+            color: white;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .info-box p {
+            color: #1976d2;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 OCR 药物识别测试</h1>
+        <p class="subtitle">上传药品包装图片，AI 将自动识别药品信息</p>
+
+        <div class="info-box">
+            <p><strong>💡 使用说明：</strong>选择或拖拽一张药品包装图片，系统将调用 OCR 服务识别药品名称、规格、用法用量等信息。</p>
+        </div>
+
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">拖拽图片到此处，或点击选择图片</div>
+            <div class="upload-hint">支持 JPG、PNG 格式，建议图片大小不超过 2MB</div>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                选择图片
+            </button>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png" onchange="handleFileSelect(event)">
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <img id="previewImage" class="preview-image" alt="预览图片">
+        </div>
+
+        <div class="loading" id="loadingSection">
+            <div class="spinner"></div>
+            <div class="loading-text">正在识别药品信息，请稍候...</div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <h2 class="result-title">
+                <span class="success-badge">识别成功</span>
+            </h2>
+            <div class="result-content" id="resultContent">
+                <!-- 结果将在这里显示 -->
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            <!-- 错误信息将在这里显示 -->
+        </div>
+    </div>
+
+    <script>
+        const uploadSection = document.getElementById('uploadSection');
+        const previewSection = document.getElementById('previewSection');
+        const previewImage = document.getElementById('previewImage');
+        const loadingSection = document.getElementById('loadingSection');
+        const resultSection = document.getElementById('resultSection');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultContent = document.getElementById('resultContent');
+
+        // 拖拽上传
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                uploadFile(file);
+            } else {
+                showError('请上传图片文件');
+            }
+        });
+
+        // 文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                uploadFile(file);
+            }
+        }
+
+        // 上传图片
+        function uploadFile(file) {
+            // 显示预览
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewSection.classList.add('show');
+            };
+            reader.readAsDataURL(file);
+
+            // 显示加载状态
+            loadingSection.classList.add('show');
+            resultSection.classList.remove('show');
+            errorMessage.classList.remove('show');
+
+            // 上传文件
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/api/ocr/test', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSection.classList.remove('show');
+                
+                if (data.success) {
+                    showResult(data.data);
+                } else {
+                    showError(data.message || '识别失败，请重试');
+                }
+            })
+            .catch(error => {
+                loadingSection.classList.remove('show');
+                showError('网络错误：' + error.message);
+            });
+        }
+
+        // 显示结果
+        function showResult(data) {
+            resultSection.classList.add('show');
+            
+            let html = '';
+            
+            try {
+                // 尝试解析 OCR 结果（可能是 Python 字典格式）
+                let ocrResult = data.ocr_result;
+                let output = data.output;
+                
+                // 如果是字符串，尝试解析
+                if (typeof ocrResult === 'string') {
+                    try {
+                        // 先尝试标准 JSON 解析
+                        ocrResult = JSON.parse(ocrResult);
+                    } catch (e) {
+                        // 如果是 Python 字典格式，提取 text 字段
+                        const textMatch = ocrResult.match(/'text':\s*'([^']+)'/);
+                        if (textMatch) {
+                            ocrResult = { text: textMatch[1] };
+                        }
+                    }
+                }
+                
+                if (typeof output === 'string') {
+                    try {
+                        output = JSON.parse(output);
+                    } catch (e) {
+                        const textMatch = output.match(/'text':\s*'([^']+)'/);
+                        if (textMatch) {
+                            output = { text: textMatch[1] };
+                        }
+                    }
+                }
+                
+                // 显示 OCR 原始文本
+                if (ocrResult && ocrResult.text) {
+                    html += `
+                        <div class="result-item">
+                            <div class="result-label">📝 识别文本</div>
+                            <div class="result-value">${ocrResult.text.replace(/\n/g, '<br>')}</div>
+                        </div>
+                    `;
+                }
+                
+                // 显示输出结果
+                if (output && output.text && output.text !== ocrResult?.text) {
+                    html += `
+                        <div class="result-item">
+                            <div class="result-label">📋 结构化输出</div>
+                            <div class="result-value">${output.text.replace(/\n/g, '<br>')}</div>
+                        </div>
+                    `;
+                }
+                
+                // 显示状态
+                if (data.status) {
+                    html += `
+                        <div class="result-item">
+                            <div class="result-label">✅ 识别状态</div>
+                            <div class="result-value">${data.status}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('解析结果失败:', error);
+                html += `
+                    <div class="result-item">
+                        <div class="result-label">⚠️ 解析结果</div>
+                        <div class="result-value">原始数据：<br>${JSON.stringify(data, null, 2)}</div>
+                    </div>
+                `;
+            }
+            
+            resultContent.innerHTML = html;
+        }
+
+        // 显示错误
+        function showError(message) {
+            errorMessage.textContent = '❌ ' + message;
+            errorMessage.classList.add('show');
+        }
+    </script>
+</body>
+</html>

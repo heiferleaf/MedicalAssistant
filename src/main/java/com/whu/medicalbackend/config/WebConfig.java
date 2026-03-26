@@ -34,10 +34,13 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer{
                     "/api/user/refresh",
                     "/api/agent/health",
                     "/api/agent/chat",
+                    "/api/agent/chat/stream",  // 添加流式接口免认证（用于测试）
                     "/api/agent/confirm",
                     "/api/agent/sessions/**",
                     "/api/predict/**",
-                    "/api/rag/**"
+                    "/api/rag/**",
+                    "/api/ocr/**",
+                    "/test/**"
 
                 );
     }
