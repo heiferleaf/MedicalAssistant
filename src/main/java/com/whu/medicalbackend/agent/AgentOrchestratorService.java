@@ -271,9 +271,9 @@ public class AgentOrchestratorService {
                                     .name("message")
                                     .data(String.valueOf(c)));
                                 
-                                // 每 30ms 发送一个字符，模拟流式效果（给前端渲染时间）
+                                // 每 10ms 发送一个字符，模拟流式效果（更快的响应）
                                 try {
-                                    Thread.sleep(30);
+                                    Thread.sleep(10);
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
                                     break;
