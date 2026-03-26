@@ -464,15 +464,18 @@ export default {
 					onChunk: (chunk) => {
 						// 每收到一个字就追加到消息中
 						assistantMessage += chunk;
-						
+										
 						// 如果是第一个字，创建消息气泡
 						if (!assistantMsg) {
 							assistantMsg = createMessage('assistant', chunk);
 							this.messages.push(assistantMsg);
 							this.scrollToBottom();
 						} else {
-							// 更新已有消息的内容
-							assistantMsg.content = assistantMessage;
+							// 更新已有消息的内容（通过数组索引触发响应式更新）
+							const index = this.messages.indexOf(assistantMsg);
+							if (index !== -1) {
+								this.messages[index].content = assistantMessage;
+							}
 						}
 					},
 					onAction: (action) => {
