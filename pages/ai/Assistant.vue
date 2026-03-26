@@ -26,8 +26,6 @@
 			<ChatView
 				:messages="messages"
 				:scrollToMsgId="scrollToMsgId"
-				:loading="loading"
-				:statusText="aiStatusText"
 				@load-more="loadMoreMessages"
 				@scroll-to="scrollToMessage"
 				@action-confirm="handleActionConfirm"
@@ -98,7 +96,6 @@ export default {
 			showSidebar: false,
 			scrollToMsgId: '',
 			loading: false,
-			aiStatusText: '思考中...',
 			// 新增：拍照传来的图片
 			scanImage: '',
 			// 新增：显示图片预览区域
@@ -418,11 +415,9 @@ export default {
 			this.messages.push(loadingMsg);
 			this.scrollToBottom();
 			this.loading = true;
-			this.aiStatusText = '思考中...';
 			
 			// 模拟状态变化（实际应该根据后端返回的工具调用状态来切换）
 			const statusTimer = setTimeout(() => {
-				this.aiStatusText = '调用健康数据库中...';
 			}, 2000);
 			
 			try {
@@ -459,6 +454,9 @@ export default {
 				// 创建一个空的消息占位符（不显示，等有了内容再添加）
 				let assistantMsg = null;
 				
+				// 工具执行步骤
+				let toolSteps = [];
+				
 				await agentApi.chatStream({
 					user_id: this.userId,
 					session_id: this.sessionId,
@@ -481,6 +479,45 @@ export default {
 						console.log('收到 action 数据:', action);
 						actionType = action.action_type;
 						actionData = action.action_data;
+					},
+					onToolStatus: (toolStatus) => {
+						console.log('收到工具状态:', toolStatus);
+											
+						if (toolStatus.type === 'tool_start') {
+							// 添加工具步骤
+							toolSteps.push({
+								tool_name: toolStatus.tool_name,
+								description: toolStatus.description,
+								status: 'processing',
+								error: null
+							});
+												
+							// 如果还没有消息气泡，先创建一个
+							if (!assistantMsg) {
+								assistantMsg = createMessage('assistant', '');
+								assistantMsg.toolSteps = toolSteps;
+								this.messages.push(assistantMsg);
+								this.scrollToBottom();
+							} else {
+								// 更新工具步骤
+								assistantMsg.toolSteps = toolSteps;
+							}
+												
+						} else if (toolStatus.type === 'tool_complete') {
+							// 更新工具步骤状态
+							const step = toolSteps.find(s => s.tool_name === toolStatus.tool_name);
+							if (step) {
+								step.status = toolStatus.status;
+								if (toolStatus.status === 'error') {
+									step.error = toolStatus.error || '执行失败';
+								}
+													
+								// 强制更新视图
+								if (assistantMsg) {
+									assistantMsg.toolSteps = [...toolSteps];
+								}
+							}
+						}
 					}
 				});
 				
@@ -492,7 +529,6 @@ export default {
 				// 移除加载状态
 				this.messages.pop();
 				this.loading = false;
-				this.aiStatusText = '思考中...';
 				
 				// 移除图片预览（在发送成功后）
 				if (hasImage) {
@@ -662,13 +698,11 @@ export default {
 				clearTimeout(statusTimer);
 				this.messages.pop();
 				this.loading = false;
-				this.aiStatusText = '思考中...';
 				const errorMsg = createMessage('assistant', '抱歉，网络开小差了，请稍后再试。');
 				this.messages.push(errorMsg);
 				this.scrollToBottom();
 			} finally {
 				this.loading = false;
-				this.aiStatusText = '思考中...';
 				
 				// 检查是否有待确认的请求（Human-in-the-loop）
 				this.checkPendingRequests();

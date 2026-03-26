@@ -78,6 +78,18 @@ export default {
         }
       });
       
+      // 监听工具状态事件
+      eventSource.addEventListener('tool_status', (event) => {
+        try {
+          const toolStatus = JSON.parse(event.data);
+          if (data.onToolStatus) {
+            data.onToolStatus(toolStatus);
+          }
+        } catch (e) {
+          console.error('解析 tool_status 数据失败:', e);
+        }
+      });
+      
       eventSource.addEventListener('error', (event) => {
         console.error('SSE 错误:', event);
         eventSource.close();
