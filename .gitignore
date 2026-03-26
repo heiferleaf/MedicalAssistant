@@ -10,3 +10,5 @@ unpackage/
 
 config/
 
+.DS_Store
+
