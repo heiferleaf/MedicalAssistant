@@ -14,3 +14,5 @@ config/
 # 构建缓存
 unpackage/dist/cache/
 
+.DS_Store
+

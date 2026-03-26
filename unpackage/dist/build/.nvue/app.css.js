@@ -4,7 +4,7 @@ var __commonJS = (cb, mod) => function __require() {
 };
 var require_app_css = __commonJS({
   "app.css.js"(exports) {
-    const _style_0 = { "icon": { "": { "width": "36rpx", "height": "36rpx", "backgroundSize": "cover", "backgroundPosition": "center", "backgroundRepeat": "no-repeat" } }, "material-symbols-outlined": { "": { "!fontFamily": "'MaterialIcons'", "fontWeight": "normal", "fontStyle": "normal", "fontSize": 22, "lineHeight": 1, "whiteSpace": "nowrap", "wordWrap": "normal", "direction": "ltr", "WebkitFontSmoothing": "antialiased", "textRendering": "optimizeLegibility", "MozOsxFontSmoothing": "grayscale" } }, "@FONT-FACE": [{ "fontFamily": "MaterialIcons", "src": "url('/static/fonts/iconfont.ttf') format('truetype')" }] };
+    const _style_0 = {};
     exports.styles = [_style_0];
   }
 });

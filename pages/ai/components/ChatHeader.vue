@@ -1,17 +1,32 @@
 <template>
-	<view class="chat-header">
-		<view class="header-left">
-			<view v-if="showMenu" class="menu-btn" @click="toggleSidebar">
-				<text class="menu-icon">☰</text>
-			</view>
-			<view class="header-info">
-				<text class="header-title">{{ title }}</text>
-			</view>
-		</view>
-		<view class="header-right">
-			<slot name="actions"></slot>
-		</view>
-	</view>
+  <view class="chat-header" style="flex-direction: column;">
+    <view class="padding"></view>
+    <view
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+		height: 100rpx;
+      "
+    >
+      <view class="header-left">
+        <view v-if="showMenu" class="menu-btn" @click="toggleSidebar">
+          <text class="menu-icon">☰</text>
+        </view>
+        <view class="ai-avatar">{{ avatarText }}</view>
+        <view class="header-info">
+          <text class="header-title">{{ title }}</text>
+          <view class="online-status">
+            <view class="dot"></view>
+            <text class="status-text">{{ statusText }}</text>
+          </view>
+        </view>
+      </view>
+      <view class="header-right">
+        <slot name="actions"></slot> </view
+    ></view>
+  </view>
 </template>
 
 <script>
@@ -36,7 +51,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #3B82F6;
+$primary: #3b82f6;
+
+.padding {
+  height: 64rpx; /* 顶部留白，适配状态栏 */
+  width: 100%;
+}
 
 .chat-header {
 	padding: 20rpx 40rpx;

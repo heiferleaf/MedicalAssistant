@@ -81,7 +81,7 @@
         <!-- 保存按钮 -->
         <button class="save-btn" @tap="handleSave">
           <text class="btn-text">保存修改</text>
-          <text class="material-symbols-outlined">done_all</text>
+          <text class="material-symbols-outlined" style="color: white;">done_all</text>
         </button>
       </view>
 
@@ -199,12 +199,12 @@ export default {
 .hero-section { padding: 30rpx 48rpx 24rpx; }
 .hero-title { font-size: 48rpx; font-weight: 800; color: #1a1c1e; line-height: 1.1; }
 .primary { color: #0057bd; }
-.hero-desc { font-size: 24rpx; color: #595c5e; margin-top: 10rpx; display: block; }
+.hero-desc { font-size: 28rpx; color: #595c5e; margin-top: 10rpx; display: block; }
 
 /* 卡片 */
 .form-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border-radius: 36rpx; margin: 10rpx 28rpx 40rpx; padding: 36rpx; box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.04); }
 .input-group { margin-bottom: 24rpx; }
-.field-label { font-size: 20rpx; font-weight: 700; color: #595c5e; margin-left: 10rpx; margin-bottom: 8rpx; display: block; text-transform: uppercase; }
+.field-label { font-size: 28rpx; font-weight: 700; color: #595c5e; margin-left: 10rpx; margin-bottom: 8rpx; display: block; text-transform: uppercase; }
 .input-wrapper { background: #ffffff; height: 88rpx; border-radius: 20rpx; display: flex; align-items: center; padding: 0 24rpx; border: 2rpx solid #eff1f3; }
 .disabled-box { background: #f1f4f8; border: none; }
 .field-icon { color: #0057bd; opacity: 0.4; font-size: 36rpx; }
@@ -214,7 +214,7 @@ export default {
 .pwd-toggle-bar { display: flex; justify-content: space-between; align-items: center; padding: 16rpx 10rpx; margin-bottom: 10rpx; }
 .toggle-left { display: flex; align-items: center; gap: 12rpx; }
 .toggle-icon { color: #0057bd; font-size: 34rpx; }
-.toggle-text { font-size: 24rpx; font-weight: 700; color: #0057bd; }
+.toggle-text { font-size: 28rpx; font-weight: 700; color: #0057bd; }
 .arrow-icon { color: #0057bd; font-size: 32rpx; transition: transform 0.3s; }
 .rotated { transform: rotate(180deg); }
 

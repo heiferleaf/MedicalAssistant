@@ -5,7 +5,7 @@
             <view class="back-btn" @click="uni.navigateBack()">
                 <image class="back-icon" src="/static/Register/back.png" mode="aspectFit" />
             </view>
-            <text class="title">创建家庭组</text>
+            <text class="title">系统设置</text>
             <view class="placeholder"></view>
         </view>
         <view class="settings-group">

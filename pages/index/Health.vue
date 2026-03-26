@@ -298,7 +298,7 @@ export default {
         if (res) {
           this.medicineList = res || [];
         } else {
-        //   uni.showToast({ title: res.message || "获取列表失败", icon: "none" });
+          //   uni.showToast({ title: res.message || "获取列表失败", icon: "none" });
         }
       } catch (error) {
         // uni.showToast({ title: "网络异常", icon: "none" });
@@ -384,7 +384,7 @@ export default {
             } catch (error) {
               console.error("删除药品失败:", error);
 
-            //   uni.showToast({ title: "删除失败", icon: "none" });
+              //   uni.showToast({ title: "删除失败", icon: "none" });
             } finally {
               uni.hideLoading();
             }
@@ -424,7 +424,7 @@ export default {
           this.currentMedId,
           this.planFormData
         );
-		console.log("创建计划响应:", res); // 调试输出，查看 API 返回的完整响应
+        console.log("创建计划响应:", res); // 调试输出，查看 API 返回的完整响应
 
         if (res) {
           uni.showToast({ title: "计划创建成功", icon: "success" });
@@ -453,6 +453,9 @@ $white: #ffffff;
 $border-radius: 30rpx;
 @import url("https://fonts.googleapis.com/css2?family=Material+Icons");
 
+.padding {
+  height: 64rpx; /* 顶部留白，适配状态栏 */
+}
 .container {
   display: flex;
   flex-direction: column;
@@ -482,7 +485,7 @@ $border-radius: 30rpx;
   padding: 20rpx 32rpx;
   background-color: #ffffff;
   border-bottom: 1rpx solid #f1f3f9;
-  height: 200rpx;
+  height: 160rpx;
 
   .header-left {
     display: flex;
@@ -495,7 +498,7 @@ $border-radius: 30rpx;
     }
 
     .header-title {
-      font-size: 36rpx;
+      font-size: 48rpx;
       font-weight: 700;
       color: var(--text-main);
     }

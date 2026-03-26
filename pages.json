@@ -115,21 +115,9 @@
 			}
 		},
 		{
-			"path": "pages/test/health",
-			"style": {
-				"navigationBarTitleText": "健康信息"
-			}
-		},
-		{
 			"path": "pages/mine/profile",
 			"style": {
 				"navigationBarTitleText": "个人信息"
-			}
-		},
-		{
-			"path": "pages/test/camera",
-			"style": {
-				"navigationBarTitleText": "识别"
 			}
 		},
 		{
