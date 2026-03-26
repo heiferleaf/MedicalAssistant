@@ -28,6 +28,7 @@ import com.whu.medicalbackend.agent.langchain4j.tools.rag.RagTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryHistoryTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryTodayTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskUpdateStatusTool;
+import com.whu.medicalbackend.agent.langchain4j.core.listener.ToolExecutionBroadcaster;
 import com.whu.medicalbackend.service.ToolExecutionPendingService;
 
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -50,6 +51,9 @@ public class MedicalAgent {
     
     @Autowired
     private ToolExecutionPendingService toolExecutionPendingService;
+    
+    @Autowired
+    private ToolExecutionBroadcaster toolExecutionBroadcaster;
     
     // 需要用户批准的 tool 名称
     private static final Set<String> REQUIRES_APPROVAL_TOOLS = new HashSet<>(Arrays.asList(
@@ -257,8 +261,16 @@ public class MedicalAgent {
             logger.info("检测到图片消息，Base64 前 100 字符：{}", base64Preview);
         }
         
+        // 设置当前 sessionId 到上下文
+        toolExecutionBroadcaster.setCurrentSession(sessionId);
+        
         String memoryId = userId + "_" + sessionId;
-        return medicalExpert.medical(memoryId, userId, userMessage);
+        try {
+            return medicalExpert.medical(memoryId, userId, userMessage);
+        } finally {
+            // 清除上下文
+            toolExecutionBroadcaster.clearCurrentSession();
+        }
     }
     
     /**
