@@ -25,13 +25,15 @@ services:
     networks:
       - app-net
 
-  springboot:
+  springboot1:
 #    build: .                               # 用根目录的 Dockerfile 构建
     image: crpi-pcte2psh26cec7uk.cn-hangzhou.personal.cr.aliyuncs.com/medicalassistant/medicalassistant:latest
-    container_name: springboot
+    container_name: springboot1
     restart: always
-    ports:
-      - "8080:8080"                        # 项目实际端口
+
+    expose:
+      - "8080" # 容器内部服务使用的端口
+
     environment:
       MYSQL_HOST: mysql
       MYSQL_DB: medicalassistant           # 和上面 MYSQL_DATABASE 保持一致
@@ -40,9 +42,50 @@ services:
       REDIS_HOST: redis
       REDIS_PASSWORD: Redis123456          # 和上面 redis 密码保持一致
       FLASK_URL: http://8.148.94.242:8001         #  Flask
+      INSTANCE_ID: instance-a
     depends_on:
       - mysql
       - redis
+    networks:
+      - app-net
+
+  springboot2:
+    #    build: .                               # 用根目录的 Dockerfile 构建
+    image: crpi-pcte2psh26cec7uk.cn-hangzhou.personal.cr.aliyuncs.com/medicalassistant/medicalassistant:latest
+    container_name: springboot2
+    restart: always
+
+    expose:
+      - "8080" # 容器内部服务使用的端口
+
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_DB: medicalassistant           # 和上面 MYSQL_DATABASE 保持一致
+      MYSQL_USER: appuser                  # 和上面 MYSQL_USER 保持一致
+      MYSQL_PASSWORD: App123456            # 和上面 MYSQL_PASSWORD 保持一致
+      REDIS_HOST: redis
+      REDIS_PASSWORD: Redis123456          # 和上面 redis 密码保持一致
+      FLASK_URL: http://8.148.94.242:8001         #  Flask
+      INSTANCE_ID: instance-b
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - app-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/static/avatar:/usr/share/nginx/static/avatar:ro
+      - ./nginx/static/images:/usr/share/nginx/static/images:ro
+    depends_on:
+      - springboot1
+      - springboot2
     networks:
       - app-net
 

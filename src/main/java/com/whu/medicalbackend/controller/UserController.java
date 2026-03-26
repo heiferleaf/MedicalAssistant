@@ -14,11 +14,15 @@ import com.whu.medicalbackend.util.RedisKeyBuilderUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 
+import java.net.URI;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -97,5 +101,22 @@ public class UserController {
             return Result.success("获取新accessToken成功", newAccessToken);
         }
         return Result.error(ResultCode.NEED_LOGIN_ERROR);
+    }
+
+    private static final int AVATAR_COUNT = 100;
+    private static final Random RANDOM = new Random();
+
+    /**
+     * 随机返回一个头像
+     * GET /api/user/avatar/random
+     * → 302 重定向到 Nginx 静态文件 /avatar/file/avatar_N.svg
+     */
+    @GetMapping("/avatar/random")
+    public ResponseEntity<Void> randomAvatar() {
+        int idx = RANDOM.nextInt(AVATAR_COUNT) + 1;
+        URI location = URI.create("/avatar/file/avatar_" + idx + ".svg");
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(location)
+                .build();
     }
 }

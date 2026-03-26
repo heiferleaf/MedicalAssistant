@@ -13,14 +13,14 @@
         SELECT
             l.id as alarmId,
             u.nickname as memberName,
-            l.content as medicineName,
-            DATE_FORMAT(l.create_time, '%Y-%m-%d %H:%i:%s') as alarmTime
+            l.event_content as medicineName,
+            DATE_FORMAT(l.event_time, '%Y-%m-%d %H:%i:%s') as alarmTime
         FROM family_event_log l
                  LEFT JOIN t_user u ON l.user_id = u.id
         WHERE l.group_id = #{groupId}
           AND l.event_type = 'ALARM_MISSED'
-          AND l.create_time >= CURDATE()
-        ORDER BY l.create_time DESC
+          AND l.event_time >= CURDATE()
+        ORDER BY l.event_time DESC
     </select>
 
 </mapper>
