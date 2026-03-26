@@ -80,6 +80,10 @@ dashscope:
   api-key: ${DASHSCOPE_API_KEY:}
   model: qwen-turbo  # 使用支持联网搜索的模型
 
+# Redis Pub/Sub 判断的实例依据
+app:
+  instance-id: ${INSTANCE_ID:local}
+
 # Agent 配置
 agent:
   llm:
@@ -100,3 +104,12 @@ logging:
     com.whu.medicalbackend: DEBUG
     org.springframework.web: DEBUG
     org.springframework.web.servlet: DEBUG
+
+# Redis Pub/Sub 判断的实例依据
+app:
+  instance-id: ${INSTANCE_ID:local}
+=======
+# Redis Pub/Sub 判断的实例依据
+app:
+  instance-id: ${INSTANCE_ID:local}
+
