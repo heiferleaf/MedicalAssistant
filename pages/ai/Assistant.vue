@@ -526,8 +526,11 @@ export default {
 				// 清除状态切换定时器
 				clearTimeout(statusTimer);
 				
-				// 移除加载状态
-				this.messages.pop();
+				// 移除加载状态（通过查找 role='loading'的消息）
+				const loadingIndex = this.messages.findIndex(m => m.role === 'loading');
+				if (loadingIndex !== -1) {
+					this.messages.splice(loadingIndex, 1);
+				}
 				this.loading = false;
 				
 				// 移除图片预览（在发送成功后）
@@ -696,7 +699,11 @@ export default {
 			} catch (error) {
 				console.error('请求失败:', error);
 				clearTimeout(statusTimer);
-				this.messages.pop();
+				// 移除加载状态（通过查找 role='loading'的消息）
+				const loadingIndex = this.messages.findIndex(m => m.role === 'loading');
+				if (loadingIndex !== -1) {
+					this.messages.splice(loadingIndex, 1);
+				}
 				this.loading = false;
 				const errorMsg = createMessage('assistant', '抱歉，网络开小差了，请稍后再试。');
 				this.messages.push(errorMsg);
