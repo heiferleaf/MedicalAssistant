@@ -60,6 +60,17 @@ spring:
           max-active: 8 # 连接池最大连接数
           max-idle: 8 # 最大空闲连接数
 
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # 消费者并发数（多线程消费）
+        concurrency: 2
+        max-concurrency: 5
+
 # MyBatis配置
 mybatis:
   # Mapper XML文件位置

@@ -48,7 +48,12 @@ services:
       MYSQL_PASSWORD: App123456            # 和上面 MYSQL_PASSWORD 保持一致
       REDIS_HOST: redis
       REDIS_PASSWORD: Redis123456          # 和上面 redis 密码保持一致
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
       FLASK_URL: http://8.148.94.242:8001         #  Flask
+      DASHSCOPE_API_KEY: sk-dfa4f94422704c1c84204ff096302ea5
       INSTANCE_ID: instance-a
     depends_on:
       - mysql
@@ -72,7 +77,12 @@ services:
       MYSQL_PASSWORD: App123456            # 和上面 MYSQL_PASSWORD 保持一致
       REDIS_HOST: redis
       REDIS_PASSWORD: Redis123456          # 和上面 redis 密码保持一致
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
       FLASK_URL: http://8.148.94.242:8001         #  Flask
+      DASHSCOPE_API_KEY: sk-dfa4f94422704c1c84204ff096302ea5
       INSTANCE_ID: instance-b
     depends_on:
       - mysql
