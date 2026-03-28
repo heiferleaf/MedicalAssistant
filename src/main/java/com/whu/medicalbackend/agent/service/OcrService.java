@@ -68,7 +68,24 @@ public class OcrService {
                 
                 if ("success".equals(status)) {
                     logger.info("OCR 识别成功");
-                    return responseBody;
+                    
+                    // 确保返回的 Map 中的字符串是标准 JSON 格式
+                    Map<String, Object> cleanResponse = new java.util.LinkedHashMap<>();
+                    for (Map.Entry<String, Object> entry : responseBody.entrySet()) {
+                        Object value = entry.getValue();
+                        if (value instanceof String) {
+                            String strValue = (String) value;
+                            // 将 Python 字典字符串转换为标准 JSON 字符串
+                            if (strValue.startsWith("{") || strValue.startsWith("{'")) {
+                                // 替换单引号为双引号
+                                strValue = strValue.replace("'", "\"");
+                                value = strValue;
+                            }
+                        }
+                        cleanResponse.put(entry.getKey(), value);
+                    }
+                    
+                    return cleanResponse;
                 } else {
                     String message = (String) responseBody.get("message");
                     logger.error("OCR 识别失败：{}", message);
@@ -89,12 +106,18 @@ public class OcrService {
      */
     public boolean isOcrServiceAvailable() {
         try {
-            String response = restTemplate.getForObject(
-                flaskBaseUrl + "/ocr/health",
+            // 直接检查 /ocr/predict 接口是否可访问（使用 GET 方法）
+            // 即使返回 405 Method Not Allowed，也说明服务是活的
+            restTemplate.getForObject(
+                flaskBaseUrl + "/ocr/predict",
                 String.class
             );
-            
-            return response != null && response.contains("\"status\": \"ok\"");
+            // 如果 GET 请求成功（虽然不太可能），返回 true
+            return true;
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            // 4xx/5xx 错误（如 405 Method Not Allowed）说明服务存在，只是方法不对
+            logger.info("OCR 服务可访问（返回 HTTP {}），认为服务可用", e.getStatusCode());
+            return true;
         } catch (Exception e) {
             logger.error("检查 OCR 服务状态失败", e);
             return false;
