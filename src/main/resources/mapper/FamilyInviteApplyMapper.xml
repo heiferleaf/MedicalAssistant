@@ -2,10 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.whu.medicalbackend.mapper.FamilyInviteApplyMapper">
+<mapper namespace="com.whu.medicalbackend.family.mapper.FamilyInviteApplyMapper">
 
     <!-- 复习点1：ResultMap -->
-    <resultMap id="BaseResultMap" type="com.whu.medicalbackend.entity.FamilyInviteApply">
+    <resultMap id="BaseResultMap" type="com.whu.medicalbackend.family.entity.FamilyInviteApply">
         <id column="id" property="id" />
         <result column="group_id" property="groupId" />
         <result column="inviter_id" property="inviterId" />
@@ -70,7 +70,7 @@
     </select>
 
     <!-- 2.1 & 2.2 用户查看“我发起的申请”和“我收到的邀请” -->
-    <select id="findUserRecords" resultType="com.whu.medicalbackend.dto.FamilyInviteApplyVO">
+    <select id="findUserRecords" resultType="com.whu.medicalbackend.family.dto.FamilyInviteApplyVO">
         SELECT
             a.id as applyId,
             a.group_id as groupId,
@@ -90,7 +90,7 @@
     </select>
 
     <!-- 2.3 组长查看本组待审批列表 (Type 为 apply) -->
-    <select id="findPendingAppliesByGroupId" resultType="com.whu.medicalbackend.dto.FamilyInviteApplyVO">
+    <select id="findPendingAppliesByGroupId" resultType="com.whu.medicalbackend.family.dto.FamilyInviteApplyVO">
         SELECT
             a.id as applyId,
             a.group_id as groupId,

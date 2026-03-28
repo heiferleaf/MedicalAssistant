@@ -1,7 +1,7 @@
 package com.whu.medicalbackend.agent.langchain4j.tools.medicine;
 
-import com.whu.medicalbackend.entity.Medicine;
-import com.whu.medicalbackend.service.MedicineService;
+import com.whu.medicalbackend.medical.entity.Medicine;
+import com.whu.medicalbackend.medical.service.MedicineService;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import org.slf4j.Logger;

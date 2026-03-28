@@ -64,7 +64,7 @@ create table if not exists family_event_log
     primary key,
     group_id      bigint                               not null comment '家庭组ID，关联family_group.id',
     user_id       bigint                               not null comment '操作用户ID',
-    event_type    varchar(32)                          not null comment '事件类型：apply=申请，invite=邀请，approve=审批，quit=退出，medicine_alarm=用药异常，medicine_update=打卡变更',
+    event_type    varchar(32)                          not null comment '事件类型：medicine_alarm=用药异常，task_done=正常打卡 info:其他消息，如用户加入家庭组、退出家庭组、创建家庭组、加入家庭组被拒绝',
     event_content varchar(512)                         not null comment '详细描述内容，通常为可读说明（如张三08:00漏服XX药）',
     event_time    datetime   default CURRENT_TIMESTAMP not null comment '事件发生时间',
     is_deleted    tinyint(1) default 0                 null comment '0=正常，1=软删除'
@@ -137,7 +137,6 @@ create table if not exists health_data
     id             bigint auto_increment comment '自增主键'
     primary key,
     user_id        bigint                             not null comment '用户ID',
-    group_id       bigint                             not null comment '家庭组ID',
     heart_rate     double                             null comment '平均心率',
     blood_pressure double                             null comment '平均血压',
     measure_time   datetime                           not null comment '测量时间',
@@ -145,9 +144,6 @@ create table if not exists health_data
     is_deleted     tinyint  default 0                 null comment '逻辑删除'
 )
     comment '健康数据表';
-
-create index idx_group_id
-    on health_data (group_id);
 
 create index idx_measure_time
     on health_data (measure_time);

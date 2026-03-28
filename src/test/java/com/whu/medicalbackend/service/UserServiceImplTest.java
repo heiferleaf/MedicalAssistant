@@ -1,14 +1,14 @@
 package com.whu.medicalbackend.service;
 
-import com.whu.medicalbackend.dto.UserLoginDto;
-import com.whu. medicalbackend.dto.UserRegisterDto;
-import com. whu.medicalbackend. entity.User;
-import com. whu.medicalbackend. exception. PasswordIncorrectException;
-import com.whu.medicalbackend.exception.UserAlreadyExistsException;
-import com. whu.medicalbackend. exception.UserNotFoundException;
-import com.whu.medicalbackend.repository.UserRepository;
-import com.whu.medicalbackend.service.serviceImpl.UserServiceImpl;
-import com.whu.medicalbackend.util.PasswordUtil;
+import com.whu.medicalbackend.user.entity.dto.UserLoginDto;
+import com.whu.medicalbackend.user.entity.dto.UserRegisterDto;
+import com.whu.medicalbackend.user.entity.User;
+import com.whu.medicalbackend.common.exception.PasswordIncorrectException;
+import com.whu.medicalbackend.common.exception.UserAlreadyExistsException;
+import com.whu.medicalbackend.common.exception.UserNotFoundException;
+import com.whu.medicalbackend.user.repository.UserRepository;
+import com.whu.medicalbackend.user.service.serviceImpl.UserServiceImpl;
+import com.whu.medicalbackend.common.util.PasswordUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api. Test;
 import org.junit. jupiter.api.extension.ExtendWith;

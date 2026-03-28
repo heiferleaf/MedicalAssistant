@@ -2,12 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.whu.medicalbackend.mapper.MedicationTaskMapper">
+<mapper namespace="com.whu.medicalbackend.medical.mapper.MedicationTaskMapper">
 
     <!--
     结果映射（timePoint字段指定TypeHandler）
     -->
-    <resultMap id="BaseResultMap" type="com.whu.medicalbackend.entity.MedicationTask">
+    <resultMap id="BaseResultMap" type="com.whu.medicalbackend.medical.entity.MedicationTask">
         <id column="id" property="id" jdbcType="BIGINT"/>
         <result column="user_id" property="userId" jdbcType="BIGINT"/>
         <result column="plan_id" property="planId" jdbcType="BIGINT"/>
@@ -16,7 +16,7 @@
         <result column="task_date" property="taskDate" jdbcType="DATE"/>
         <!-- timePoint字段指定TypeHandler -->
         <result column="time_point" property="timePoint" jdbcType="VARCHAR"
-                typeHandler="com.whu.medicalbackend.handler.LocalTimeTypeHandler"/>
+                typeHandler="com.whu.medicalbackend.common.handler.LocalTimeTypeHandler"/>
         <result column="status" property="status" jdbcType="TINYINT"/>
         <result column="operate_time" property="operateTime" jdbcType="TIMESTAMP"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
@@ -91,7 +91,7 @@
         VALUES
         <foreach collection="tasks" item="task" separator=",">
             (#{task.userId}, #{task.planId}, #{task.medicineId}, #{task.dosage},
-            #{task.taskDate}, #{task.timePoint, typeHandler=com.whu.medicalbackend.handler.LocalTimeTypeHandler},
+            #{task.taskDate}, #{task.timePoint, typeHandler=com.whu.medicalbackend.common.handler.LocalTimeTypeHandler},
             #{task.status})
         </foreach>
     </insert>

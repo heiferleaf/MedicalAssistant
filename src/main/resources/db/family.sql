@@ -40,19 +40,18 @@ CREATE TABLE family_member (
 -- ====================================
 -- 6. 健康数据表
 -- ====================================
-CREATE TABLE health_data (
-                             id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '健康数据唯一ID，自增主键',
-                             user_id BIGINT NOT NULL COMMENT '用户ID，关联用户表',
-                             group_id BIGINT NOT NULL COMMENT '所属家庭组ID，关联family_group.id',
-                             record_date DATE NOT NULL COMMENT '数据记录所属日期',
-                             health_value VARCHAR(512) COMMENT '主要健康监测数据，JSON格式（如血压、血糖等）',
-                             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '数据生成时间',
-                             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-                             is_deleted BOOLEAN DEFAULT 0 COMMENT '0=正常，1=软删除',
-                             INDEX idx_user_id (user_id),
-                             INDEX idx_group_id (group_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='家庭成员健康数据表';
-
+create table if not exists health_data
+(
+    id             bigint auto_increment comment '自增主键'
+    primary key,
+    user_id        bigint                             not null comment '用户ID',
+    heart_rate     double                             null comment '平均心率',
+    blood_pressure double                             null comment '平均血压',
+    measure_time   datetime                           not null comment '测量时间',
+    created_at     datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    is_deleted     tinyint  default 0                 null comment '逻辑删除'
+)
+    comment '健康数据表';
 -- ====================================
 -- 7. 邀请/申请记录表
 -- ====================================

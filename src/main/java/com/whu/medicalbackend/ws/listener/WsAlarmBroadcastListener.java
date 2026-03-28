@@ -2,12 +2,12 @@ package com.whu.medicalbackend.ws.listener;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.whu.medicalbackend.entity.FamilyGroup;
-import com.whu.medicalbackend.entity.User;
-import com.whu.medicalbackend.mapper.FamilyGroupMapper;
-import com.whu.medicalbackend.mapper.UserMapper;
-import com.whu.medicalbackend.service.serviceImpl.FamilyCacheService;
-import com.whu.medicalbackend.service.serviceImpl.RedisService;
+import com.whu.medicalbackend.family.entity.FamilyGroup;
+import com.whu.medicalbackend.user.entity.User;
+import com.whu.medicalbackend.family.mapper.FamilyGroupMapper;
+import com.whu.medicalbackend.user.mapper.UserMapper;
+import com.whu.medicalbackend.family.service.FamilyCacheService;
+import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.ws.WebSocketSessionManager;
 import com.whu.medicalbackend.ws.WsPubSubBroadcaster;
 import com.whu.medicalbackend.ws.event.FamilyPushEvent;
@@ -18,10 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
 
-import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
 

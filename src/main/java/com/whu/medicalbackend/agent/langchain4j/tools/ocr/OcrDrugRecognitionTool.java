@@ -1,6 +1,6 @@
 package com.whu.medicalbackend.agent.langchain4j.tools.ocr;
 
-import com.whu.medicalbackend.service.OcrService;
+import com.whu.medicalbackend.agent.service.OcrService;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import org.slf4j.Logger;

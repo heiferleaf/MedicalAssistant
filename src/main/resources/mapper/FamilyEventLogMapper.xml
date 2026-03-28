@@ -2,14 +2,14 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.whu.medicalbackend.mapper.FamilyEventLogMapper">
+<mapper namespace="com.whu.medicalbackend.family.mapper.FamilyEventLogMapper">
 
     <insert id="insertLog">
         INSERT INTO family_event_log (group_id, user_id, event_type, event_content, event_time, is_deleted)
         VALUES (#{groupId},#{userId},#{eventType},#{eventContent},NOW(),0)
     </insert>
 
-    <select id="findDailyAlarms" resultType="com.whu.medicalbackend.dto.FamilyAlarmVO">
+    <select id="findDailyAlarms" resultType="com.whu.medicalbackend.family.dto.FamilyAlarmVO">
         SELECT
             l.id as alarmId,
             u.nickname as memberName,

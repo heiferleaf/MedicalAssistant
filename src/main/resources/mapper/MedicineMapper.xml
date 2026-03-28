@@ -2,8 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.whu.medicalbackend.mapper.MedicineMapper">
-    <resultMap id="BaseResultMap" type="Medicine">
+<mapper namespace="com.whu.medicalbackend.medical.mapper.MedicineMapper">
+    <resultMap id="BaseResultMap" type="com.whu.medicalbackend.medical.entity.Medicine">
         <id column="id" property="id" jdbcType="BIGINT"/>
         <result column="user_id" property="userId" jdbcType="BIGINT"/>
         <result column="name" property="name" jdbcType="VARCHAR"/>
@@ -46,7 +46,7 @@
         DELETE FROM medicne WHERE id = #{id}
     </delete>
 
-    <update id="update" parameterType="Medicine">
+    <update id="update" parameterType="com.whu.medicalbackend.medical.entity.Medicine">
         UPDATE medicine SET name = #{medicine.name}, default_dosage = #{medicine.defaultDosage}, remark = #{medicine.remark}
         WHERE id = #{medicine.id} AND user_id = #{medicine.userId}
     </update>

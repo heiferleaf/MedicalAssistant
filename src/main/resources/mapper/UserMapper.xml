@@ -12,7 +12,7 @@ Mapper 的xml 文件
 6. ResultMap：返回结果的映射（用于配置比较复杂的返回内容，将数据库的内容返回格式，转为需要的Java对象）
 7. #{属性名}：防止SQL注入的占位符
 -->
-<mapper namespace="com.whu.medicalbackend.mapper.UserMapper">
+<mapper namespace="com.whu.medicalbackend.user.mapper.UserMapper">
 
     <!--
     resultMap:
@@ -22,7 +22,7 @@ Mapper 的xml 文件
         property：Java类属性名
         jdbcType：数据库的数据类型
     -->
-    <resultMap id="BaseResultMap" type="com.whu.medicalbackend.entity.User">
+    <resultMap id="BaseResultMap" type="com.whu.medicalbackend.user.entity.User">
 <!--        id表示主键-->
         <id column="id" property="id" jdbcType="BIGINT" javaType="long"/>
         <result column="username" property="username" jdbcType="VARCHAR" javaType="String"/>
@@ -44,7 +44,7 @@ Mapper 的xml 文件
     - keyProperty="id"：将生成的主键值回填到user对象的id属性
     - #{user.属性名}：获取user对象的属性值
     -->
-    <insert id="insert" parameterType="com.whu.medicalbackend.entity.User"
+    <insert id="insert" parameterType="com.whu.medicalbackend.user.entity.User"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO t_user (username, password, nickname, phone_number, create_time, update_time)
         VALUES (#{username}, #{password}, #{nickname}, #{phoneNumber}, NOW(), NOW())
@@ -92,7 +92,7 @@ Mapper 的xml 文件
         WHERE phone_number = #{phoneNumber}
     </select>
 
-    <update id="updateUserInfo" parameterType="User">
+    <update id="updateUserInfo" parameterType="com.whu.medicalbackend.user.entity.User">
         UPDATE t_user
         SET password = #{user.password}, nickname = #{user.nickname}, phone_number = #{user.phoneNumber}, update_time = #{user.updateTime}
         WHERE id = #{user.id} AND username = #{user.username}

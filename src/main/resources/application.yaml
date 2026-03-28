@@ -27,11 +27,11 @@ spring:
   # 数据源配置
   datasource:
     # JDBC URL
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/${MYSQL_DB:MedicalAssistant}?useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:3307/${MYSQL_DB:medicalassistant}?useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai
     # 数据库用户名
-    username: ${MYSQL_USER:root}
+    username: ${MYSQL_USER:appuser}
     # 数据库密码
-    password: ${MYSQL_PASSWORD:1234}
+    password: ${MYSQL_PASSWORD:App123456}
     # 驱动类名（MySQL 8.x）
     driver-class-name:  com.mysql.cj.jdbc.Driver
 
@@ -53,9 +53,9 @@ mybatis:
   # Mapper XML文件位置
   mapper-locations: classpath:mapper/*.xml
   # 实体类别名包（XML中可以直接用类名，不用写全限定名）
-  type-aliases-package: com.whu.medicalbackend.entity
+  type-aliases-package: com.whu
   # 实体类型转换处理（LocalTime(List<LocalTime>) <-> VARCHAR）
-  type-handlers-package: com.whu.medicalbackend.handler
+  type-handlers-package: com.whu
   # MyBatis全局配置
   configuration:
     # 开启驼峰命名映射：create_time -> createTime

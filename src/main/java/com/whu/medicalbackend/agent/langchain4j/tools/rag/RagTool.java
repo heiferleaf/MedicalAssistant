@@ -1,8 +1,8 @@
 package com.whu.medicalbackend.agent.langchain4j.tools.rag;
 
-import com.whu.medicalbackend.rag.RagRequest;
-import com.whu.medicalbackend.rag.RagResponse;
-import com.whu.medicalbackend.rag.RagService;
+import com.whu.medicalbackend.agent.rag.RagRequest;
+import com.whu.medicalbackend.agent.rag.RagResponse;
+import com.whu.medicalbackend.agent.rag.RagService;
 import dev.langchain4j.agent.tool.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -2,10 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.whu.medicalbackend.mapper.FamilyGroupMapper">
+<mapper namespace="com.whu.medicalbackend.family.mapper.FamilyGroupMapper">
 
     <!-- 复习点1：ResultMap 配置 -->
-    <resultMap id="FamilyGroupMap" type="com.whu.medicalbackend.entity.FamilyGroup">
+    <resultMap id="FamilyGroupMap" type="com.whu.medicalbackend.family.entity.FamilyGroup">
         <id column="id" property="id" />
         <result column="group_name" property="groupName" />
         <result column="owner_user_id" property="ownerUserId" />

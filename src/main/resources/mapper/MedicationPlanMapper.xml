@@ -2,12 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.whu.medicalbackend.mapper.MedicationPlanMapper">
+<mapper namespace="com.whu.medicalbackend.medical.mapper.MedicationPlanMapper">
 
     <!--
     结果映射（重点：timePoints字段需要指定TypeHandler）
     -->
-    <resultMap id="BaseResultMap" type="MedicationPlan">
+    <resultMap id="BaseResultMap" type="com.whu.medicalbackend.medical.entity.MedicationPlan">
         <id column="id" property="id" jdbcType="BIGINT"/>
         <result column="user_id" property="userId" jdbcType="BIGINT"/>
         <result column="medicine_id" property="medicineId" jdbcType="BIGINT"/>
@@ -66,12 +66,12 @@
     插入计划
     注意：timePoints字段会自动调用TypeHandler转换
     -->
-    <insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="MedicationPlan">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="com.whu.medicalbackend.medical.entity.MedicationPlan">
         INSERT INTO medication_plan
         (user_id, medicine_id, dosage, start_date, end_date, time_points, remark, deleted)
         VALUES
             (#{userId}, #{medicineId}, #{dosage}, #{startDate}, #{endDate},
-             #{timePoints, typeHandler=com.whu.medicalbackend.handler.LocalTimeListTypeHandler},
+             #{timePoints, typeHandler=com.whu.medicalbackend.common.handler.LocalTimeListTypeHandler},
              #{remark}, 0)
     </insert>
 
@@ -82,7 +82,7 @@
             dosage = #{dosage},
             start_date = #{startDate},
             end_date = #{endDate},
-            time_points = #{timePoints, typeHandler=com.whu.medicalbackend.handler.LocalTimeListTypeHandler},
+            time_points = #{timePoints, typeHandler=com.whu.medicalbackend.common.handler.LocalTimeListTypeHandler},
             remark = #{remark}
         WHERE id = #{id}
     </update>

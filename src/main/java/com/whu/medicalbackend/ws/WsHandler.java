@@ -1,7 +1,7 @@
 package com.whu.medicalbackend.ws;
 
-import com.whu.medicalbackend.service.serviceImpl.RedisService;
-import com.whu.medicalbackend.util.RedisKeyBuilderUtil; // 引入工具类
+import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
+import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil; // 引入工具类
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
