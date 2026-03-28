@@ -3,7 +3,7 @@ package com.whu.medicalbackend.agent.langchain4j.tools.medicine;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import com.whu.medicalbackend.service.ToolExecutionPendingService;
+import com.whu.medicalbackend.agent.service.ToolExecutionPendingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

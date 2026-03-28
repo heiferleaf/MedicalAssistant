@@ -29,7 +29,7 @@ import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryHistoryTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryTodayTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskUpdateStatusTool;
 import com.whu.medicalbackend.agent.langchain4j.core.listener.ToolExecutionBroadcaster;
-import com.whu.medicalbackend.service.ToolExecutionPendingService;
+import com.whu.medicalbackend.agent.service.ToolExecutionPendingService;
 
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;

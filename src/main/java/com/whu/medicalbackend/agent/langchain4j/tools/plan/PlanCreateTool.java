@@ -2,8 +2,8 @@ package com.whu.medicalbackend.agent.langchain4j.tools.plan;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-import com.whu.medicalbackend.service.PlanService;
-import com.whu.medicalbackend.dto.PlanCreateDTO;
+import com.whu.medicalbackend.medical.service.PlanService;
+import com.whu.medicalbackend.medical.dto.PlanCreateDTO;
 import com.whu.medicalbackend.agent.langchain4j.core.listener.ToolExecutionBroadcaster;
 import com.whu.medicalbackend.agent.langchain4j.core.listener.ToolExecutionWrapper;
 import org.slf4j.Logger;
