@@ -83,7 +83,7 @@ public class AgentOrchestratorService {
      * 使用 Medical Agent 处理请求
      */
     private Map<String, Object> handleMedicalAgentChat(String userId, String sessionId, String message,
-            boolean withTrace, boolean withTiming) {
+                                                       boolean withTrace, boolean withTiming) {
         try {
             logger.info("使用 Medical Agent 处理请求");
             Map<String, Object> result = medicalAgent.execute(sessionId, userId, message, message);
@@ -93,12 +93,12 @@ public class AgentOrchestratorService {
                 String assistantMessage = (String) result.get("assistant_message");
                 String actionType = (String) result.get("action_type");
                 String actionData = (String) result.get("action_data");
-                
+
                 if (assistantMessage != null && !assistantMessage.isBlank()) {
                     if (actionType != null && !actionType.isBlank() && actionData != null) {
                         // 保存带 action 的消息
                         memoryRepository.appendMessageWithAction(
-                            sessionId, userId, "assistant", assistantMessage, actionType, actionData
+                                sessionId, userId, "assistant", assistantMessage, actionType, actionData
                         );
                     } else {
                         // 保存普通消息
@@ -125,7 +125,7 @@ public class AgentOrchestratorService {
      * 简单 LLM 调用（回退方案）
      */
     private Map<String, Object> handleSimpleLlmChat(String userId, String sessionId, String message, boolean withTrace,
-            boolean withTiming) {
+                                                    boolean withTiming) {
         try {
             logger.info("使用简单 LLM 调用处理请求");
 
@@ -198,3 +198,4 @@ public class AgentOrchestratorService {
         return s.equals("true") || s.equals("1") || s.equals("yes");
     }
 }
+
