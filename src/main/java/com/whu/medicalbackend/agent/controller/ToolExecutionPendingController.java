@@ -16,7 +16,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/agent/tool-execution")
-@CrossOrigin(origins = "*")
+//@CrossOrigin(origins = "*")
 public class ToolExecutionPendingController {
     
     private static final Logger logger = LoggerFactory.getLogger(ToolExecutionPendingController.class);
