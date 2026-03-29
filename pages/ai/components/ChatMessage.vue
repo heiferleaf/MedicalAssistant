@@ -1,8 +1,18 @@
 <template>
 	<view :class="['message-group', role === 'user' ? 'user-message' : 'ai-message']">
+		<!-- 加载状态：直接显示 loading 动画，不显示气泡 -->
+		<view v-if="role === 'loading'" class="loading-dots">
+			<view class="dot-loading"></view>
+			<view class="dot-loading"></view>
+			<view class="dot-loading"></view>
+		</view>
+		
 		<!-- AI 消息：完整的圆角矩形，占满整个空间 -->
-		<view v-if="role === 'assistant'" class="ai-message-container">
+		<view v-else-if="role === 'assistant'" class="ai-message-container">
 			<view class="ai-content">
+				<!-- 工具执行步骤 -->
+				<ToolSteps v-if="toolSteps && toolSteps.length > 0" :steps="toolSteps" />
+					
 				<!-- 操作卡片：用药计划 -->
 				<PlanActionCard
 					v-if="actionType === 'plan'"
@@ -60,14 +70,7 @@
 					:src="image" 
 					mode="aspectFill"
 				/>
-				
-				<!-- 加载状态 -->
-				<view v-if="role === 'loading'" class="loading-dots">
-					<view class="dot-loading"></view>
-					<view class="dot-loading"></view>
-					<view class="dot-loading"></view>
-				</view>
-				
+						
 				<!-- 插槽：用于扩展其他消息类型 -->
 				<slot></slot>
 			</view>
@@ -100,6 +103,7 @@ import SimpleMarkdown from './SimpleMarkdown.vue';
 import PlanActionCard from './ActionCards/PlanActionCard.vue';
 import TaskActionCard from './ActionCards/TaskActionCard.vue';
 import MedicineActionCard from './ActionCards/MedicineActionCard.vue';
+import ToolSteps from './ToolSteps.vue';
 
 export default {
 	name: 'ChatMessage',
@@ -107,7 +111,8 @@ export default {
 		SimpleMarkdown,
 		PlanActionCard,
 		TaskActionCard,
-		MedicineActionCard
+		MedicineActionCard,
+		ToolSteps
 	},
 	props: {
 		// 消息 ID
@@ -141,6 +146,11 @@ export default {
 		actionData: {
 			type: Object,
 			default: () => ({})
+		},
+		// 工具执行步骤
+		toolSteps: {
+			type: Array,
+			default: () => []
 		}
 	},
 	data() {

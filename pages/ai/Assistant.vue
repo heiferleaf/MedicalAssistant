@@ -26,8 +26,6 @@
 			<ChatView
 				:messages="messages"
 				:scrollToMsgId="scrollToMsgId"
-				:loading="loading"
-				:statusText="aiStatusText"
 				@load-more="loadMoreMessages"
 				@scroll-to="scrollToMessage"
 				@action-confirm="handleActionConfirm"
@@ -98,7 +96,6 @@ export default {
 			showSidebar: false,
 			scrollToMsgId: '',
 			loading: false,
-			aiStatusText: '思考中...',
 			// 新增：拍照传来的图片
 			scanImage: '',
 			// 新增：显示图片预览区域
@@ -418,11 +415,9 @@ export default {
 			this.messages.push(loadingMsg);
 			this.scrollToBottom();
 			this.loading = true;
-			this.aiStatusText = '思考中...';
 			
 			// 模拟状态变化（实际应该根据后端返回的工具调用状态来切换）
 			const statusTimer = setTimeout(() => {
-				this.aiStatusText = '调用健康数据库中...';
 			}, 2000);
 			
 			try {
@@ -451,240 +446,245 @@ export default {
 					message_length: messageToSend.length
 				});
 				
-				const response = await agentApi.chat({
+				// 使用流式输出
+				let assistantMessage = '';
+				let actionType = null;
+				let actionData = null;
+				
+				// 创建一个空的消息占位符（不显示，等有了内容再添加）
+				let assistantMsg = null;
+				
+				// 工具执行步骤
+				let toolSteps = [];
+				
+				await agentApi.chatStream({
 					user_id: this.userId,
 					session_id: this.sessionId,
 					message: messageToSend,
-					type: 'chat'
+					onChunk: (chunk) => {
+						// 每收到一个字就追加到消息中
+						assistantMessage += chunk;
+										
+						// 如果是第一个字，创建消息气泡
+						if (!assistantMsg) {
+							assistantMsg = createMessage('assistant', chunk);
+							this.messages.push(assistantMsg);
+							this.scrollToBottom();
+						} else {
+							// 更新已有消息的内容（通过数组索引触发响应式更新）
+							const index = this.messages.indexOf(assistantMsg);
+							if (index !== -1) {
+								this.messages[index].content = assistantMessage;
+							}
+						}
+					},
+					onAction: (action) => {
+						console.log('收到 action 数据:', action);
+						actionType = action.action_type;
+						actionData = action.action_data;
+					},
+					onToolStatus: (toolStatus) => {
+						console.log('收到工具状态:', toolStatus);
+											
+						if (toolStatus.type === 'tool_start') {
+							// 添加工具步骤
+							toolSteps.push({
+								tool_name: toolStatus.tool_name,
+								description: toolStatus.description,
+								status: 'processing',
+								error: null
+							});
+												
+							// 如果还没有消息气泡，先创建一个
+							if (!assistantMsg) {
+								assistantMsg = createMessage('assistant', '');
+								assistantMsg.toolSteps = toolSteps;
+								this.messages.push(assistantMsg);
+								this.scrollToBottom();
+							} else {
+								// 更新工具步骤
+								assistantMsg.toolSteps = toolSteps;
+							}
+												
+						} else if (toolStatus.type === 'tool_complete') {
+							// 更新工具步骤状态
+							const step = toolSteps.find(s => s.tool_name === toolStatus.tool_name);
+							if (step) {
+								step.status = toolStatus.status;
+								if (toolStatus.status === 'error') {
+									step.error = toolStatus.error || '执行失败';
+								}
+													
+								// 强制更新视图
+								if (assistantMsg) {
+									assistantMsg.toolSteps = [...toolSteps];
+								}
+							}
+						}
+					}
 				});
 				
-				console.log('AI 返回:', response);
+				console.log('AI 返回:', { assistantMessage, actionType, actionData });
 				
 				// 清除状态切换定时器
 				clearTimeout(statusTimer);
 				
-				// 移除加载状态
-				this.messages.pop();
+				// 移除加载状态（通过查找 role='loading'的消息）
+				const loadingIndex = this.messages.findIndex(m => m.role === 'loading');
+				if (loadingIndex !== -1) {
+					this.messages.splice(loadingIndex, 1);
+				}
 				this.loading = false;
-				this.aiStatusText = '思考中...';
 				
 				// 移除图片预览（在发送成功后）
 				if (hasImage) {
 					this.removeImage();
 				}
 				
-				// 检查是否有操作卡片数据
-				if (response.action_type && response.action_data) {
+				// 如果有 action 数据，需要重新处理消息
+				if (actionType && actionData) {
+					// 移除刚才创建的普通消息
+					const msgIndex = this.messages.findIndex(m => m.id === assistantMsg.id);
+					if (msgIndex !== -1) {
+						this.messages.splice(msgIndex, 1);
+					}
+					
 					// 添加带操作卡片的消息
-					const assistantMsg = createMessageWithAction(
+					const assistantMsgWithAction = createMessageWithAction(
 						'assistant',
-						response.assistant_message || response.message || response.content,
-						response.action_type,
-						response.action_data
+						assistantMessage,
+						actionType,
+						actionData
 					);
-					this.messages.push(assistantMsg);
+					this.messages.push(assistantMsgWithAction);
+					this.scrollToBottom();
 				} else {
 					// 检查 tool 返回结果中的 pending_confirmation 标记
-					let assistantMessage = response?.assistant_message || response?.message || response?.content || '收到您的消息，我正在思考中...';
+					// 注意：流式模式下，这些数据应该在 actionData 中处理
 					
-					// 检查是否有 pending_confirmation 标记（来自 tool 的返回）
-					if (response.pending_confirmation && response.tool_name) {
-						console.log('检测到 pending_confirmation 标记:', response);
+					// 检测特殊标记：[ACTION:plan_confirm], [ACTION:plan_update], [ACTION:plan_delete], [ACTION:addMedicine], [ACTION:updateTaskStatus]
+					const actionMatch = assistantMessage?.match(/\[ACTION:(plan_\w+|addMedicine|updateTaskStatus)\]([\s\S]*)/);
+					
+					if (actionMatch) {
+						const actionType = actionMatch[1]; // plan_confirm, plan_update, plan_delete, addMedicine, updateTaskStatus
+						const actionData = actionMatch[2].trim(); // 后面的详情数据
 						
-						// 解析参数
-						const args = response.arguments || {};
+						console.log('检测到特殊标记:', actionType, actionData);
 						
-						// 根据 tool_name 显示不同的卡片
-						if (response.tool_name === 'createPlan') {
-							const planData = {
-								data: {
-									medicineName: args.medicineName || '',
-									timePoint: args.timePoints && args.timePoints.length > 0 ? args.timePoints[0] : '08:00',
-									dosage: args.dosage || '',
-									frequency: '每日一次',
-									startDate: args.startDate || new Date().toISOString().split('T')[0],
-									endDate: args.endDate || '',
-									remark: args.remark || ''
-								},
-								showConfirm: true,
-								showEdit: true
-							};
-							
-							// 显示确认卡片
-							const assistantMsg = createMessageWithAction(
-								'assistant',
-								response.message || '请确认以下用药计划：',
-								'plan',
-								planData
-							);
-							this.messages.push(assistantMsg);
-							this.scrollToBottom();
-						} else if (response.tool_name === 'updateTaskStatus') {
-							const taskData = {
-								data: {
-									taskId: args.taskId,
-									medicineName: args.medicineName || '',
-									timePoint: args.timePoint || '',
-									dosage: args.dosage || '',
-									status: args.status || 1
-								},
-								status: 'pending'
-							};
-							
-							// 显示任务确认卡片
-							const assistantMsg = createMessageWithAction(
-								'assistant',
-								response.message || '请确认是否更新此用药任务状态：',
-								'task',
-								taskData
-							);
-							this.messages.push(assistantMsg);
-							this.scrollToBottom();
-						} else if (response.tool_name === 'addMedicine') {
+						if (actionType === 'addMedicine') {
+							// 显示药箱确认卡片
 							const medicineData = {
 								data: {
-									medicineName: args.medicineName || '',
-									defaultDosage: args.defaultDosage || '',
-									remark: args.remark || ''
+									medicineName: this.extractMedicineName(assistantMessage) || '',
+									defaultDosage: this.extractDosage(assistantMessage) || '',
+									remark: ''
 								},
 								status: 'pending'
 							};
 							
-							// 显示药箱确认卡片
 							const assistantMsg = createMessageWithAction(
 								'assistant',
-								response.message || '请确认是否添加以下药品到药箱：',
+								'请确认是否添加以下药品到药箱：',
 								'medicine',
 								medicineData
 							);
 							this.messages.push(assistantMsg);
 							this.scrollToBottom();
+						} else if (actionType === 'updateTaskStatus') {
+							// 显示任务确认卡片
+							const taskData = {
+								data: {
+									taskId: null,
+									medicineName: this.extractMedicineName(assistantMessage) || '',
+									timePoint: this.extractTimePoint(assistantMessage) || '',
+									dosage: this.extractDosage(assistantMessage) || '',
+									status: 1
+								},
+								status: 'pending'
+							};
+							
+							const assistantMsg = createMessageWithAction(
+								'assistant',
+								'请确认是否更新此用药任务状态：',
+								'task',
+								taskData
+							);
+							this.messages.push(assistantMsg);
+							this.scrollToBottom();
+						} else {
+							// plan 相关操作
+							// 解析详情数据
+							const planData = this.parseActionData(actionData);
+							
+							// 显示确认卡片
+							const assistantMsg = createMessageWithAction(
+								'assistant',
+								'请确认以下操作：',
+								'plan',
+								{
+									data: planData,
+									showConfirm: true,
+									showEdit: true
+								}
+							);
+							this.messages.push(assistantMsg);
 						}
 					} else {
-						// 检测特殊标记：[ACTION:plan_confirm], [ACTION:plan_update], [ACTION:plan_delete], [ACTION:addMedicine], [ACTION:updateTaskStatus]
-						const actionMatch = assistantMessage?.match(/\[ACTION:(plan_\w+|addMedicine|updateTaskStatus)\]([\s\S]*)/);
+						// 检测用户意图：如果用户想创建计划，但 AI 直接创建了（没有显示卡片），则显示确认卡片
+						const contentSafe = content || '';
+						const userWantsToCreatePlan = contentSafe.toLowerCase().includes('创建') && 
+							(contentSafe.toLowerCase().includes('计划') || contentSafe.toLowerCase().includes('用药'));
 						
-						if (actionMatch) {
-							const actionType = actionMatch[1]; // plan_confirm, plan_update, plan_delete, addMedicine, updateTaskStatus
-							const actionData = actionMatch[2].trim(); // 后面的详情数据
+						const aiAlreadyCreatedPlan = assistantMessage && 
+							(assistantMessage.includes('已创建') || assistantMessage.includes('创建成功') || 
+							 assistantMessage.includes('plan created'));
+						
+						if (userWantsToCreatePlan && aiAlreadyCreatedPlan) {
+							console.log('检测到 AI 直接创建了计划，显示确认卡片');
+							// 显示确认卡片，让用户可以编辑或确认
+							const planData = {
+								data: {
+									medicineName: this.extractMedicineName(content) || '',
+									timePoint: '08:00',
+									dosage: '',
+									frequency: '每日一次',
+									startDate: new Date().toISOString().split('T')[0]
+								},
+								showConfirm: true,
+								showEdit: true
+							};
 							
-							console.log('检测到特殊标记:', actionType, actionData);
+							const assistantMsg = createMessageWithAction(
+								'assistant',
+								assistantMessage + '\n\n请确认以上信息是否正确，如有需要可以修改：',
+								'plan',
+								planData
+							);
+							this.messages.push(assistantMsg);
+						} else if (assistantMessage && (assistantMessage.includes('为您准备') || assistantMessage.includes('请确认'))) {
+							// 显示空白卡片让用户填写
+							const planData = {
+								data: {
+									medicineName: '',
+									timePoint: '08:00',
+									dosage: '',
+									frequency: '每日一次',
+									startDate: new Date().toISOString().split('T')[0]
+								},
+								showConfirm: true,
+								showEdit: true
+							};
 							
-							if (actionType === 'addMedicine') {
-								// 显示药箱确认卡片
-								const medicineData = {
-									data: {
-										medicineName: this.extractMedicineName(assistantMessage) || '',
-										defaultDosage: this.extractDosage(assistantMessage) || '',
-										remark: ''
-									},
-									status: 'pending'
-								};
-								
-								const assistantMsg = createMessageWithAction(
-									'assistant',
-									'请确认是否添加以下药品到药箱：',
-									'medicine',
-									medicineData
-								);
-								this.messages.push(assistantMsg);
-								this.scrollToBottom();
-							} else if (actionType === 'updateTaskStatus') {
-								// 显示任务确认卡片
-								const taskData = {
-									data: {
-										taskId: null,
-										medicineName: this.extractMedicineName(assistantMessage) || '',
-										timePoint: this.extractTimePoint(assistantMessage) || '',
-										dosage: this.extractDosage(assistantMessage) || '',
-										status: 1
-									},
-									status: 'pending'
-								};
-								
-								const assistantMsg = createMessageWithAction(
-									'assistant',
-									'请确认是否更新此用药任务状态：',
-									'task',
-									taskData
-								);
-								this.messages.push(assistantMsg);
-								this.scrollToBottom();
-							} else {
-								// plan 相关操作
-								// 解析详情数据
-								const planData = this.parseActionData(actionData);
-								
-								// 显示确认卡片
-								const assistantMsg = createMessageWithAction(
-									'assistant',
-									'请确认以下操作：',
-									'plan',
-									{
-										data: planData,
-										showConfirm: true,
-										showEdit: true
-									}
-								);
-								this.messages.push(assistantMsg);
-							}
+							const assistantMsg = createMessageWithAction(
+								'assistant',
+								assistantMessage,
+								'plan',
+								planData
+							);
+							this.messages.push(assistantMsg);
 						} else {
-							// 检测用户意图：如果用户想创建计划，但 AI 直接创建了（没有显示卡片），则显示确认卡片
-							const contentSafe = content || '';
-							const userWantsToCreatePlan = contentSafe.toLowerCase().includes('创建') && 
-								(contentSafe.toLowerCase().includes('计划') || contentSafe.toLowerCase().includes('用药'));
-							
-							const aiAlreadyCreatedPlan = assistantMessage && 
-								(assistantMessage.includes('已创建') || assistantMessage.includes('创建成功') || 
-								 assistantMessage.includes('plan created'));
-							
-							if (userWantsToCreatePlan && aiAlreadyCreatedPlan) {
-								console.log('检测到 AI 直接创建了计划，显示确认卡片');
-								// 显示确认卡片，让用户可以编辑或确认
-								const planData = {
-									data: {
-										medicineName: this.extractMedicineName(content) || '',
-										timePoint: '08:00',
-										dosage: '',
-										frequency: '每日一次',
-										startDate: new Date().toISOString().split('T')[0]
-									},
-									showConfirm: true,
-									showEdit: true
-								};
-								
-								const assistantMsg = createMessageWithAction(
-									'assistant',
-									assistantMessage + '\n\n请确认以上信息是否正确，如有需要可以修改：',
-									'plan',
-									planData
-								);
-								this.messages.push(assistantMsg);
-							} else if (assistantMessage && (assistantMessage.includes('为您准备') || assistantMessage.includes('请确认'))) {
-								// 显示空白卡片让用户填写
-								const planData = {
-									data: {
-										medicineName: '',
-										timePoint: '08:00',
-										dosage: '',
-										frequency: '每日一次',
-										startDate: new Date().toISOString().split('T')[0]
-									},
-									showConfirm: true,
-									showEdit: true
-								};
-								
-								const assistantMsg = createMessageWithAction(
-									'assistant',
-									assistantMessage,
-									'plan',
-									planData
-								);
-								this.messages.push(assistantMsg);
-							} else {
-								const assistantMsg = createMessage('assistant', assistantMessage);
-								this.messages.push(assistantMsg);
-							}
+							// 普通文本消息已经在 onChunk 中添加了，这里不需要重复添加
+							console.log('普通消息已在流式中显示');
 						}
 					}
 				}
@@ -697,21 +697,22 @@ export default {
 				// 更新会话预览（如果不是新会话命名，则正常更新）
 				const currentSession = this.sessions.find(s => s.sessionId === this.sessionId);
 				if (!currentSession || !currentSession.needsNaming) {
-					this.updateSessionPreview(content, response.assistant_message || response.message || response.content);
+					this.updateSessionPreview(content, assistantMessage);
 				}
-				
 			} catch (error) {
 				console.error('请求失败:', error);
 				clearTimeout(statusTimer);
-				this.messages.pop();
+				// 移除加载状态（通过查找 role='loading'的消息）
+				const loadingIndex = this.messages.findIndex(m => m.role === 'loading');
+				if (loadingIndex !== -1) {
+					this.messages.splice(loadingIndex, 1);
+				}
 				this.loading = false;
-				this.aiStatusText = '思考中...';
 				const errorMsg = createMessage('assistant', '抱歉，网络开小差了，请稍后再试。');
 				this.messages.push(errorMsg);
 				this.scrollToBottom();
 			} finally {
 				this.loading = false;
-				this.aiStatusText = '思考中...';
 				
 				// 检查是否有待确认的请求（Human-in-the-loop）
 				this.checkPendingRequests();
