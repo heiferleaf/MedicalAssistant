@@ -1,12 +1,12 @@
 package com.whu.medicalbackend.user.controller;
 
-import com.whu.medicalbackend.user.entity.dto.UserInfoDTO;
+import com.whu.medicalbackend.user.dto.UserInfoDTO;
 import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.common.response.Result;
 import com.whu.medicalbackend.common.response.ResultCode;
-import com.whu.medicalbackend.user.entity.dto.UserLoginDto;
-import com.whu.medicalbackend.user.entity.dto.UserRegisterDto;
-import com.whu.medicalbackend.user.entity.dto.UserVO;
+import com.whu.medicalbackend.user.dto.UserLoginDto;
+import com.whu.medicalbackend.user.dto.UserRegisterDto;
+import com.whu.medicalbackend.user.dto.UserVO;
 import com.whu.medicalbackend.user.entity.User;
 import com.whu.medicalbackend.user.service.UserService;
 import com.whu.medicalbackend.common.util.JwtUtil;
