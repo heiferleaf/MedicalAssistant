@@ -504,8 +504,14 @@ export default {
           return
         }
 
-        // 拼完整URL（后端可能返回相对路径）
-        const fileUrl = /^https?:\/\//.test(fileUrlRaw) ? fileUrlRaw : `${BASE_URL}${fileUrlRaw}`
+        const apiBase = String(BASE_URL || '').replace(/\/+$/, '')        // 例如 http://ip:8080/api
+        const originBase = apiBase.replace(/\/api$/, '')                  // 例如 http://ip:8080
+
+        const fileUrl = /^https?:\/\//.test(fileUrlRaw)
+          ? fileUrlRaw
+          : fileUrlRaw.startsWith('/api/')
+            ? `${originBase}${fileUrlRaw}`                                // /api/... 用 origin 拼
+            : `${apiBase}/${String(fileUrlRaw).replace(/^\/+/, '')}`      // 其他相对路径正常拼
 
         uni.showModal({
           title: 'PDF生成成功',
