@@ -117,14 +117,10 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
 
             eventLogMapper.insertLog(group.getId(), userId, EventLogEnum.INFO.name(), "创建家庭组");
 
-            familyCacheService.syncSingleMemberToCache(group.getId(), userId);
-
             return new FamilyCreateVO.FamilyCreateVOBuilder()
                     .fromFamilyGroup(group)
                     .setOwnerUserNickname(userMapper.findByUserId(userId).getNickname())
                     .build();
-        } catch (JsonProcessingException e) {
-            throw new BusinessException("组长信息记录失败" , e);
         } finally {
             redisService.unlock(lockKey);
         }
@@ -253,7 +249,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
             }
 
             // 自己同意自己的申请
-            if(apply.getInviteeId().equals(userId)) {
+            if(apply.getType().equals(InviteType.apply) && apply.getInviteeId().equals(userId)) {
                 throw new BusinessException("无法同意自己的申请");
             }
 
