@@ -63,7 +63,7 @@
 		<!-- App 端专用的 SSE 组件（隐藏） -->
 		<ChatSSEClient ref="sseClient" style="display: none;"/>
 		<!-- OCR 上传组件（隐藏） -->
-		<OCRUploader ref="ocrUploader" style="display: none;" @success="handleOCRSuccess" @error="handleOCRError"/>
+		<OCRUploader ref="ocrUploader" style="display: none;" @ocr-success="handleOCRSuccess" @ocr-error="handleOCRError"/>
 		<!-- #endif -->
 	</view>
 </template>
@@ -166,8 +166,15 @@ export default {
 				// #endif
 				
 				// #ifdef APP-PLUS
-				// App 端保存的是路径
+				// App 端保存的是路径，需要转换为 Base64
 				console.log('接收到拍照图片:', imageData);
+				// 使用 Promise 包装异步转换
+				this.convertImagePathToBase64(imageData).then(base64 => {
+					this.scanImageBase64 = base64;
+					console.log('图片路径转换为 Base64，长度:', base64.length);
+				}).catch(err => {
+					console.error('转换图片失败:', err);
+				});
 				// #endif
 			}
 		}
@@ -198,6 +205,33 @@ export default {
 	// #endif
 	methods: {
 		// #ifdef APP-PLUS
+		// 将图片路径转换为 Base64（App 端专用）
+		convertImagePathToBase64(imagePath) {
+			return new Promise((resolve, reject) => {
+				try {
+					plus.io.resolveLocalFileSystemURL(imagePath, (entry) => {
+						entry.file((file) => {
+							const reader = new plus.io.FileReader();
+							reader.onload = (e) => {
+								resolve(e.target.result);
+							};
+							reader.onerror = (err) => {
+								reject(err);
+							};
+							reader.readAsDataURL(file);
+						}, (err) => {
+							reject(err);
+						});
+					}, (err) => {
+						reject(err);
+					});
+				} catch (e) {
+					reject(e);
+				}
+			});
+		},
+		// #endif
+		// #ifdef APP-PLUS
 		// OCR 识别成功处理
 		handleOCRSuccess(data) {
 			console.log('OCR 识别成功:', data)
@@ -215,8 +249,7 @@ export default {
 				icon: 'none'
 			})
 		},
-		
-		// Base64 转 Blob（H5 端使用）
+		// #endif
 		base64ToBlob(base64Data, type = 'image/jpeg') {
 			// 去掉前缀
 			let cleanBase64 = base64Data
@@ -599,11 +632,35 @@ export default {
 					if (isDrugImagePath) {
 						// 药物图片，使用 Base64 数据上传到 Flask OCR
 						console.log('检测到药物图片，使用 Base64 上传到 Flask OCR');
-										
+											
 						try {
 							// 1. 先获取 Base64 数据
 							let base64Data = this.scanImageBase64;
-											
+												
+							// #ifdef APP-PLUS
+							// App 端：如果是路径，需要等待转换
+							if (!base64Data || base64Data.length < 1000) {
+								console.log('Base64 数据不存在或太短，从路径转换');
+								// 等待转换完成（最多 10 秒）
+								await new Promise((resolve, reject) => {
+									let timeout = 0
+									const checkBase64 = setInterval(() => {
+										timeout += 100
+										if (timeout > 10000) {
+											clearInterval(checkBase64)
+											reject(new Error('等待 Base64 转换超时'))
+											return
+										}
+										if (this.scanImageBase64 && this.scanImageBase64.length > 1000) {
+											clearInterval(checkBase64)
+											resolve()
+										}
+									}, 100)
+								})
+								base64Data = this.scanImageBase64
+							}
+							// #endif
+																	
 							// 如果没有，从路径转换
 							if (!base64Data) {
 								console.log('Base64 数据不存在，从路径转换');
@@ -701,22 +758,7 @@ export default {
 							// 2. 使用 renderjs 上传到 Flask OCR
 							console.log('开始使用 renderjs 上传 OCR');
 							this.ocrLoading = true
-												
-							// #ifdef H5
-							// H5 端：直接调用 fetch
-							const ocrUrl = 'http://8.148.94.242:8001/ocr/predict';
-							const blob = this.base64ToBlob(base64Data);
-							const formData = new FormData();
-							formData.append('file', blob, 'drug.jpg');
-												
-							const response = await fetch(ocrUrl, {
-								method: 'POST',
-								body: formData
-							});
-							const result = await response.json();
-							this.handleOCRSuccess(result);
-							// #endif
-												
+													
 							// #ifdef APP-PLUS
 							// App 端：使用 renderjs 组件
 							if (this.$refs.ocrUploader && this.$refs.ocrUploader.callOCR) {
@@ -731,10 +773,17 @@ export default {
 								throw new Error('OCR 组件未初始化')
 							}
 							// #endif
-												
-							// 等待 OCR 结果
+																						
+							// 等待 OCR 结果（最多等待 30 秒）
 							await new Promise((resolve, reject) => {
+								let timeout = 0
 								const checkResult = setInterval(() => {
+									timeout += 100
+									if (timeout > 30000) {
+										clearInterval(checkResult)
+										reject(new Error('OCR 超时'))
+										return
+									}
 									if (!this.ocrLoading) {
 										clearInterval(checkResult)
 										if (this.ocrResult) {
