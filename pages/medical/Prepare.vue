@@ -452,9 +452,9 @@ export default {
       this.generatePDF()
     },
     async generatePDF() {
+      uni.showLoading({ title: '生成中...' })
       try {
-        uni.showLoading({ title: '生成PDF中...' })
-
+        const accessToken = uni.getStorageSync('accessToken') || ''
         const payload = {
           generatedTime: this.documentInfo.generatedTime || '',
           department: this.documentInfo.department || '',
@@ -466,133 +466,67 @@ export default {
           otherInfo: this.documentInfo.otherInfo || ''
         }
 
-
-        const accessToken = uni.getStorageSync('accessToken') || ''
-
         const res = await uni.request({
           url: `${BASE_URL}/medical/prepare/pdf`,
           method: 'POST',
           data: payload,
+          timeout: 15000,
           header: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`
           }
         })
 
-        uni.hideLoading()
-
-        if (!res || res.statusCode !== 200) {
-          uni.showModal({
-            title: '生成失败',
-            content: `请求失败(${res?.statusCode || ''})`,
-            showCancel: false
-          })
-          return
-        }
-
-        const body = res.data || {}
-        // 兼容：{success,fileUrl} 或 {code,data.fileUrl}
+        const body = res?.data || {}
         const success = body.success === true || body.code === 0
-        const fileUrlRaw = body.fileUrl || body?.data?.fileUrl
+        const fileUrl = body.fileUrl || body?.data?.fileUrl
 
-        if (!success || !fileUrlRaw) {
+        console.log('[PDF] resp=', body)
+        console.log('[PDF] fileUrl=', fileUrl)
+
+        if (!success || !fileUrl) {
           uni.showModal({
             title: '生成失败',
-            content: body.message || '后端未返回文件地址',
+            content: body.message || '未返回文件地址',
             showCancel: false
           })
           return
         }
 
-        const apiBase = String(BASE_URL || '').replace(/\/+$/, '')        // 例如 http://ip:8080/api
-        const originBase = apiBase.replace(/\/api$/, '')                  // 例如 http://ip:8080
+        // H5 直接跳转，避免 window.open 被拦截
+        // #ifdef H5
+        window.location.href = fileUrl
+        return
+        // #endif
 
-        const fileUrl = /^https?:\/\//.test(fileUrlRaw)
-          ? fileUrlRaw
-          : fileUrlRaw.startsWith('/api/')
-            ? `${originBase}${fileUrlRaw}`                                // /api/... 用 origin 拼
-            : `${apiBase}/${String(fileUrlRaw).replace(/^\/+/, '')}`      // 其他相对路径正常拼
-
-        uni.showModal({
-          title: 'PDF生成成功',
-          content: '是否现在查看？',
-          confirmText: '查看',
-          cancelText: '稍后',
-          success: async (r) => {
-            if (!r.confirm) return
-
-            const accessToken = uni.getStorageSync('accessToken') || ''
-
-            // #ifdef H5
-            try {
-              const resp = await fetch(fileUrl, {
-                method: 'GET',
-                headers: {
-                  Authorization: `Bearer ${accessToken}`
-                }
-              })
-
-              // token 失效
-              if (resp.status === 401 || resp.status === 402) {
-                uni.removeStorageSync('accessToken')
-                uni.showModal({
-                  title: '登录已过期',
-                  content: '请重新登录后再试',
-                  showCancel: false,
-                  success: () => uni.reLaunch({ url: '/pages/Login' })
-                })
-                return
-              }
-
-              if (!resp.ok) {
-                // uni.showToast({ title: '打开失败', icon: 'none' })
-                return
-              }
-
-              const blob = await resp.blob()
-              const blobUrl = window.URL.createObjectURL(blob)
-              window.open(blobUrl, '_blank')
-            } catch (e) {
-              // uni.showToast({ title: '打开失败', icon: 'none' })
+        // #ifndef H5
+        uni.downloadFile({
+          url: fileUrl,
+          header: { Authorization: `Bearer ${accessToken}` },
+          timeout: 20000,
+          success: (d) => {
+            console.log('[PDF] download success', d.statusCode, d.tempFilePath)
+            if (d.statusCode === 200) {
+              uni.openDocument({ filePath: d.tempFilePath, showMenu: true })
+            } else {
+              uni.showModal({ title: '下载失败', content: `HTTP ${d.statusCode}`, showCancel: false })
             }
-            // #endif
-
-            // #ifndef H5
-            uni.downloadFile({
-              url: fileUrl,
-              header: {
-                Authorization: `Bearer ${accessToken}`
-              },
-              success: (d) => {
-                if (d.statusCode === 200) {
-                  uni.openDocument({
-                    filePath: d.tempFilePath,
-                    showMenu: true
-                  })
-                } else if (d.statusCode === 401 || d.statusCode === 402) {
-                  uni.removeStorageSync('accessToken')
-                  uni.showModal({
-                    title: '登录已过期',
-                    content: '请重新登录后再试',
-                    showCancel: false,
-                    success: () => uni.reLaunch({ url: '/pages/Login' })
-                  })
-                } else {
-                  uni.showToast({ title: '下载失败', icon: 'none' })
-                }
-              },
-              fail: () => uni.showToast({ title: '下载失败', icon: 'none' })
-            })
-            // #endif
+          },
+          fail: (e) => {
+            console.log('[PDF] download fail', e)
+            uni.showModal({ title: '下载失败', content: e.errMsg || 'download fail', showCancel: false })
           }
         })
+        // #endif
       } catch (e) {
-        uni.hideLoading()
+        console.log('[PDF] generate error=', e)
         uni.showModal({
           title: '生成失败',
-          content: e?.message || '网络异常，请稍后重试',
+          content: e?.message || e?.errMsg || '请求异常',
           showCancel: false
         })
+      } finally {
+        uni.hideLoading()
       }
     }
   }
