@@ -9,9 +9,9 @@
 		>
 			<view class="chat-content">
 				<view
-					v-for="(msg, index) in messages"
-					:key="index"
-					:id="'msg-' + index"
+					v-for="msg in messages"
+					:key="msg.id"
+					:id="'msg-' + msg.id"
 				>
 					<ChatMessage
 						:messageId="msg.id"
@@ -26,7 +26,7 @@
 						@action-cancel="handleActionCancel"
 					>
 						<!-- 插槽：用于扩展特殊消息类型 -->
-						<slot :name="'message-' + index" :msg="msg" :index="index"></slot>
+						<slot :name="'message-' + msg.id" :msg="msg"></slot>
 					</ChatMessage>
 				</view>
 			</view>
@@ -87,6 +87,11 @@ export default {
 	flex: 1;
 	height: 0;
 	overflow: hidden;
+	background-color: transparent; // 透明背景，显示底层 logo
+	
+	@media (prefers-color-scheme: dark) {
+		background-color: transparent;
+	}
 }
 
 .chat-main {

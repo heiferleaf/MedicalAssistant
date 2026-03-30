@@ -42,11 +42,8 @@ export default {
       params.append('message', data.message);
       
       // 使用 EventSource 接收 SSE 流
-      const eventSource = new EventSource(`${baseUrl}?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      // 注意：EventSource 不能携带自定义头，所以我们通过 URL 参数传递 token
+      const eventSource = new EventSource(`${baseUrl}?${params.toString()}&token=${encodeURIComponent(token)}`);
       
       const result = {
         fullMessage: '',
@@ -55,6 +52,7 @@ export default {
       };
       
       eventSource.addEventListener('message', (event) => {
+        console.log('收到 message 事件:', event.data);
         if (event.data === '[DONE]') {
           return;
         }
@@ -64,6 +62,18 @@ export default {
           data.onChunk(event.data);
         }
       });
+      
+      // 监听 open 事件
+      eventSource.onopen = () => {
+        console.log('SSE 连接已建立');
+      };
+      
+      // 监听 error 事件
+      eventSource.onerror = (error) => {
+        console.error('EventSource 发生错误:', error);
+        eventSource.close();
+        reject(new Error('SSE 连接错误：' + (error.message || '未知错误')));
+      };
       
       eventSource.addEventListener('action', (event) => {
         try {
@@ -93,7 +103,9 @@ export default {
       eventSource.addEventListener('error', (event) => {
         console.error('SSE 错误:', event);
         eventSource.close();
-        reject(new Error(event.data || 'SSE 连接错误'));
+        // 有时候云服务器的SSE连接会有CORS问题，但我们仍然尝试获取错误信息
+        const errorMessage = event.data || 'SSE 连接错误';
+        reject(new Error(errorMessage));
       });
       
       eventSource.addEventListener('end', () => {
@@ -129,5 +141,10 @@ export default {
   // 拒绝 Tool 请求
   rejectTool: (userId, requestId) => {
     return httpRequest(`/agent/tool-execution/reject?userId=${userId}&requestId=${requestId}`, 'POST');
+  },
+  
+  // 删除用户的所有待确认请求
+  deleteAllPending: (userId) => {
+    return httpRequest(`/agent/tool-execution/delete-all?userId=${userId}`, 'POST');
   }
 };

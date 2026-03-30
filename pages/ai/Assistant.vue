@@ -2,6 +2,12 @@
 	<view class="chat-container">
 		<view class="status-bar"></view>
 		
+		<!-- 背景层：仅在没有任何消息时显示 -->
+		<view class="chat-background" v-if="messages.length === 0">
+			<image class="bg-logo" src="/static/ai/bg_logo.png" mode="aspectFit" />
+			<text class="bg-text">咨询健康问题，获取专业建议</text>
+		</view>
+		
 		<!-- 会话侧边栏 -->
 		<SessionSidebar
 			:visible="showSidebar"
@@ -204,6 +210,15 @@ export default {
 					this.switchSession(newSession);
 					this.showSidebar = false;
 					
+					// 清除待确认请求（避免影响新会话）
+					try {
+						// 调用后端接口删除所有待确认请求
+						await agentApi.deleteAllPending(this.userId);
+						console.log('已删除所有待确认请求');
+					} catch (cleanupError) {
+						console.error('删除待确认请求失败:', cleanupError);
+					}
+					
 					// 初始化本地存储（空消息列表）
 					this.saveMessagesToStorage();
 				}
@@ -221,6 +236,15 @@ export default {
 			this.currentSessionId = session.sessionId;
 			this.sessionId = session.sessionId;
 			
+			// 清除待确认请求（避免影响新会话）
+			try {
+				// 调用后端接口删除所有待确认请求
+				await agentApi.deleteAllPending(this.userId);
+				console.log('已删除所有待确认请求');
+			} catch (cleanupError) {
+				console.error('删除待确认请求失败:', cleanupError);
+			}
+			
 			// 先从本地存储加载消息
 			const storageKey = `${StorageKeys.MESSAGES}_${this.sessionId}`;
 			const localMessages = getFromStorage(storageKey);
@@ -229,33 +253,69 @@ export default {
 				// 有本地缓存，直接使用
 				console.log('从本地存储加载消息:', localMessages.length);
 				
-				// 修复图片消息的 imagePath
+				// 修复图片消息的 imagePath 和 actionData 结构
 				this.messages = localMessages.map(msg => {
+					// 修复图片消息
 					if (msg.type === 'image' && msg.imagePath) {
-						// 如果是图片消息，确保 imagePath 是有效的图片 URL
 						if (msg.imagePath.startsWith('blob:')) {
-							// blob URL 已失效，标记为无效
 							console.warn('图片 URL 已失效:', msg.imagePath.substring(0, 50) + '...');
-							msg.imagePath = ''; // 清空，不显示
+							msg.imagePath = '';
 						} else if (!msg.imagePath.startsWith('data:') && !msg.imagePath.startsWith('http')) {
-							// 可能是本地路径或纯 Base64
 							if (msg.imagePath.startsWith('/images/')) {
-								// 本地路径，尝试从 localStorage 读取
 								const fileName = msg.imagePath.split('/').pop();
 								const base64 = uni.getStorageSync('drug_image_' + fileName);
 								if (base64) {
 									msg.imagePath = `data:image/jpeg;base64,${base64}`;
 								} else {
 									console.warn('localStorage 中未找到图片数据:', fileName);
-									msg.imagePath = ''; // 清空，不显示
+									msg.imagePath = '';
 								}
 							} else {
-								// 可能是纯 Base64 数据，添加前缀
 								console.log('检测到纯 Base64 数据，添加前缀');
 								msg.imagePath = `data:image/jpeg;base64,${msg.imagePath}`;
 							}
 						}
 					}
+					
+					// 修复 actionData 结构
+					if (msg.actionType && msg.actionData) {
+						try {
+							const actionData = typeof msg.actionData === 'string' 
+								? JSON.parse(msg.actionData) 
+								: msg.actionData;
+							
+							// 检查是否已经包装过（有 data 字段）
+							if (!actionData.data) {
+								// 未包装，需要包装
+								let wrappedActionData;
+								if (msg.actionType === 'medicine') {
+									wrappedActionData = {
+										data: actionData,
+										status: 'pending'
+									};
+								} else if (msg.actionType === 'plan') {
+									wrappedActionData = {
+										data: actionData,
+										showConfirm: true,
+										showEdit: true
+									};
+								} else if (msg.actionType === 'task') {
+									wrappedActionData = {
+										data: actionData,
+										status: 'pending'
+									};
+								} else {
+									wrappedActionData = actionData;
+								}
+								
+								// 更新消息的 actionData
+								msg.actionData = wrappedActionData;
+							}
+						} catch (e) {
+							console.error('解析 actionData 失败:', e);
+						}
+					}
+					
 					return msg;
 				});
 				
@@ -273,11 +333,34 @@ export default {
 									const actionData = typeof msg.actionData === 'string' 
 										? JSON.parse(msg.actionData) 
 										: msg.actionData;
+															
+									// 包装 actionData，确保有正确的结构
+									let wrappedActionData;
+									if (msg.actionType === 'medicine') {
+										wrappedActionData = {
+											data: actionData,
+											status: 'pending'
+										};
+									} else if (msg.actionType === 'plan') {
+										wrappedActionData = {
+											data: actionData,
+											showConfirm: true,
+											showEdit: true
+										};
+									} else if (msg.actionType === 'task') {
+										wrappedActionData = {
+											data: actionData,
+											status: 'pending'
+										};
+									} else {
+										wrappedActionData = actionData;
+									}
+															
 									return createMessageWithAction(
 										msg.role,
 										msg.content,
 										msg.actionType,
-										actionData
+										wrappedActionData
 									);
 								} catch (e) {
 									console.error('解析 actionData 失败:', e);
@@ -464,24 +547,38 @@ export default {
 					onChunk: (chunk) => {
 						// 每收到一个字就追加到消息中
 						assistantMessage += chunk;
-										
+											
 						// 如果是第一个字，创建消息气泡
 						if (!assistantMsg) {
 							assistantMsg = createMessage('assistant', chunk);
 							this.messages.push(assistantMsg);
 							this.scrollToBottom();
 						} else {
-							// 更新已有消息的内容（通过数组索引触发响应式更新）
+							// 更新消息内容：通过替换整个数组元素来强制 Vue 重新渲染
 							const index = this.messages.indexOf(assistantMsg);
 							if (index !== -1) {
-								this.messages[index].content = assistantMessage;
+								// 创建一个新的消息对象，强制触发响应式更新
+								const newMsg = Object.assign({}, assistantMsg, { content: assistantMessage });
+								this.messages.splice(index, 1, newMsg);
+								assistantMsg = newMsg;
 							}
+							this.$nextTick(() => {
+								this.scrollToBottom();
+							});
 						}
 					},
 					onAction: (action) => {
 						console.log('收到 action 数据:', action);
 						actionType = action.action_type;
-						actionData = action.action_data;
+						// 将 JSON 字符串解析为对象
+						try {
+							actionData = typeof action.action_data === 'string' 
+								? JSON.parse(action.action_data) 
+								: action.action_data;
+						} catch (e) {
+							console.error('解析 action_data 失败:', e);
+							actionData = action.action_data;
+						}
 					},
 					onToolStatus: (toolStatus) => {
 						console.log('收到工具状态:', toolStatus);
@@ -541,33 +638,80 @@ export default {
 					this.removeImage();
 				}
 				
-				// 如果有 action 数据，需要重新处理消息
+				// 如果有 action 数据，需要更新消息
 				if (actionType && actionData) {
-					// 移除刚才创建的普通消息
-					const msgIndex = this.messages.findIndex(m => m.id === assistantMsg.id);
-					if (msgIndex !== -1) {
-						this.messages.splice(msgIndex, 1);
+					// 根据 action 类型确定提示文本
+					let promptText = assistantMessage;
+					if (!promptText || promptText.trim() === '') {
+						// 如果 AI 没有返回文本，使用默认提示
+						if (actionType === 'medicine') {
+							promptText = '请确认是否添加以下药品到药箱：';
+						} else if (actionType === 'plan') {
+							promptText = '请确认是否创建以下用药计划：';
+						} else if (actionType === 'task') {
+							promptText = '请确认是否更新以下用药任务：';
+						}
 					}
 					
-					// 添加带操作卡片的消息
-					const assistantMsgWithAction = createMessageWithAction(
-						'assistant',
-						assistantMessage,
-						actionType,
-						actionData
-					);
-					this.messages.push(assistantMsgWithAction);
+					// 包装 actionData，确保有正确的结构
+					let wrappedActionData;
+					if (actionType === 'medicine') {
+						// 药箱卡片需要 { data: {...}, status: 'pending' }
+						wrappedActionData = {
+							data: actionData,
+							status: 'pending'
+						};
+					} else if (actionType === 'plan') {
+						// 用药计划卡片需要 { data: {...}, showConfirm: true, showEdit: true }
+						wrappedActionData = {
+							data: actionData,
+							showConfirm: true,
+							showEdit: true
+						};
+					} else if (actionType === 'task') {
+						// 用药任务卡片需要 { data: {...}, status: 'pending' }
+						wrappedActionData = {
+							data: actionData,
+							status: 'pending'
+						};
+					} else {
+						// 其他类型，直接使用
+						wrappedActionData = actionData;
+					}
+					
+					// 直接更新已有消息的 actionType 和 actionData（不删除消息）
+					if (assistantMsg) {
+						const msgIndex = this.messages.findIndex(m => m.id === assistantMsg.id);
+						if (msgIndex !== -1) {
+							// 使用 $set 确保响应式更新
+							this.$set(this.messages[msgIndex], 'content', promptText);
+							this.$set(this.messages[msgIndex], 'actionType', actionType);
+							this.$set(this.messages[msgIndex], 'actionData', wrappedActionData);
+							this.$set(this.messages[msgIndex], 'type', 'action');
+						}
+					} else {
+						// 如果没有消息，创建一个新的
+						const assistantMsgWithAction = createMessageWithAction(
+							'assistant',
+							promptText,
+							actionType,
+							wrappedActionData
+						);
+						this.messages.push(assistantMsgWithAction);
+					}
+					
 					this.scrollToBottom();
 				} else {
 					// 检查 tool 返回结果中的 pending_confirmation 标记
 					// 注意：流式模式下，这些数据应该在 actionData 中处理
 					
 					// 检测特殊标记：[ACTION:plan_confirm], [ACTION:plan_update], [ACTION:plan_delete], [ACTION:addMedicine], [ACTION:updateTaskStatus]
-					const actionMatch = assistantMessage?.match(/\[ACTION:(plan_\w+|addMedicine|updateTaskStatus)\]([\s\S]*)/);
+					// 注意：需要捕获 [ACTION:xxx] 之前的内容
+					const actionMatch = assistantMessage?.match(/([\s\S]*?)\[ACTION:(plan_\w+|addMedicine|updateTaskStatus)\]/);
 					
 					if (actionMatch) {
-						const actionType = actionMatch[1]; // plan_confirm, plan_update, plan_delete, addMedicine, updateTaskStatus
-						const actionData = actionMatch[2].trim(); // 后面的详情数据
+						const actionType = actionMatch[2]; // plan_confirm, plan_update, plan_delete, addMedicine, updateTaskStatus
+						const actionData = actionMatch[1].trim(); // [ACTION:xxx] 之前的内容
 						
 						console.log('检测到特殊标记:', actionType, actionData);
 						
@@ -761,7 +905,12 @@ export default {
 						// 解析参数（兼容字符串和对象）
 						let planData;
 						if (typeof pending.toolArguments === 'string') {
-							planData = JSON.parse(pending.toolArguments);
+							try {
+								planData = JSON.parse(pending.toolArguments);
+							} catch (e) {
+								console.error('解析 plan 参数失败:', e);
+								planData = {};
+							}
 						} else {
 							planData = pending.toolArguments;
 						}
@@ -776,6 +925,38 @@ export default {
 								data: planData,
 								showConfirm: true,
 								showEdit: true,
+								requestId: pending.requestId  // 重要！用于后续执行
+							}
+						);
+						this.messages.push(assistantMsg);
+						this.scrollToBottom();
+					} else if (pending.toolName === 'addMedicine') {
+						// 解析参数（兼容字符串和对象）
+						let medicineData;
+						if (typeof pending.toolArguments === 'string') {
+							try {
+								medicineData = JSON.parse(pending.toolArguments);
+							} catch (e) {
+								console.error('解析 medicine 参数失败:', e);
+								medicineData = {};
+							}
+						} else {
+							medicineData = pending.toolArguments;
+						}
+						console.log('medicineData:', medicineData);
+						
+						// 显示确认卡片
+						const assistantMsg = createMessageWithAction(
+							'assistant',
+							'请确认是否添加以下药品到药箱：',
+							'medicine',
+							{
+								data: {
+									medicineName: medicineData.medicineName || '',
+									defaultDosage: medicineData.defaultDosage || '',
+									remark: medicineData.remark || ''
+								},
+								status: 'pending',
 								requestId: pending.requestId  // 重要！用于后续执行
 							}
 						);
@@ -1168,13 +1349,14 @@ export default {
 			try {
 				console.log('用户确认添加药品:', data);
 				
-				// 调用后端 API 添加药品
+				// 调用后端 API 添加药品（注意字段名映射：medicineName -> name）
 				const medicineData = {
-					medicineName: data.medicineName,
+					name: data.medicineName,  // 后端期望的字段名
 					defaultDosage: data.defaultDosage || '按医嘱',
 					remark: data.remark || ''
 				};
 				
+				console.log('发送给后端的药品数据:', medicineData);
 				const res = await medicineApi.addMedicine(medicineData);
 				
 				uni.hideLoading();
@@ -1323,20 +1505,55 @@ export default {
 	height: 100vh;
 	display: flex;
 	flex-direction: row;
-	background-color: #F1F5F9;
+	background-color: #f8fafc;
 	overflow: hidden;
-	@media (prefers-color-scheme: dark) { background-color: #020617; }
+	position: relative;
+	@media (prefers-color-scheme: dark) { background-color: #0f172a; }
+}
+
+// 背景层样式
+.chat-background {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	z-index: 0;
+	pointer-events: none; // 让背景层不阻挡点击事件
+	
+	.bg-logo {
+		width: 400rpx;
+		height: 400rpx;
+		opacity: 1; // 正常显示，不调暗
+		margin-bottom: 40rpx;
+	}
+	
+	.bg-text {
+		font-size: 32rpx;
+		color: #6366f1; // 使用主题紫色，正常亮度
+		text-align: center;
+		opacity: 1; // 正常显示
+		max-width: 80%;
+		font-weight: 500;
+		@media (prefers-color-scheme: dark) {
+			color: #818cf8; // 深色模式下稍亮
+		}
+	}
 }
 
 .status-bar { 
 	height: var(--status-bar-height); 
-	background: #fff; 
+	background: #ffffff; 
 	position: absolute;
 	top: 0;
 	left: 0;
 	right: 0;
 	z-index: 1000;
-	@media (prefers-color-scheme: dark) { background: #0F172A; } 
+	@media (prefers-color-scheme: dark) { background: #0f172a; } 
 }
 
 .main-content {
@@ -1347,11 +1564,13 @@ export default {
 }
 
 .footer {
+	position: relative;
 	z-index: 100;
-	background: rgba(255, 255, 255, 0.9);
-	backdrop-filter: blur(20px);
+	background: transparent;  // 移除背景，让输入框悬浮
+	border-top: none;  // 移除顶部边框
+	
 	@media (prefers-color-scheme: dark) { 
-		background: rgba(15, 23, 42, 0.9); 
+		background: transparent;
 	}
 	
 	// 图片预览条
@@ -1359,10 +1578,13 @@ export default {
 		display: flex;
 		align-items: center;
 		background: #f1f5f9;
-		border-radius: 12rpx;
+		border-radius: 24rpx;
 		padding: 12rpx;
 		margin: 20rpx 30rpx 0;
 		position: relative;
+		@media (prefers-color-scheme: dark) {
+			background: #334155;
+		}
 		
 		.preview-image {
 			width: 120rpx;

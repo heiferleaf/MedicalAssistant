@@ -47,7 +47,7 @@
 				
 				<!-- AI 消息使用 Markdown 渲染 -->
 				<SimpleMarkdown 
-					v-if="type === 'text' && !actionType" 
+					v-if="type === 'text' && content && content.trim() !== ''" 
 					:content="content" 
 				/>
 				
@@ -211,7 +211,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #3B82F6;
+$primary: #6366f1;
 
 .message-group {
 	margin-bottom: 40rpx;
@@ -219,7 +219,8 @@ $primary: #3B82F6;
 	flex-direction: column;
 	
 	&.user-message {
-		align-items: flex-end;
+		align-items: flex-end;  // 用户消息靠右对齐
+		width: 100%;  // 确保外层容器占满宽度
 	}
 	
 	&.ai-message {
@@ -227,22 +228,16 @@ $primary: #3B82F6;
 	}
 }
 
-/* AI 消息样式 - 完整圆角矩形，占满整个空间 */
+/* AI 消息样式 - 透明背景，文字直接显示 */
 .ai-message-container {
 	width: 100%;
-	background: #fff;
-	border-radius: 24rpx;
-	overflow: hidden;
-	box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-	
-	@media (prefers-color-scheme: dark) {
-		background: #1e293b;
-		box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.3);
-	}
+	background: transparent;  // 透明背景
+	border: none;  // 移除边框
+	box-shadow: none;  // 移除阴影
 }
 
 .ai-content {
-	padding: 32rpx;
+	padding: 16rpx 0;  // 减少内边距，让文字更贴近
 	font-size: 28rpx;
 	line-height: 1.8;
 	color: #1e293b;
@@ -252,19 +247,22 @@ $primary: #3B82F6;
 	}
 }
 
-/* 用户消息样式 - 保持原有 */
+/* 用户消息样式 - 从右开始显示，不满一行时右对齐 */
 .chat-bubble {
 	padding: 30rpx;
-	max-width: 85%;
-	border-radius: 32rpx;
+	max-width: 80%;  // 限制最大宽度为 80%，让消息从右开始
+	border-radius: 24rpx;  // 四个角都是大圆角
 	font-size: 28rpx;
 	line-height: 1.6;
+	word-wrap: break-word;  // 允许长单词换行
+	word-break: break-word;  // 允许在任意字符间断行
 	
 	&.chat-bubble-user {
-		background: $primary;
-		border-bottom-right-radius: 8rpx;
+		background: linear-gradient(135deg, #6366f1, #8b5cf6);
+		border-radius: 24rpx;  // 四个角都是大圆角
 		color: #fff;
-		box-shadow: 0 10rpx 20rpx rgba(59, 130, 246, 0.3);
+		box-shadow: 0 8rpx 16rpx rgba(99, 102, 241, 0.25);
+		margin-left: auto;  // 让消息靠右
 	}
 }
 
