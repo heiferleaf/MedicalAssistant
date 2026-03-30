@@ -54,16 +54,41 @@ public class AgentProxyController {
 
     /**
      * SSE 流式聊天接口
-     * 注意：由于 EventSource 只支持 GET 请求，所以这里使用 GET
+     * 支持 GET 和 POST 请求：GET 用于普通文本，POST 用于图片 Base64 数据
      */
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
-    public SseEmitter chatStream(
+    public SseEmitter chatStreamGet(
             @RequestParam("user_id") String userId,
             @RequestParam("session_id") String sessionId,
             @RequestParam("message") String message) {
-        logger.info("====== 收到 chatStream 请求 ======");
+        logger.info("====== 收到 chatStream GET 请求 ======");
         logger.info("userId={}, sessionId={}, message 长度={}", userId, sessionId, message != null ? message.length() : 0);
         logger.info("===================================");
+        
+        return handleChatStream(userId, sessionId, message);
+    }
+    
+    /**
+     * SSE 流式聊天接口 - POST 方式
+     * 用于处理长消息（如图片 Base64 数据）
+     */
+    @PostMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8", consumes = "application/x-www-form-urlencoded")
+    public SseEmitter chatStreamPost(
+            @RequestParam("user_id") String userId,
+            @RequestParam("session_id") String sessionId,
+            @RequestParam(value = "message", required = false) String message,
+            @RequestParam(value = "token", required = false) String token) {
+        logger.info("====== 收到 chatStream POST 请求 ======");
+        logger.info("userId={}, sessionId={}, message 长度={}, token={}", userId, sessionId, message != null ? message.length() : 0, token != null ? "provided" : "missing");
+        logger.info("===================================");
+        
+        return handleChatStream(userId, sessionId, message);
+    }
+    
+    /**
+     * 处理流式聊天的通用方法
+     */
+    private SseEmitter handleChatStream(String userId, String sessionId, String message) {
         
         // 创建 SSE Emitter，设置超时时间为 5 分钟
         SseEmitter emitter = new SseEmitter(5 * 60 * 1000L);

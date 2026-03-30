@@ -33,7 +33,9 @@ public class OcrService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> recognizeDrugImage(byte[] imageBytes) {
-        logger.info("调用 Flask OCR 接口识别药物图片");
+        logger.info("=== 开始调用 Flask OCR 接口 ===");
+        logger.info("Flask 地址：{}", flaskBaseUrl);
+        logger.info("图片大小：{} bytes", imageBytes.length);
 
         try {
             // 创建 ByteArrayResource
@@ -47,21 +49,27 @@ public class OcrService {
             // 构建 multipart 请求体
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", resource);
+            logger.info("请求体构建完成");
 
             // 构建请求头
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            logger.info("请求头设置完成");
 
             // 构建完整请求
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-
+            String requestUrl = flaskBaseUrl + "/ocr/predict";
+            logger.info("开始发送 POST 请求到：{}", requestUrl);
+            
             // 发送请求
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                flaskBaseUrl + "/ocr/predict",
+                requestUrl,
                 requestEntity,
                 Map.class
             );
-
+            
+            logger.info("收到响应，状态码：{}", response.getStatusCode());
+            
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
                 String status = (String) responseBody.get("status");
