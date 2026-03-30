@@ -43,7 +43,7 @@
     </select>
 
     <delete id="deleteById" parameterType="java.lang.Long">
-        DELETE FROM medicne WHERE id = #{id}
+        DELETE FROM medicine WHERE id = #{id}
     </delete>
 
     <update id="update" parameterType="com.whu.medicalbackend.medical.entity.Medicine">
