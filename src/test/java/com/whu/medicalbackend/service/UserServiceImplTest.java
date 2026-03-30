@@ -1,7 +1,7 @@
 package com.whu.medicalbackend.service;
 
-import com.whu.medicalbackend.user.entity.dto.UserLoginDto;
-import com.whu.medicalbackend.user.entity.dto.UserRegisterDto;
+import com.whu.medicalbackend.user.dto.UserLoginDto;
+import com.whu.medicalbackend.user.dto.UserRegisterDto;
 import com.whu.medicalbackend.user.entity.User;
 import com.whu.medicalbackend.common.exception.PasswordIncorrectException;
 import com.whu.medicalbackend.common.exception.UserAlreadyExistsException;

@@ -1,4 +1,4 @@
-package com.whu.medicalbackend.user.entity.dto;
+package com.whu.medicalbackend.user.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
