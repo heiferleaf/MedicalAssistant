@@ -41,4 +41,9 @@ public interface MedicationPlanMapper{
      * 软删除计划
      */
     int softDelete(@Param("id") Long id);
+
+    /**
+     * 硬删除计划
+     */
+    int deleteById(@Param("id") Long id);
 }

@@ -94,4 +94,9 @@
         WHERE id = #{id}
     </update>
 
+    <delete id="deleteById">
+        delete from medication_plan
+        where id = #{id}
+    </delete>
+
 </mapper>
