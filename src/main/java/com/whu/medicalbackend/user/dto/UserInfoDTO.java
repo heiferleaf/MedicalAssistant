@@ -1,4 +1,4 @@
-package com.whu.medicalbackend.user.entity.dto;
+package com.whu.medicalbackend.user.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,12 +13,12 @@ public class UserInfoDTO {
     private Long id;
 
     @NotBlank(message = "用户名不能为空")
-    @Pattern(regexp = "^.{6,20}$", message = "用户名长度需要是6-20")
+    @Pattern(regexp = "^.{3,20}$", message = "用户名长度需要是3-20")
     @Pattern(regexp = "^[0-9a-zA-Z_]+$", message = "用户名只能包含大小写字母，数字、以及_")
     private String username;
 
     @NotBlank
-    @Pattern(regexp = "^.{6,20}$", message = "昵称长度为6-20位")
+    @Pattern(regexp = "^.{1,20}$", message = "昵称长度为1-20位")
     @Pattern(regexp = "^[0-9a-zA-Z_]+$", message = "昵称只能包含大小写字母，数字、以及_")
     private String newNickname;
 
