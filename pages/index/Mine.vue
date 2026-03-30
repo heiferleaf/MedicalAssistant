@@ -8,7 +8,7 @@
         <view class="user-info">
           <view class="avatar-container">
             <image class="avatar" :src="getAvatar()" mode="aspectFill"></image>
-            <view class="badge-dot"></view>
+            <!-- <view class="badge-dot"></view> -->
           </view>
 
           <view class="user-details">

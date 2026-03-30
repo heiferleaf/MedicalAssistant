@@ -9,7 +9,7 @@ dist/
 unpackage/
 
 # 配置文件（包含后端地址等敏感信息）
-config/
+# config/
 
 # 构建缓存
 unpackage/dist/cache/

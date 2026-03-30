@@ -1,9 +1,13 @@
 <template>
   <view class="page-container">
-		<view class="padding"></view>
+    <view class="padding"></view>
     <view class="nav-bar">
       <view class="back-btn" @click="uni.navigateBack()">
-        <image class="back-icon" src="/static/Register/back.png" mode="aspectFit" />
+        <image
+          class="back-icon"
+          src="/static/Register/back.png"
+          mode="aspectFit"
+        />
       </view>
       <text class="title">创建家庭组</text>
       <view class="placeholder"></view>
@@ -12,34 +16,55 @@
     <scroll-view scroll-y class="content-scroll">
       <view class="header-section">
         <view class="icon-wrapper">
-          <image class="icon-group" src="/static/family/group_add.svg" mode="aspectFit" />
+          <image
+            class="icon-group"
+            src="/static/family/group_add.svg"
+            mode="aspectFit"
+          />
         </view>
         <text class="main-title">创建家庭组</text>
-        <text class="sub-title">建立一个私密的健康管理空间，邀请家人共同关注用药情况。</text>
+        <text class="sub-title"
+          >建立一个私密的健康管理空间，邀请家人共同关注用药情况。</text
+        >
       </view>
 
       <view class="form-section">
         <view class="form-item">
           <text class="label">家庭组名称</text>
-          <input class="custom-input" type="text" v-model="formData.groupName" placeholder="例如：幸福一家人"
-            placeholder-class="placeholder-text" />
+          <input
+            class="custom-input"
+            type="text"
+            v-model="formData.groupName"
+            placeholder="例如：幸福一家人"
+            placeholder-class="placeholder-text"
+          />
         </view>
 
         <view class="form-item">
           <text class="label">描述 (可选)</text>
-          <textarea class="custom-textarea" v-model="formData.description" placeholder="输入家庭组的简单描述，例如：全家人的健康小助手..."
-            placeholder-class="placeholder-text" />
+          <textarea
+            class="custom-textarea"
+            v-model="formData.description"
+            placeholder="输入家庭组的简单描述，例如：全家人的健康小助手..."
+            placeholder-class="placeholder-text"
+          />
         </view>
 
         <view class="info-card">
           <text class="material-symbols-outlined icon-info">info</text>
-          <text class="info-text">创建后您将自动成为该组组长，拥有管理家庭成员和用药提醒的完整权限。</text>
+          <text class="info-text"
+            >创建后您将自动成为该组组长，拥有管理家庭成员和用药提醒的完整权限。</text
+          >
         </view>
       </view>
     </scroll-view>
 
     <view class="footer-action pb-safe">
-      <button class="submit-btn" hover-class="submit-btn-hover" @click="handleCreate">
+      <button
+        class="submit-btn"
+        hover-class="submit-btn-hover"
+        @click="handleCreate"
+      >
         立即创建并成为组长
       </button>
       <text class="agreement-text">点击创建即代表您同意《家庭组管理协议》</text>
@@ -48,50 +73,46 @@
 </template>
 
 <script>
-import familyApi from '../../api/family';
+import familyApi from "../../api/family";
 export default {
   data() {
     return {
       formData: {
-        groupName: '', // 对应 groupName 字段 
-        description: '' // 对应 description 字段 
+        groupName: "", // 对应 groupName 字段
+        description: "", // 对应 description 字段
       },
-      submitting: false
+      submitting: false,
     };
   },
   methods: {
     async handleCreate() {
       if (!this.formData.groupName) {
-        uni.showToast({ title: '请输入家庭组名称', icon: 'none' });
+        uni.showToast({ title: "请输入家庭组名称", icon: "none" });
         return;
       }
 
       this.submitting = true;
       try {
-        // 调用创建接口，后台会校验用户是否已在其他组 
+        // 调用创建接口，后台会校验用户是否已在其他组
         // 后台逻辑：创建成功自动将用户ID赋给 owner_user_id [cite: 11, 41]
         const res = await familyApi.createGroup(this.formData);
 
-        if (res.code === 200) {
-          uni.showToast({ title: '创建成功', icon: 'success' });
+        uni.showToast({ title: "创建成功", icon: "success" });
 
-          // 创建成功后自动变成组长，并跳转至成员页面 [cite: 11, 15]
-          setTimeout(() => {
-            uni.reLaunch({
-              url: '/pages/group/members'
-            });
-          }, 1500);
-        } else {
-          // uni.showToast({ title: res.message || '创建失败', icon: 'none' });
-        }
+        // 创建成功后自动变成组长，并跳转至成员页面 [cite: 11, 15]
+        setTimeout(() => {
+          uni.reLaunch({
+            url: "/pages/group/members",
+          });
+        }, 1500);
       } catch (e) {
-        console.error("报错显示：", e)
+        console.error("报错显示：", e);
         // uni.showToast({ title: '网络请求异常', icon: 'none' });
       } finally {
         this.submitting = false;
       }
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -113,7 +134,7 @@ $border-color: #e2e8f0;
   flex-direction: column;
   height: 100vh;
   background-color: $bg-color;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 /* 顶部导航栏 */
