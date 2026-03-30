@@ -110,7 +110,7 @@ export default {
       try {
         await registerAPI.register(this.formData);
         uni.showToast({ title: "注册成功", icon: "success" });
-        setTimeout(() => { uni.switchTab({ url: "/pages/index/index" }); }, 1000);
+        setTimeout(() => { uni.navigateBack(); }, 1000);
       } catch (e) { console.error(e); }
     }
   }
