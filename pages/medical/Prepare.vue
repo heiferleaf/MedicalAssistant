@@ -451,83 +451,90 @@ export default {
     exportDocument() {
       this.generatePDF()
     },
+    // async generatePDF() {
+    //   uni.showLoading({ title: '生成中...' })
+    //   try {
+    //     const accessToken = uni.getStorageSync('accessToken') || ''
+    //     const payload = {
+    //       generatedTime: this.documentInfo.generatedTime || '',
+    //       department: this.documentInfo.department || '',
+    //       patient: this.documentInfo.patient || '',
+    //       visitDate: this.documentInfo.visitDate || '',
+    //       medications: this.documentInfo.medications || [],
+    //       healthData: this.documentInfo.healthData || [],
+    //       questions: this.documentInfo.questions || [],
+    //       otherInfo: this.documentInfo.otherInfo || ''
+    //     }
+
+    //     const res = await uni.request({
+    //       url: `${BASE_URL}/medical/prepare/pdf`,
+    //       method: 'POST',
+    //       data: payload,
+    //       timeout: 15000,
+    //       header: {
+    //         'Content-Type': 'application/json',
+    //         'Authorization': `Bearer ${accessToken}`
+    //       }
+    //     })
+
+    //     const body = res?.data || {}
+    //     const success = body.success === true || body.code === 0
+    //     const fileUrl = body.fileUrl || body?.data?.fileUrl
+
+    //     console.log('[PDF] resp=', body)
+    //     console.log('[PDF] fileUrl=', fileUrl)
+
+    //     if (!success || !fileUrl) {
+    //       uni.showModal({
+    //         title: '生成失败',
+    //         content: body.message || '未返回文件地址',
+    //         showCancel: false
+    //       })
+    //       return
+    //     }
+
+    //     // H5 直接跳转，避免 window.open 被拦截
+    //     // #ifdef H5
+    //     window.location.href = fileUrl
+    //     return
+    //     // #endif
+
+    //     // #ifndef H5
+    //     uni.downloadFile({
+    //       url: fileUrl,
+    //       header: { Authorization: `Bearer ${accessToken}` },
+    //       timeout: 20000,
+    //       success: (d) => {
+    //         console.log('[PDF] download success', d.statusCode, d.tempFilePath)
+    //         if (d.statusCode === 200) {
+    //           uni.openDocument({ filePath: d.tempFilePath, showMenu: true })
+    //         } else {
+    //           uni.showModal({ title: '下载失败', content: `HTTP ${d.statusCode}`, showCancel: false })
+    //         }
+    //       },
+    //       fail: (e) => {
+    //         console.log('[PDF] download fail', e)
+    //         uni.showModal({ title: '下载失败', content: e.errMsg || 'download fail', showCancel: false })
+    //       }
+    //     })
+    //     // #endif
+    //   } catch (e) {
+    //     console.log('[PDF] generate error=', e)
+    //     uni.showModal({
+    //       title: '生成失败',
+    //       content: e?.message || e?.errMsg || '请求异常',
+    //       showCancel: false
+    //     })
+    //   } finally {
+    //     uni.hideLoading()
+    //   }
+    // }
     async generatePDF() {
-      uni.showLoading({ title: '生成中...' })
-      try {
-        const accessToken = uni.getStorageSync('accessToken') || ''
-        const payload = {
-          generatedTime: this.documentInfo.generatedTime || '',
-          department: this.documentInfo.department || '',
-          patient: this.documentInfo.patient || '',
-          visitDate: this.documentInfo.visitDate || '',
-          medications: this.documentInfo.medications || [],
-          healthData: this.documentInfo.healthData || [],
-          questions: this.documentInfo.questions || [],
-          otherInfo: this.documentInfo.otherInfo || ''
-        }
-
-        const res = await uni.request({
-          url: `${BASE_URL}/medical/prepare/pdf`,
-          method: 'POST',
-          data: payload,
-          timeout: 15000,
-          header: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
-        })
-
-        const body = res?.data || {}
-        const success = body.success === true || body.code === 0
-        const fileUrl = body.fileUrl || body?.data?.fileUrl
-
-        console.log('[PDF] resp=', body)
-        console.log('[PDF] fileUrl=', fileUrl)
-
-        if (!success || !fileUrl) {
-          uni.showModal({
-            title: '生成失败',
-            content: body.message || '未返回文件地址',
-            showCancel: false
-          })
-          return
-        }
-
-        // H5 直接跳转，避免 window.open 被拦截
-        // #ifdef H5
-        window.location.href = fileUrl
-        return
-        // #endif
-
-        // #ifndef H5
-        uni.downloadFile({
-          url: fileUrl,
-          header: { Authorization: `Bearer ${accessToken}` },
-          timeout: 20000,
-          success: (d) => {
-            console.log('[PDF] download success', d.statusCode, d.tempFilePath)
-            if (d.statusCode === 200) {
-              uni.openDocument({ filePath: d.tempFilePath, showMenu: true })
-            } else {
-              uni.showModal({ title: '下载失败', content: `HTTP ${d.statusCode}`, showCancel: false })
-            }
-          },
-          fail: (e) => {
-            console.log('[PDF] download fail', e)
-            uni.showModal({ title: '下载失败', content: e.errMsg || 'download fail', showCancel: false })
-          }
-        })
-        // #endif
-      } catch (e) {
-        console.log('[PDF] generate error=', e)
-        uni.showModal({
-          title: '生成失败',
-          content: e?.message || e?.errMsg || '请求异常',
-          showCancel: false
-        })
-      } finally {
-        uni.hideLoading()
-      }
+      uni.showModal({
+        title: '功能维护中',
+        content: 'PDF生成功能正在维护中，将在下个版本开放。',
+        showCancel: false
+      })
     }
   }
 }
