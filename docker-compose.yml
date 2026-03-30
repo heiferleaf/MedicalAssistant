@@ -106,7 +106,7 @@ services:
     networks:
       - app-net
 
-  rabbit:
+  rabbitmq:
     image: rabbitmq:3.12-management-alpine
     container_name: rabbitmq
     ports:

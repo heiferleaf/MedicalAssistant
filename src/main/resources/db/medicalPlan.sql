@@ -29,7 +29,7 @@ CREATE TABLE medication_plan (
                                  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                  INDEX idx_user_id (user_id),
                                  INDEX idx_deleted (deleted),
-                                 FOREIGN KEY (medicine_id) REFERENCES medicine(id) ON DELETE RESTRICT
+                                 FOREIGN KEY (medicine_id) REFERENCES medicine(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用药计划表';
 
 -- ====================================
@@ -50,6 +50,6 @@ CREATE TABLE medication_task (
                                  INDEX idx_user_task_date (user_id, task_date),
                                  INDEX idx_plan_id (plan_id),
                                  INDEX idx_status (status),
-                                 FOREIGN KEY (plan_id) REFERENCES medication_plan(id) ON DELETE RESTRICT,
-                                 FOREIGN KEY (medicine_id) REFERENCES medicine(id) ON DELETE RESTRICT
+                                 FOREIGN KEY (plan_id) REFERENCES medication_plan(id) ON DELETE CASCADE ,
+                                 FOREIGN KEY (medicine_id) REFERENCES medicine(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用药任务表';
