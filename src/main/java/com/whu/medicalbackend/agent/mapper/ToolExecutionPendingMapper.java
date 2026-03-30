@@ -73,4 +73,13 @@ public interface ToolExecutionPendingMapper {
         WHERE request_id = #{requestId}
         """)
     int deleteByRequestId(@Param("requestId") String requestId);
+    
+    /**
+     * 删除用户的所有待确认请求
+     */
+    @Delete("""
+        DELETE FROM tool_execution_pending 
+        WHERE user_id = #{userId} AND status = 'PENDING'
+        """)
+    int deleteAllPendingByUserId(@Param("userId") Long userId);
 }

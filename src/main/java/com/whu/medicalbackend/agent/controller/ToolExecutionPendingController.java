@@ -139,4 +139,31 @@ public class ToolExecutionPendingController {
             return response;
         }
     }
+    
+    /**
+     * 删除用户的所有待确认请求
+     * @param userId 用户 ID
+     * @return 操作结果
+     */
+    @PostMapping("/delete-all")
+    public Map<String, Object> deleteAllPending(@RequestParam Long userId) {
+        logger.info("删除用户所有待确认请求，userId: {}", userId);
+        
+        try {
+            int count = toolExecutionPendingService.deleteAllPendingByUserId(userId);
+            
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("message", "删除成功");
+            response.put("count", count);
+            
+            return response;
+        } catch (Exception e) {
+            logger.error("删除所有待确认请求失败", e);
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", false);
+            response.put("message", "删除失败：" + e.getMessage());
+            return response;
+        }
+    }
 }
