@@ -56,7 +56,7 @@ public class AgentProxyController {
      * SSE 流式聊天接口
      * 注意：由于 EventSource 只支持 GET 请求，所以这里使用 GET
      */
-    @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
     public SseEmitter chatStream(
             @RequestParam("user_id") String userId,
             @RequestParam("session_id") String sessionId,

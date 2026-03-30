@@ -1,4 +1,4 @@
-package com.whu.medicalbackend.controller;
+package com.whu.medicalbackend.agent.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

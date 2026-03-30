@@ -54,4 +54,11 @@ public interface ToolExecutionPendingService {
      * @return 清理的数量
      */
     int cleanupExpired();
+    
+    /**
+     * 删除用户的所有待确认请求
+     * @param userId 用户 ID
+     * @return 清理的数量
+     */
+    int deleteAllPendingByUserId(Long userId);
 }

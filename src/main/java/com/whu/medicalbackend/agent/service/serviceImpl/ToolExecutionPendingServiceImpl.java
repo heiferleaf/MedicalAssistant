@@ -160,6 +160,13 @@ public class ToolExecutionPendingServiceImpl implements ToolExecutionPendingServ
         return count;
     }
     
+    @Override
+    public int deleteAllPendingByUserId(Long userId) {
+        int count = toolExecutionPendingMapper.deleteAllPendingByUserId(userId);
+        logger.info("删除用户所有待确认请求：userId={}, count={}", userId, count);
+        return count;
+    }
+    
     /**
      * 执行 createPlan tool（真正创建计划）
      */
