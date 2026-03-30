@@ -1,20 +1,22 @@
 <template>
 	<view class="simple-markdown">
-		<view 
-			v-for="(segment, index) in parsedSegments" 
-			:key="index"
-			class="markdown-segment"
-		>
-			<text 
-				v-for="(part, partIndex) in segment.parts" 
-				:key="partIndex"
-				:class="getPartClass(part)"
-			>{{ part.content }}</text>
-		</view>
+		<!-- #ifdef H5 -->
+		<!-- H5 使用 v-html 渲染 -->
+		<div v-html="renderedHTML"></div>
+		<!-- #endif -->
+		
+		<!-- #ifdef APP-PLUS -->
+		<!-- App 端使用 rich-text 渲染 -->
+		<rich-text :nodes="renderedHTML"></rich-text>
+		<!-- #endif -->
 	</view>
 </template>
 
 <script>
+// #ifdef H5
+import { marked } from 'marked';
+// #endif
+
 export default {
 	name: 'SimpleMarkdown',
 	props: {
@@ -23,134 +25,76 @@ export default {
 			default: ''
 		}
 	},
-	computed: {
-		parsedSegments() {
-			if (!this.content) return [];
-			
-			// 按换行分割成段落
-			const lines = this.content.split('\n');
-			const segments = [];
-			
-			for (let line of lines) {
-				if (!line.trim()) {
-					// 空行跳过
-					continue;
+	data() {
+		return {
+			renderedHTML: ''
+		}
+	},
+	watch: {
+		content: {
+			immediate: true,
+			handler(newVal) {
+				if (newVal) {
+					this.renderMarkdown(newVal)
 				}
-				
-				// 解析每一行的 Markdown 格式
-				const parts = this.parseLine(line);
-				segments.push({
-					parts: parts
-				});
 			}
-			
-			return segments;
+		}
+	},
+	mounted() {
+		if (this.content) {
+			this.renderMarkdown(this.content)
 		}
 	},
 	methods: {
-		parseLine(line) {
-			const parts = [];
-			let currentText = '';
-			let i = 0;
-			
-			while (i < line.length) {
-				// 检查粗体 **text**
-				if (i + 1 < line.length && line[i] === '*' && line[i + 1] === '*') {
-					// 添加之前的普通文本
-					if (currentText) {
-						parts.push({ type: 'normal', content: currentText });
-						currentText = '';
-					}
-					
-					// 找到结束的 **
-					i += 2;
-					let boldText = '';
-					while (i < line.length) {
-						if (i + 1 < line.length && line[i] === '*' && line[i + 1] === '*') {
-							i += 2;
-							break;
-						}
-						boldText += line[i];
-						i++;
-					}
-					
-					if (boldText) {
-						parts.push({ type: 'bold', content: boldText });
-					}
-				}
-				// 检查斜体 *text*
-				else if (line[i] === '*') {
-					// 添加之前的普通文本
-					if (currentText) {
-						parts.push({ type: 'normal', content: currentText });
-						currentText = '';
-					}
-					
-					// 找到结束的 *
-					i += 1;
-					let italicText = '';
-					while (i < line.length) {
-						if (line[i] === '*') {
-							i += 1;
-							break;
-						}
-						italicText += line[i];
-						i++;
-					}
-					
-					if (italicText) {
-						parts.push({ type: 'italic', content: italicText });
-					}
-				}
-				// 检查代码 `text`
-				else if (line[i] === '`') {
-					// 添加之前的普通文本
-					if (currentText) {
-						parts.push({ type: 'normal', content: currentText });
-						currentText = '';
-					}
-					
-					// 找到结束的 `
-					i += 1;
-					let codeText = '';
-					while (i < line.length) {
-						if (line[i] === '`') {
-							i += 1;
-							break;
-						}
-						codeText += line[i];
-						i++;
-					}
-					
-					if (codeText) {
-						parts.push({ type: 'code', content: codeText });
-					}
-				}
-				// 普通文本
-				else {
-					currentText += line[i];
-					i++;
-				}
+		renderMarkdown(text) {
+			// #ifdef H5
+			// H5 端使用 marked 渲染
+			try {
+				this.renderedHTML = marked.parse(text, {
+					breaks: true, // 支持换行
+					gfm: true // GitHub Flavored Markdown
+				})
+			} catch (e) {
+				console.error('Markdown 渲染失败:', e)
+				this.renderedHTML = text
 			}
+			// #endif
 			
-			// 添加最后的普通文本
-			if (currentText) {
-				parts.push({ type: 'normal', content: currentText });
-			}
-			
-			return parts;
+			// #ifdef APP-PLUS
+			// App 端通过 renderjs 渲染
+			this.renderedHTML = this.renderMarkdownForApp(text)
+			// #endif
 		},
-		getPartClass(part) {
-			const classes = ['markdown-part'];
-			if (part.type === 'bold') {
-				classes.push('markdown-bold');
-			} else if (part.type === 'italic') {
-				classes.push('markdown-italic');
-			} else if (part.type === 'code') {
-				classes.push('markdown-code');
-			}
-			return classes;
+		
+		// #ifdef APP-PLUS
+		renderMarkdownForApp(text) {
+			// 简单的 Markdown 转 HTML 实现（用于 App 端）
+			let html = text
+			
+			// 标题
+			html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>')
+			html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>')
+			html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>')
+			
+			// 粗体
+			html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+			
+			// 斜体
+			html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
+			
+			// 代码块
+			html = html.replace(/`(.*?)`/g, '<code>$1</code>')
+			
+			// 列表
+			html = html.replace(/^- (.*$)/gim, '<li>$1</li>')
+			html = html.replace(/^(\d+)\. (.*$)/gim, '<li>$2</li>')
+			
+			// 换行
+			html = html.replace(/\n/g, '<br>')
+			
+			return html
 		}
+		// #endif
 	}
 }
 </script>
@@ -158,36 +102,97 @@ export default {
 <style lang="scss" scoped>
 .simple-markdown {
 	width: 100%;
-	line-height: 1.8;
+	line-height: 1.6;
+	font-size: 28rpx;
 }
 
-.markdown-segment {
-	margin-bottom: 8rpx;
-	display: flex;
-	flex-wrap: wrap;
-	align-items: flex-start;
+/* H5 样式 */
+/* #ifdef H5 */
+:deep(h1) {
+	font-size: 36rpx;
+	font-weight: bold;
+	margin: 16rpx 0;
 }
 
-.markdown-part {
-	display: inline;
-	word-wrap: break-word;
-	word-break: break-all;
+:deep(h2) {
+	font-size: 32rpx;
+	font-weight: bold;
+	margin: 14rpx 0;
 }
 
-.markdown-bold {
-	font-weight: 700;
+:deep(h3) {
+	font-size: 30rpx;
+	font-weight: bold;
+	margin: 12rpx 0;
 }
 
-.markdown-italic {
+:deep(strong) {
+	font-weight: bold;
+}
+
+:deep(em) {
 	font-style: italic;
 }
 
-.markdown-code {
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+:deep(code) {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 	padding: 4rpx 8rpx;
 	margin: 0 4rpx;
 	background: rgba(175, 184, 193, 0.2);
 	border-radius: 8rpx;
 	font-size: 24rpx;
 }
+
+:deep(li) {
+	margin-left: 20rpx;
+	margin-bottom: 8rpx;
+}
+
+:deep(p) {
+	margin-bottom: 12rpx;
+}
+/* #endif */
+
+/* App 端样式 */
+/* #ifdef APP-PLUS */
+.simple-markdown >>> h1 {
+	font-size: 36rpx;
+	font-weight: bold;
+	margin: 16rpx 0;
+}
+
+.simple-markdown >>> h2 {
+	font-size: 32rpx;
+	font-weight: bold;
+	margin: 14rpx 0;
+}
+
+.simple-markdown >>> h3 {
+	font-size: 30rpx;
+	font-weight: bold;
+	margin: 12rpx 0;
+}
+
+.simple-markdown >>> strong {
+	font-weight: bold;
+}
+
+.simple-markdown >>> em {
+	font-style: italic;
+}
+
+.simple-markdown >>> code {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	padding: 4rpx 8rpx;
+	margin: 0 4rpx;
+	background: rgba(175, 184, 193, 0.2);
+	border-radius: 8rpx;
+	font-size: 24rpx;
+}
+
+.simple-markdown >>> li {
+	margin-left: 20rpx;
+	margin-bottom: 8rpx;
+}
+/* #endif */
 </style>

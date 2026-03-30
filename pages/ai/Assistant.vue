@@ -58,6 +58,13 @@
 				/>
 			</view>
 		</view>
+		
+		<!-- #ifdef APP-PLUS -->
+		<!-- App 端专用的 SSE 组件（隐藏） -->
+		<ChatSSEClient ref="sseClient" style="display: none;"/>
+		<!-- OCR 上传组件（隐藏） -->
+		<OCRUploader ref="ocrUploader" style="display: none;" @success="handleOCRSuccess" @error="handleOCRError"/>
+		<!-- #endif -->
 	</view>
 </template>
 
@@ -67,6 +74,10 @@ import ChatHeader from './components/ChatHeader.vue';
 import ChatView from './views/ChatView.vue';
 import ChatInput from './components/ChatInput.vue';
 import SessionSidebar from './components/SessionSidebar.vue';
+// #ifdef APP-PLUS
+import ChatSSEClient from '@/components/ChatSSEClient/ChatSSEClient.vue'
+import OCRUploader from '@/components/OCRUploader/OCRUploader.vue'
+// #endif
 
 // 导入工具函数
 import { 
@@ -91,6 +102,9 @@ export default {
 		ChatView,
 		ChatInput,
 		SessionSidebar
+		// #ifdef APP-PLUS
+		,ChatSSEClient, OCRUploader
+		// #endif
 	},
 	data() {
 		return {
@@ -107,7 +121,13 @@ export default {
 			// 新增：显示图片预览区域
 			showImagePreview: false,
 			// 图片 Base64 数据（用于发送）
-			scanImageBase64: ''
+			scanImageBase64: '',
+			// #ifdef APP-PLUS
+			// OCR 相关数据
+			ocrData: null,
+			ocrLoading: false,
+			ocrResult: '',
+			// #endif
 		}
 	},
 	computed: {
@@ -153,7 +173,67 @@ export default {
 		}
 		this.init();
 	},
+	// #ifdef APP-PLUS
+	mounted() {
+		// 等待 DOM 更新后再注册
+		this.$nextTick(() => {
+			// 注册全局 SSE 桥接对象
+			uni.$sseBridge = {
+				send: (config) => {
+					if (this.$refs.sseClient) {
+						this.$refs.sseClient.startChat(config)
+					} else {
+						console.error('SSE 组件未初始化，$refs.sseClient:', this.$refs.sseClient)
+					}
+				},
+				stop: () => {
+					if (this.$refs.sseClient) {
+						this.$refs.sseClient.stopChat()
+					}
+				}
+			}
+			console.log('Assistant: SSE 桥接已注册，$refs:', Object.keys(this.$refs || {}))
+		})
+	},
+	// #endif
 	methods: {
+		// #ifdef APP-PLUS
+		// OCR 识别成功处理
+		handleOCRSuccess(data) {
+			console.log('OCR 识别成功:', data)
+			this.ocrResult = data.output || data.ocr_result || ''
+			this.ocrLoading = false
+		},
+		
+		// OCR 识别失败处理
+		handleOCRError(error) {
+			console.error('OCR 识别失败:', error)
+			this.ocrResult = ''
+			this.ocrLoading = false
+			uni.showToast({
+				title: 'OCR 识别失败，请重试',
+				icon: 'none'
+			})
+		},
+		
+		// Base64 转 Blob（H5 端使用）
+		base64ToBlob(base64Data, type = 'image/jpeg') {
+			// 去掉前缀
+			let cleanBase64 = base64Data
+			if (cleanBase64.startsWith('data:')) {
+				cleanBase64 = cleanBase64.split(',')[1]
+			}
+			
+			const byteCharacters = atob(cleanBase64)
+			const byteNumbers = new Array(byteCharacters.length)
+			for (let i = 0; i < byteCharacters.length; i++) {
+				byteNumbers[i] = byteCharacters.charCodeAt(i)
+			}
+			const byteArray = new Uint8Array(byteNumbers)
+			return new Blob([byteArray], { type: type })
+		},
+		// #endif
+		
 		// 初始化
 		async init() {
 			this.userId = getFromStorage(StorageKeys.USER_ID);
@@ -507,19 +587,175 @@ export default {
 				// 准备发送给 AI 的消息
 				let messageToSend = content || '帮我识别这个药品';
 				
-				// 如果有图片，需要转换为 Base64 并发送给 AI
+				// 如果有图片，检查是否是药物图片（通过路径判断）
 				if (hasImage) {
-					console.log('开始转换图片为 Base64...');
+					console.log('开始处理图片消息...');
 					console.log('scanImage 类型:', typeof this.scanImage);
-					console.log('scanImage 长度:', this.scanImage ? this.scanImage.length : 'null');
-					console.log('scanImage 前 50 字符:', this.scanImage ? this.scanImage.substring(0, 50) : 'null');
+					console.log('scanImage 值:', this.scanImage ? this.scanImage.substring(0, 100) : 'null');
 					
-					const base64 = await this.imageToBase64(this.scanImage);
-					console.log('图片转换成功，长度:', base64.length);
-					console.log('base64 前 50 字符:', base64.substring(0, 50));
-					
-					// 构造特殊的消息格式，告诉 AI 调用 OCR 工具
-					messageToSend = `用户发送了一张药物图片，请使用 recognizeDrugFromImage 工具识别图片中的药物信息。图片数据：${base64}`;
+					// 检查是否是药物图片路径（格式：/images/drug_xxx.jpg）
+					const isDrugImagePath = this.scanImage && this.scanImage.startsWith('/images/drug_');
+									
+					if (isDrugImagePath) {
+						// 药物图片，使用 Base64 数据上传到 Flask OCR
+						console.log('检测到药物图片，使用 Base64 上传到 Flask OCR');
+										
+						try {
+							// 1. 先获取 Base64 数据
+							let base64Data = this.scanImageBase64;
+											
+							// 如果没有，从路径转换
+							if (!base64Data) {
+								console.log('Base64 数据不存在，从路径转换');
+								base64Data = await this.imageToBase64(this.scanImage);
+							}
+											
+							console.log('Base64 数据长度:', base64Data ? base64Data.length : 0);
+											
+							if (!base64Data) {
+								throw new Error('无法获取图片 Base64 数据');
+							}
+											
+							// 2. 将 Base64 转换为临时文件
+							const tempFilePath = await this.base64ToFile(base64Data);
+							console.log('临时文件路径:', tempFilePath);
+											
+							// 3. 上传到 Flask OCR
+							const ocrUrl = 'http://8.148.94.242:8001/ocr/predict';
+												
+							const uploadResult = await new Promise((resolve, reject) => {
+								// #ifdef H5
+								// H5 端：使用 uni.request 发送 FormData
+								const formData = new FormData();
+								formData.append('file', tempFilePath, 'drug.jpg');
+													
+								fetch(ocrUrl, {
+									method: 'POST',
+									body: formData
+								})
+								.then(response => response.json())
+								.then(data => {
+									resolve({ statusCode: 200, data: JSON.stringify(data) });
+								})
+								.catch(err => {
+									reject(err);
+								});
+							// #endif
+												
+							// #ifdef APP-PLUS
+							// App 端：使用 uni.uploadFile
+							uni.uploadFile({
+								url: ocrUrl,
+								filePath: tempFilePath,
+								name: 'file',
+								formData: {},
+								success: (res) => {
+									console.log('OCR 识别成功', res);
+									resolve(res);
+								},
+								fail: (err) => {
+									console.error('OCR 识别失败', err);
+									reject(err);
+								}
+							});
+							// #endif
+						});
+											
+							if (uploadResult.statusCode === 200) {
+								const response = JSON.parse(uploadResult.data);
+								const ocrOutput = response.output || response.ocr_result || '';
+								console.log('OCR 识别结果:', ocrOutput.substring(0, 100));
+												
+								// 构造简短消息，只包含 OCR 结果，不包含 Base64
+								messageToSend = `用户发送了一张药物图片，OCR 识别结果：${ocrOutput.substring(0, 200)}。请根据这个结果回答用户问题。`;
+							} else {
+								console.error('OCR 识别失败，状态码:', uploadResult.statusCode);
+								console.error('响应数据:', uploadResult.data);
+								// 如果 OCR 失败，使用备用方案
+								messageToSend = `用户发送了一张药物图片，但 OCR 识别失败。请告诉用户重新上传图片。`;
+							}
+						} catch (e) {
+							console.error('OCR 识别异常:', e);
+							// 异常情况，使用备用方案
+							messageToSend = `用户发送了一张药物图片，但 OCR 识别失败。请告诉用户重新上传图片。`;
+						}
+					} else {
+						// 其他图片，先上传到 Flask OCR 识别
+						console.log('检测到图片，上传到 Flask OCR 识别');
+						
+						try {
+							// 1. 先获取 Base64 数据
+							let base64Data = this.scanImageBase64;
+												
+							// 如果没有，从路径转换
+							if (!base64Data) {
+								base64Data = await this.imageToBase64(this.scanImage);
+							}
+												
+							console.log('Base64 数据长度:', base64Data ? base64Data.length : 0);
+												
+							if (!base64Data) {
+								throw new Error('无法获取图片 Base64 数据');
+							}
+												
+							// 2. 使用 renderjs 上传到 Flask OCR
+							console.log('开始使用 renderjs 上传 OCR');
+							this.ocrLoading = true
+												
+							// #ifdef H5
+							// H5 端：直接调用 fetch
+							const ocrUrl = 'http://8.148.94.242:8001/ocr/predict';
+							const blob = this.base64ToBlob(base64Data);
+							const formData = new FormData();
+							formData.append('file', blob, 'drug.jpg');
+												
+							const response = await fetch(ocrUrl, {
+								method: 'POST',
+								body: formData
+							});
+							const result = await response.json();
+							this.handleOCRSuccess(result);
+							// #endif
+												
+							// #ifdef APP-PLUS
+							// App 端：使用 renderjs 组件
+							if (this.$refs.ocrUploader && this.$refs.ocrUploader.callOCR) {
+								console.log('调用 OCRUploader.callOCR 方法')
+								// 调用普通 script 的 callOCR，它会再调用 renderjs 的 triggerOCR
+								this.$refs.ocrUploader.callOCR({
+									base64Data: base64Data,
+									ocrUrl: 'http://8.148.94.242:8001/ocr/predict'
+								})
+							} else {
+								console.error('OCR 组件未初始化', this.$refs.ocrUploader)
+								throw new Error('OCR 组件未初始化')
+							}
+							// #endif
+												
+							// 等待 OCR 结果
+							await new Promise((resolve, reject) => {
+								const checkResult = setInterval(() => {
+									if (!this.ocrLoading) {
+										clearInterval(checkResult)
+										if (this.ocrResult) {
+											resolve()
+										} else {
+											reject(new Error('OCR 失败'))
+										}
+									}
+								}, 100)
+							})
+												
+							console.log('OCR 识别结果:', this.ocrResult.substring(0, 100));
+												
+							// 3. 构造简短消息
+							messageToSend = `用户发送了一张图片，OCR 识别结果：${this.ocrResult.substring(0, 200)}。请根据这个结果回答用户问题。`;
+						} catch (e) {
+							console.error('OCR 识别异常:', e);
+							// 异常情况，使用备用方案
+							messageToSend = `用户发送了一张图片，但 OCR 识别失败。请告诉用户重新上传图片。`;
+						}
+				}
 				}
 				
 				console.log('发送消息给 AI:', messageToSend.substring(0, 100) + '...');
@@ -618,10 +854,22 @@ export default {
 								}
 							}
 						}
+					},
+				});
+								
+				console.log('AI 返回:', { assistantMessage, actionType, actionData });
+								
+				// 重要：清理已显示消息中的 [ACTION:xxx] 标记（全局清理）
+				this.messages.forEach((msg, index) => {
+					if (msg.content && typeof msg.content === 'string') {
+						// 移除所有 [ACTION:xxx] 标记
+						const cleanContent = msg.content.replace(/\[ACTION:\w+\]/g, '').trim();
+						if (cleanContent !== msg.content) {
+							// 内容发生变化，使用 $set 更新
+							this.$set(this.messages, index, { ...msg, content: cleanContent });
+						}
 					}
 				});
-				
-				console.log('AI 返回:', { assistantMessage, actionType, actionData });
 				
 				// 清除状态切换定时器
 				clearTimeout(statusTimer);
@@ -704,19 +952,19 @@ export default {
 				} else {
 					// 检查 tool 返回结果中的 pending_confirmation 标记
 					// 注意：流式模式下，这些数据应该在 actionData 中处理
-					
+									
 					// 检测特殊标记：[ACTION:plan_confirm], [ACTION:plan_update], [ACTION:plan_delete], [ACTION:addMedicine], [ACTION:updateTaskStatus]
 					// 注意：需要捕获 [ACTION:xxx] 之前的内容
 					const actionMatch = assistantMessage?.match(/([\s\S]*?)\[ACTION:(plan_\w+|addMedicine|updateTaskStatus)\]/);
-					
+									
 					if (actionMatch) {
 						const actionType = actionMatch[2]; // plan_confirm, plan_update, plan_delete, addMedicine, updateTaskStatus
 						const actionData = actionMatch[1].trim(); // [ACTION:xxx] 之前的内容
-						
+										
 						console.log('检测到特殊标记:', actionType, actionData);
-						
+										
 						if (actionType === 'addMedicine') {
-							// 显示药箱确认卡片
+							// 显示药箱确认卡片（不显示原始消息，因为包含 [ACTION:addMedicine] 标记）
 							const medicineData = {
 								data: {
 									medicineName: this.extractMedicineName(assistantMessage) || '',
@@ -725,7 +973,7 @@ export default {
 								},
 								status: 'pending'
 							};
-							
+											
 							const assistantMsg = createMessageWithAction(
 								'assistant',
 								'请确认是否添加以下药品到药箱：',
@@ -734,6 +982,19 @@ export default {
 							);
 							this.messages.push(assistantMsg);
 							this.scrollToBottom();
+											
+							// 重要：清空 assistantMessage，避免显示 [ACTION:addMedicine] 标记
+							assistantMessage = '';
+												
+							// 同时更新已显示的消息，移除 [ACTION:addMedicine] 标记
+							if (assistantMsg) {
+								const msgIndex = this.messages.findIndex(m => m.id === assistantMsg.id);
+								if (msgIndex !== -1) {
+									// 移除消息中的 [ACTION:addMedicine] 标记
+									const cleanContent = assistantMsg.content.replace(/\[ACTION:addMedicine\]/g, '').trim();
+									this.$set(this.messages[msgIndex], 'content', cleanContent || '请确认是否添加以下药品到药箱：');
+								}
+							}
 						} else if (actionType === 'updateTaskStatus') {
 							// 显示任务确认卡片
 							const taskData = {
@@ -1113,6 +1374,209 @@ export default {
 				resolve(this.scanImageBase64 || '');
 				// #endif
 			});
+		},
+		
+		// Base64 转 Blob
+		base64ToBlob(base64Data, type = 'image/jpeg') {
+			// 如果是路径而不是 base64，直接返回
+			if (!base64Data.startsWith('data:') && !base64Data.startsWith('/9j/')) {
+				return base64Data; // 返回路径
+			}
+			
+			// 如果是完整的数据 URL，去掉前缀
+			if (base64Data.startsWith('data:')) {
+				base64Data = base64Data.split(',')[1];
+			}
+			
+			// #ifdef APP-PLUS
+			// App 端：使用 plus.io 转换
+			return new Promise((resolve, reject) => {
+				const fileName = '_temp_upload_' + Date.now() + '.jpg';
+				plus.io.resolveLocalFileSystemURL('_doc/', (entry) => {
+					entry.getFile(fileName, {create: true}, (fileEntry) => {
+						fileEntry.createWriter((writer) => {
+							writer.write(base64Data);
+							resolve(fileEntry.toLocalURL());
+						}, reject);
+					}, reject);
+				}, reject);
+			});
+			// #endif
+			
+			// #ifdef H5
+			// H5 端：转换为 Blob
+			const byteCharacters = atob(base64Data);
+			const byteNumbers = new Array(byteCharacters.length);
+			for (let i = 0; i < byteCharacters.length; i++) {
+				byteNumbers[i] = byteCharacters.charCodeAt(i);
+			}
+			const byteArray = new Uint8Array(byteNumbers);
+			return new Blob([byteArray], {type: type});
+			// #endif
+		},
+		
+		// Base64 转 ArrayBuffer（用于 App 端文件写入）
+		base64ToArrayBuffer(base64Data) {
+			// 去掉前缀（如果有）
+			if (base64Data.startsWith('data:')) {
+				base64Data = base64Data.split(',')[1];
+			}
+			
+			// #ifdef APP-PLUS
+			// App 端：使用 plus.io 解码
+			return plus.io.decodeBase64(base64Data);
+			// #endif
+			
+			// #ifdef H5
+			// H5 端：使用 atob 解码
+			const byteCharacters = atob(base64Data);
+			const byteNumbers = new Array(byteCharacters.length);
+			for (let i = 0; i < byteCharacters.length; i++) {
+				byteNumbers[i] = byteCharacters.charCodeAt(i);
+			}
+			return new Uint8Array(byteNumbers).buffer;
+			// #endif
+		},
+		
+		// Base64 转文件（用于上传）
+		async base64ToFile(base64Data, filename = 'temp.jpg') {
+			// #ifdef APP-PLUS
+			// App 端：使用 plus.io 写入文件
+			try {
+				// 去掉 data:image/jpeg;base64, 前缀
+				let cleanBase64 = base64Data;
+				if (cleanBase64.startsWith('data:')) {
+					cleanBase64 = cleanBase64.split(',')[1];
+				}
+				
+				// 生成临时文件路径
+				const fileName = 'upload_' + Date.now() + '.jpg';
+				
+				console.log('开始保存文件到 _doc 目录');
+				
+				// 直接使用 plus.io 写入文件
+				return new Promise((resolve, reject) => {
+					plus.io.resolveLocalFileSystemURL('_doc/', (entry) => {
+						console.log('获取 _doc/ 目录成功');
+						entry.getFile(fileName, {create: true}, (fileEntry) => {
+							console.log('创建文件成功:', fileEntry.fullPath);
+							fileEntry.createWriter((writer) => {
+								console.log('创建 Writer 成功');
+								// 使用 ArrayBuffer 写入
+								const arrayBuffer = this.base64ToArrayBuffer(cleanBase64);
+								console.log('ArrayBuffer 长度:', arrayBuffer ? arrayBuffer.byteLength : 0);
+								
+								if (arrayBuffer) {
+									writer.write(arrayBuffer);
+									writer.onwrite = () => {
+										console.log('文件写入成功:', fileEntry.toLocalURL());
+										resolve(fileEntry.toLocalURL());
+									};
+									writer.onerror = (e) => {
+										console.error('文件写入失败:', e);
+										reject(e);
+									};
+								} else {
+									reject(new Error('ArrayBuffer 转换失败'));
+								}
+							}, (e) => {
+								console.error('创建 Writer 失败:', e);
+								reject(e);
+							});
+						}, (e) => {
+							console.error('创建文件失败:', e);
+							reject(e);
+						});
+					}, (e) => {
+						console.error('获取 _doc/ 目录失败:', e);
+						reject(e);
+					});
+				});
+			} catch (error) {
+				console.error('base64ToFile 异常:', error);
+				throw error;
+			}
+			// #endif
+			
+			// #ifdef H5
+			// H5 端：使用 Blob 但需要通过 FormData 上传
+			const blob = this.base64ToBlob(base64Data);
+			// H5 端 uni.uploadFile 支持传入 file 对象
+			const file = new File([blob], filename, { type: 'image/jpeg' });
+			return file;
+			// #endif
+		},
+		
+		// 辅助方法：写入 Base64 到文件
+		writeBase64ToFile(base64Data, fileName) {
+			return new Promise((resolve, reject) => {
+				plus.io.resolveLocalFileSystemURL('_doc/', (entry) => {
+					entry.getFile(fileName, {create: true}, (fileEntry) => {
+						fileEntry.createWriter((writer) => {
+							// 转换为 ArrayBuffer 写入
+							const arrayBuffer = this.base64ToArrayBuffer(base64Data);
+							writer.write(arrayBuffer);
+							writer.onwrite = () => {
+								resolve(fileEntry.toLocalURL());
+							};
+							writer.onerror = reject;
+						}, reject);
+					}, reject);
+				}, reject);
+			});
+		},
+		
+		// 使用 plus.io 将 Base64 转换为文件（App 端专用）
+		async base64ToFileByRenderjs(base64Data) {
+			// #ifdef APP-PLUS
+			// App 端：使用 plus.io 直接写入
+			const fileName = 'upload_' + Date.now() + '.jpg';
+			
+			console.log('开始保存文件到 _doc 目录');
+			
+			// 直接使用 plus.io 写入文件
+			return new Promise((resolve, reject) => {
+				plus.io.resolveLocalFileSystemURL('_doc/', (entry) => {
+					console.log('获取 _doc/ 目录成功');
+					entry.getFile(fileName, {create: true}, (fileEntry) => {
+						console.log('创建文件成功:', fileEntry.fullPath);
+						fileEntry.createWriter((writer) => {
+							console.log('创建 Writer 成功');
+							// 直接写入 Base64 字符串
+							let cleanBase64 = base64Data;
+							if (cleanBase64.startsWith('data:')) {
+								cleanBase64 = cleanBase64.split(',')[1];
+							}
+							console.log('Base64 长度:', cleanBase64.length);
+							
+							// 使用 ArrayBuffer 写入
+							const arrayBuffer = this.base64ToArrayBuffer(cleanBase64);
+							console.log('ArrayBuffer 长度:', arrayBuffer ? arrayBuffer.byteLength : 0);
+							
+							if (arrayBuffer && arrayBuffer.byteLength > 0) {
+								writer.write(arrayBuffer);
+								writer.onwrite = () => {
+									console.log('文件写入成功:', fileEntry.toLocalURL());
+									resolve(fileEntry.toLocalURL());
+								};
+								writer.onerror = (e) => {
+									console.error('文件写入失败:', e);
+									reject(e);
+								};
+							} else {
+								console.error('ArrayBuffer 为空');
+								reject(new Error('ArrayBuffer 转换失败'));
+							}
+						}, reject);
+					}, reject);
+				}, reject);
+			});
+			// #endif
+			
+			// #ifdef H5
+			// H5 端：直接返回 Blob
+			return this.base64ToBlob(base64Data);
+			// #endif
 		},
 		
 		// 加载更多消息

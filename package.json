@@ -1,6 +1,8 @@
 {
   "dependencies": {
-    "@dcloudio/uni-ui": "^1.5.11"
+    "@dcloudio/uni-ui": "^1.5.11",
+    "@microsoft/fetch-event-source": "^2.0.1",
+    "marked": "^17.0.5"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.27",

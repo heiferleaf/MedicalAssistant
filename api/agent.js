@@ -32,17 +32,15 @@ export default {
   chatStream: (data) => {
     return new Promise((resolve, reject) => {
       const token = uni.getStorageSync('accessToken');
-      // 从 config 导入 BASE_URL
       const baseUrl = `${BASE_URL}/agent/chat/stream`;
       
-      // 构建 URL 参数
+      // #ifdef H5
+      // === H5 端：使用 EventSource ===
       const params = new URLSearchParams();
       params.append('user_id', data.user_id);
       params.append('session_id', data.session_id);
       params.append('message', data.message);
       
-      // 使用 EventSource 接收 SSE 流
-      // 注意：EventSource 不能携带自定义头，所以我们通过 URL 参数传递 token
       const eventSource = new EventSource(`${baseUrl}?${params.toString()}&token=${encodeURIComponent(token)}`);
       
       const result = {
@@ -52,73 +50,54 @@ export default {
       };
       
       eventSource.addEventListener('message', (event) => {
-        console.log('收到 message 事件:', event.data);
         if (event.data === '[DONE]') {
+          eventSource.close();
+          resolve(result);
           return;
         }
-        // 逐字返回
         result.fullMessage += event.data;
         if (data.onChunk) {
           data.onChunk(event.data);
         }
       });
       
-      // 监听 open 事件
-      eventSource.onopen = () => {
-        console.log('SSE 连接已建立');
-      };
-      
-      // 监听 error 事件
       eventSource.onerror = (error) => {
-        console.error('EventSource 发生错误:', error);
         eventSource.close();
-        reject(new Error('SSE 连接错误：' + (error.message || '未知错误')));
+        reject(error);
       };
+      // #endif
       
-      eventSource.addEventListener('action', (event) => {
-        try {
-          const actionData = JSON.parse(event.data);
-          result.actionType = actionData.action_type;
-          result.actionData = actionData.action_data;
-          if (data.onAction) {
-            data.onAction(actionData);
+      // #ifdef APP-PLUS
+      // === App 端：使用 renderjs + fetch-event-source ===
+      if (!uni.$sseBridge || !uni.$sseBridge.send) {
+        reject(new Error('SSE 桥接未初始化，请确保已在 Assistant.vue 中注册'))
+        return
+      }
+      
+      const url = `${baseUrl}?user_id=${data.user_id}&session_id=${data.session_id}&message=${encodeURIComponent(data.message)}&token=${encodeURIComponent(token)}`;
+      
+      // 使用全局桥接对象调用 SSE 组件
+      uni.$sseBridge.send({
+        url: url,
+        headers: {},
+        body: {},
+        onMessage: (chunk) => {
+          if (data.onChunk) {
+            data.onChunk(chunk)
           }
-        } catch (e) {
-          console.error('解析 action 数据失败:', e);
+        },
+        onDone: () => {
+          resolve({
+            fullMessage: '',
+            actionType: null,
+            actionData: null
+          })
+        },
+        onError: (err) => {
+          reject(err)
         }
-      });
-      
-      // 监听工具状态事件
-      eventSource.addEventListener('tool_status', (event) => {
-        try {
-          const toolStatus = JSON.parse(event.data);
-          if (data.onToolStatus) {
-            data.onToolStatus(toolStatus);
-          }
-        } catch (e) {
-          console.error('解析 tool_status 数据失败:', e);
-        }
-      });
-      
-      eventSource.addEventListener('error', (event) => {
-        console.error('SSE 错误:', event);
-        eventSource.close();
-        // 有时候云服务器的SSE连接会有CORS问题，但我们仍然尝试获取错误信息
-        const errorMessage = event.data || 'SSE 连接错误';
-        reject(new Error(errorMessage));
-      });
-      
-      eventSource.addEventListener('end', () => {
-        console.log('SSE 连接关闭');
-        eventSource.close();
-        resolve(result);
-      });
-      
-      // 超时处理
-      setTimeout(() => {
-        eventSource.close();
-        reject(new Error('SSE 请求超时'));
-      }, 60000); // 60 秒超时
+      })
+      // #endif
     });
   },
   
