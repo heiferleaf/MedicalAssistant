@@ -25,14 +25,82 @@ public class OcrDrugRecognitionTool {
 
     @Tool(value = "Recognize drug information from an image using OCR. Returns structured drug information including name, dosage, frequency, etc. IMPORTANT: This tool does NOT actually create any plan or add medicine to cabinet. It only returns the recognized information. The frontend will use this information to show a confirmation card to the user.")
     public Map<String, Object> recognizeDrugFromImage(
-            @P(value = "The image of the drug package in base64 format") String imageBase64) {
+            @P(value = "The image of the drug package, can be a file path (e.g., /images/drug_xxx.jpg) or base64 format") String imageBase64) {
         
         logger.info("OcrDrugRecognitionTool 被调用，开始识别药物图片");
+        logger.info("输入参数：{}", imageBase64 != null ? imageBase64.substring(0, Math.min(100, imageBase64.length())) : "null");
 
         try {
-            // 1. 解码 Base64 图片数据
-            byte[] imageBytes = Base64.getDecoder().decode(imageBase64);
-            logger.info("图片数据解码成功，大小：{} bytes", imageBytes.length);
+            byte[] imageBytes = null;
+            
+            // 检查是否是文件路径
+            if (imageBase64 != null && imageBase64.startsWith("/images/")) {
+                logger.info("检测到文件路径，尝试从文件系统读取：{}", imageBase64);
+                
+                // 尝试从多个可能的位置读取文件
+                java.io.File imageFile = null;
+                String[] possiblePaths = {
+                    imageBase64,
+                    "./nginx/static/images" + imageBase64,
+                    "nginx/static/images" + imageBase64,
+                    "/usr/share/nginx/static/images" + imageBase64.substring(imageBase64.lastIndexOf("/"))
+                };
+                
+                for (String path : possiblePaths) {
+                    if (path != null && !path.isEmpty()) {
+                        java.io.File testFile = new java.io.File(path);
+                        logger.info("测试文件路径：{}，存在：{}", path, testFile.exists());
+                        if (testFile.exists()) {
+                            imageFile = testFile;
+                            logger.info("找到文件：{}", path);
+                            break;
+                        }
+                    }
+                }
+                
+                if (imageFile != null && imageFile.exists()) {
+                    imageBytes = java.nio.file.Files.readAllBytes(imageFile.toPath());
+                    logger.info("从文件读取图片成功，大小：{} bytes", imageBytes.length);
+                } else {
+                    logger.error("图片文件不存在，尝试的路径：{}", String.join(", ", possiblePaths));
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    result.put("success", false);
+                    result.put("message", "图片文件不存在");
+                    return result;
+                }
+            } else if (imageBase64 != null && (imageBase64.startsWith("/9j/") || imageBase64.startsWith("data:image"))) {
+                // 处理 Base64 数据（可能包含 data:image/jpeg;base64, 前缀）
+                logger.info("检测到 Base64 数据");
+                String base64Data = imageBase64;
+                
+                // 移除 data URL 前缀
+                if (base64Data.startsWith("data:image")) {
+                    int commaIndex = base64Data.indexOf(',');
+                    if (commaIndex != -1) {
+                        base64Data = base64Data.substring(commaIndex + 1);
+                        logger.info("已移除 data URL 前缀");
+                    }
+                }
+                
+                // 解码 Base64
+                try {
+                    imageBytes = Base64.getDecoder().decode(base64Data);
+                    logger.info("Base64 解码成功，大小：{} bytes", imageBytes.length);
+                } catch (IllegalArgumentException e) {
+                    logger.error("Base64 解码失败：{}", e.getMessage());
+                    logger.error("Base64 数据前 100 字符：{}", base64Data.substring(0, Math.min(100, base64Data.length())));
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    result.put("success", false);
+                    result.put("message", "Base64 解码失败：" + e.getMessage());
+                    return result;
+                }
+            } else {
+                logger.error("未知的图片格式：{}", imageBase64 != null ? imageBase64.substring(0, Math.min(50, imageBase64.length())) : "null");
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("success", false);
+                result.put("message", "未知的图片格式");
+                return result;
+            }
 
             // 2. 调用 Flask OCR 接口
             Map<String, Object> ocrResult = ocrService.recognizeDrugImage(imageBytes);
