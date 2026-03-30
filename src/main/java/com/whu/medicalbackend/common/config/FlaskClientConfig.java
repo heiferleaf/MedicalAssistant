@@ -11,7 +11,7 @@ public class FlaskClientConfig {
 
     @Bean
     public RestClient flaskRestClient(
-            @Value("${flask.base-url:http://127.0.0.1:8001}") String baseUrl,
+            @Value("${flask.base-url:http://8.148.94.242:8001}") String baseUrl,
             @Value("${flask.timeout-ms:120000}") int timeoutMs
     ) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
