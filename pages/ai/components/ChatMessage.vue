@@ -11,6 +11,7 @@
 		<view v-else-if="role === 'assistant'" class="ai-message-container">
 			<view class="ai-content">
 				<!-- 工具执行步骤 -->
+				<!-- 工具执行步骤 -->
 				<ToolSteps v-if="toolSteps && toolSteps.length > 0" :steps="toolSteps" />
 					
 				<!-- 操作卡片：用药计划 -->
@@ -45,32 +46,22 @@
 					@cancel="handleActionCancel"
 				/>
 				
+				<!-- 图片显示在文字上方 -->
+				<image 
+					v-if="shouldShowImage" 
+					class="msg-img" 
+					:src="image" 
+					mode="aspectFill"
+					@load="handleImageLoad"
+					@error="handleImageError"
+				/>
+				
 				<!-- AI 消息使用 Markdown 渲染 -->
 				<SimpleMarkdown 
 					v-if="type === 'text' && content && content.trim() !== ''" 
 					:content="content" 
 				/>
 				
-				<!-- 图片消息：H5 使用 img 标签，其他平台使用 image 标签 -->
-				<view v-if="image && isH5">
-					<img 
-						:src="image" 
-						class="msg-img"
-						@error="handleImageError"
-						@load="handleImageLoad"
-					/>
-					<!-- 调试：显示 Base64 前缀 -->
-					<view style="font-size: 10px; color: #999; margin-top: 4px;">
-						Base64 前缀：{{ image.substring(0, 30) }}...
-					</view>
-				</view>
-				<image 
-					v-if="!isH5 && image" 
-					class="msg-img" 
-					:src="image" 
-					mode="aspectFill"
-				/>
-						
 				<!-- 插槽：用于扩展其他消息类型 -->
 				<slot></slot>
 			</view>
@@ -78,21 +69,18 @@
 		
 		<!-- 用户消息：保持原有样式 -->
 		<view v-else :class="['chat-bubble', 'chat-bubble-user']">
-			<text v-if="type === 'text'" class="msg-text">{{ content }}</text>
-			<!-- 图片消息：H5 使用 img 标签，其他平台使用 image 标签 -->
-			<img 
-				v-if="isH5 && image" 
-				:src="image" 
-				class="msg-img"
-				@error="handleImageError"
-				@load="handleImageLoad"
-			/>
+			<!-- 图片显示在文字上方 -->
 			<image 
-				v-if="!isH5 && image" 
+				v-if="shouldShowImage" 
 				class="msg-img" 
 				:src="image" 
 				mode="aspectFill"
+				@error="handleImageError"
+				@load="handleImageLoad"
 			/>
+			
+			<!-- 文字内容 -->
+			<text v-if="type === 'text'" class="msg-text">{{ content }}</text>
 			<slot></slot>
 		</view>
 	</view>
@@ -130,12 +118,12 @@ export default {
 			default: 'text'
 		},
 		content: {
-			type: String,
-			default: ''
+			type: [String, Number],
+			default: null
 		},
 		image: {
 			type: String,
-			default: ''
+			default: null
 		},
 		// 操作类型：plan, medicine, task, family 等
 		actionType: {
@@ -153,23 +141,18 @@ export default {
 			default: () => []
 		}
 	},
+	computed: {
+		// 计算属性：确保图片响应式更新
+		shouldShowImage() {
+			// 显式访问 image 属性，触发 Vue 的响应式依赖追踪
+			const img = this.image;
+			return img && img.length > 100;
+		}
+	},
 	data() {
 		return {
-			isH5: uni.getSystemInfoSync().platform === 'web' || window !== undefined
 		};
 	},
-	watch: {
-			image: {
-				immediate: true,
-				handler(newVal) {
-					if (newVal) {
-						console.log('ChatMessage 收到图片:', newVal.substring(0, 50) + '...');
-					} else {
-						console.log('ChatMessage image 为空');
-					}
-				}
-			}
-		},
 	methods: {
 		// 处理图片加载成功
 		handleImageLoad(e) {

@@ -43,9 +43,8 @@
 			<view class="footer">
 				<!-- 图片预览区域 -->
 				<view v-if="showImagePreview && scanImage" class="image-preview-bar">
-					<!-- H5 环境使用 img 标签 -->
-					<img v-if="isH5" :src="scanImageBase64 ? `data:image/jpeg;base64,${scanImageBase64}` : scanImage" class="preview-image"/>
-					<image v-else :src="scanImage" mode="aspectFill" class="preview-image"/>
+					<!-- 使用 image 标签，使用 Base64 显示 -->
+					<image :src="scanImageBase64 || scanImage" mode="aspectFill" class="preview-image"/>
 					<view class="remove-btn" @click="removeImage">
 						<image src="/static/Register/close.png" class="remove-icon"/>
 					</view>
@@ -63,7 +62,7 @@
 		<!-- App 端专用的 SSE 组件（隐藏） -->
 		<ChatSSEClient ref="sseClient" style="display: none;"/>
 		<!-- OCR 上传组件（隐藏） -->
-		<OCRUploader ref="ocrUploader" style="display: none;" @success="handleOCRSuccess" @error="handleOCRError"/>
+		<OCRUploader ref="ocrUploader" style="display: none;" @ocr-success="handleOCRSuccess" @ocr-error="handleOCRError"/>
 		<!-- #endif -->
 	</view>
 </template>
@@ -166,8 +165,15 @@ export default {
 				// #endif
 				
 				// #ifdef APP-PLUS
-				// App 端保存的是路径
+				// App 端保存的是路径，需要转换为 Base64
 				console.log('接收到拍照图片:', imageData);
+				// 使用 Promise 包装异步转换
+				this.convertImagePathToBase64(imageData).then(base64 => {
+					this.scanImageBase64 = base64;
+					console.log('图片路径转换为 Base64，长度:', base64.length);
+				}).catch(err => {
+					console.error('转换图片失败:', err);
+				});
 				// #endif
 			}
 		}
@@ -198,6 +204,33 @@ export default {
 	// #endif
 	methods: {
 		// #ifdef APP-PLUS
+		// 将图片路径转换为 Base64（App 端专用）
+		convertImagePathToBase64(imagePath) {
+			return new Promise((resolve, reject) => {
+				try {
+					plus.io.resolveLocalFileSystemURL(imagePath, (entry) => {
+						entry.file((file) => {
+							const reader = new plus.io.FileReader();
+							reader.onload = (e) => {
+								resolve(e.target.result);
+							};
+							reader.onerror = (err) => {
+								reject(err);
+							};
+							reader.readAsDataURL(file);
+						}, (err) => {
+							reject(err);
+						});
+					}, (err) => {
+						reject(err);
+					});
+				} catch (e) {
+					reject(e);
+				}
+			});
+		},
+		// #endif
+		// #ifdef APP-PLUS
 		// OCR 识别成功处理
 		handleOCRSuccess(data) {
 			console.log('OCR 识别成功:', data)
@@ -215,8 +248,7 @@ export default {
 				icon: 'none'
 			})
 		},
-		
-		// Base64 转 Blob（H5 端使用）
+		// #endif
 		base64ToBlob(base64Data, type = 'image/jpeg') {
 			// 去掉前缀
 			let cleanBase64 = base64Data
@@ -555,9 +587,12 @@ export default {
 				// 如果有图片，创建图片消息
 				// 确保 imagePath 是完整的 data URL，这样保存到本地存储后才能直接显示
 				console.log('创建图片消息，scanImageBase64 长度:', this.scanImageBase64 ? this.scanImageBase64.length : 0);
-				const fullImageDataUrl = this.scanImageBase64 ? `data:image/jpeg;base64,${this.scanImageBase64}` : this.scanImage;
-				console.log('imagePath 设置:', fullImageDataUrl.substring(0, 50) + '...');
-				
+				console.log('创建图片消息，scanImageBase64 前缀:', this.scanImageBase64 ? this.scanImageBase64.substring(0, 30) : 'null');
+						
+				// scanImageBase64 已经包含 data:image/jpeg;base64, 前缀，直接使用
+				const fullImageDataUrl = this.scanImageBase64 || this.scanImage;
+				console.log('imagePath 设置:', fullImageDataUrl ? fullImageDataUrl.substring(0, 50) + '...' : 'null');
+						
 				userMsg = {
 					id: Date.now().toString(),
 					role: 'user',
@@ -566,6 +601,7 @@ export default {
 					imagePath: fullImageDataUrl,
 					createdAt: new Date().toISOString()
 				};
+				console.log('userMsg.imagePath:', userMsg.imagePath ? userMsg.imagePath.substring(0, 50) + '...' : 'null');
 			} else {
 				// 纯文字消息
 				userMsg = createMessage('user', content);
@@ -599,11 +635,35 @@ export default {
 					if (isDrugImagePath) {
 						// 药物图片，使用 Base64 数据上传到 Flask OCR
 						console.log('检测到药物图片，使用 Base64 上传到 Flask OCR');
-										
+											
 						try {
 							// 1. 先获取 Base64 数据
 							let base64Data = this.scanImageBase64;
-											
+												
+							// #ifdef APP-PLUS
+							// App 端：如果是路径，需要等待转换
+							if (!base64Data || base64Data.length < 1000) {
+								console.log('Base64 数据不存在或太短，从路径转换');
+								// 等待转换完成（最多 10 秒）
+								await new Promise((resolve, reject) => {
+									let timeout = 0
+									const checkBase64 = setInterval(() => {
+										timeout += 100
+										if (timeout > 10000) {
+											clearInterval(checkBase64)
+											reject(new Error('等待 Base64 转换超时'))
+											return
+										}
+										if (this.scanImageBase64 && this.scanImageBase64.length > 1000) {
+											clearInterval(checkBase64)
+											resolve()
+										}
+									}, 100)
+								})
+								base64Data = this.scanImageBase64
+							}
+							// #endif
+																	
 							// 如果没有，从路径转换
 							if (!base64Data) {
 								console.log('Base64 数据不存在，从路径转换');
@@ -701,22 +761,7 @@ export default {
 							// 2. 使用 renderjs 上传到 Flask OCR
 							console.log('开始使用 renderjs 上传 OCR');
 							this.ocrLoading = true
-												
-							// #ifdef H5
-							// H5 端：直接调用 fetch
-							const ocrUrl = 'http://8.148.94.242:8001/ocr/predict';
-							const blob = this.base64ToBlob(base64Data);
-							const formData = new FormData();
-							formData.append('file', blob, 'drug.jpg');
-												
-							const response = await fetch(ocrUrl, {
-								method: 'POST',
-								body: formData
-							});
-							const result = await response.json();
-							this.handleOCRSuccess(result);
-							// #endif
-												
+													
 							// #ifdef APP-PLUS
 							// App 端：使用 renderjs 组件
 							if (this.$refs.ocrUploader && this.$refs.ocrUploader.callOCR) {
@@ -731,10 +776,17 @@ export default {
 								throw new Error('OCR 组件未初始化')
 							}
 							// #endif
-												
-							// 等待 OCR 结果
+																						
+							// 等待 OCR 结果（最多等待 30 秒）
 							await new Promise((resolve, reject) => {
+								let timeout = 0
 								const checkResult = setInterval(() => {
+									timeout += 100
+									if (timeout > 30000) {
+										clearInterval(checkResult)
+										reject(new Error('OCR 超时'))
+										return
+									}
 									if (!this.ocrLoading) {
 										clearInterval(checkResult)
 										if (this.ocrResult) {
@@ -748,12 +800,12 @@ export default {
 												
 							console.log('OCR 识别结果:', this.ocrResult.substring(0, 100));
 												
-							// 3. 构造简短消息
-							messageToSend = `用户发送了一张图片，OCR 识别结果：${this.ocrResult.substring(0, 200)}。请根据这个结果回答用户问题。`;
+							// 3. 构造简短消息，明确告诉 AI 图片已经 OCR 识别过了
+							messageToSend = `【前端已 OCR 识别】药品文字识别结果：${this.ocrResult.substring(0, 200)}。请根据这个 OCR 识别结果回答用户问题。`;
 						} catch (e) {
 							console.error('OCR 识别异常:', e);
 							// 异常情况，使用备用方案
-							messageToSend = `用户发送了一张图片，但 OCR 识别失败。请告诉用户重新上传图片。`;
+							messageToSend = `【前端 OCR 识别失败】请告诉用户重新上传图片。`;
 						}
 				}
 				}

@@ -138,102 +138,88 @@ export default {
  */
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 
-export default {
-  data() {
-    return {
-      // 当前控制器
-      ctrl: null
-    }
-  },
-  methods: {
-    /**
-     * 开始 SSE 流式请求（renderjs 环境）
-     */
-    startChatCore(newVal, oldVal, ownerInstance, instance) {
-      if (!newVal || !newVal.url) {
-        return
-      }
-      
-      console.log('renderjs: 开始 SSE 请求', newVal.url)
-      
-      // 如果已有连接，先停止
-      if (this.ctrl) {
-        this.ctrl.abort()
-        this.ctrl = null
-      }
-      
-      try {
-        // 创建 AbortController
-        this.ctrl = new AbortController()
-        
-        console.log('renderjs: 发送请求，URL:', newVal.url)
-        
-        // 使用 fetch-event-source 发起 SSE 请求
-        // 注意：所有参数已经在 URL 中，不需要 body
-        fetchEventSource(newVal.url, {
-          method: 'POST',  // 后端要求 POST
-          signal: this.ctrl.signal,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            ...newVal.headers
-          },
-          // 不发送 body，因为参数都在 URL 中
-          
-          // 连接打开
-          onopen: () => {
-            console.log('renderjs: SSE 连接已打开')
-            ownerInstance.callMethod('onOpen')
-          },
-          
-          // 收到消息
-          onmessage: (msg) => {
-            console.log('renderjs: 收到消息', msg.data, '长度:', msg.data.length)
-            
-            // 过滤 [DONE] 标记
-            if (msg.data === '[DONE]') {
-              console.log('renderjs: 过滤 [DONE]')
-              return
-            }
-            
-            ownerInstance.callMethod('onMessage', msg.data)
-          },
-          
-          // 发生错误
-          onerror: (err) => {
-            console.error('renderjs: SSE 错误', err)
-            ownerInstance.callMethod('onError', err)
-            
-            // 抛出错误，让 fetchEventSource 停止重试
-            throw err
-          }
-        }).then(() => {
-          console.log('renderjs: SSE 请求完成')
-          ownerInstance.callMethod('onFinish')
-        }).catch(err => {
-          console.error('renderjs: SSE 请求失败', err)
-          // 如果不是手动中止，则通知错误
-          if (err.name !== 'AbortError') {
-            ownerInstance.callMethod('onError', err)
-          }
-        })
-        
-      } catch (e) {
-        console.error('renderjs: SSE 请求异常', e)
-        ownerInstance.callMethod('onError', e)
-      }
-    },
+// renderjs 不需要 export default，直接暴露方法
+let ctrl = null
+
+function startChatCore(newVal, oldVal, ownerInstance, instance) {
+  if (!newVal || !newVal.url) {
+    return
+  }
+  
+  console.log('renderjs: 开始 SSE 请求', newVal.url)
+  
+  // 如果已有连接，先停止
+  if (ctrl) {
+    ctrl.abort()
+    ctrl = null
+  }
+  
+  try {
+    // 创建 AbortController
+    ctrl = new AbortController()
     
-    /**
-     * 停止 SSE 请求（renderjs 环境）
-     */
-    stopChatCore(newVal, oldVal, ownerInstance, instance) {
-      console.log('renderjs: 停止 SSE 请求')
+    console.log('renderjs: 发送请求，URL:', newVal.url)
+    
+    // 使用 fetch-event-source 发起 SSE 请求
+    fetchEventSource(newVal.url, {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        ...newVal.headers
+      },
       
-      if (this.ctrl) {
-        this.ctrl.abort()
-        this.ctrl = null
+      onopen: () => {
+        console.log('renderjs: SSE 连接已打开')
+        ownerInstance.callMethod('onOpen')
+      },
+      
+      onmessage: (msg) => {
+        console.log('renderjs: 收到消息', msg.data, '长度:', msg.data.length)
+        
+        if (msg.data === '[DONE]') {
+          console.log('renderjs: 过滤 [DONE]')
+          return
+        }
+        
+        ownerInstance.callMethod('onMessage', msg.data)
+      },
+      
+      onerror: (err) => {
+        console.error('renderjs: SSE 错误', err)
+        ownerInstance.callMethod('onError', err)
+        throw err
       }
-    }
+    }).then(() => {
+      console.log('renderjs: SSE 请求完成')
+      ownerInstance.callMethod('onFinish')
+    }).catch(err => {
+      console.error('renderjs: SSE 请求失败', err)
+      if (err.name !== 'AbortError') {
+        ownerInstance.callMethod('onError', err)
+      }
+    })
+    
+  } catch (e) {
+    console.error('renderjs: SSE 请求异常', e)
+    ownerInstance.callMethod('onError', e)
+  }
+}
+
+function stopChatCore(newVal, oldVal, ownerInstance, instance) {
+  console.log('renderjs: 停止 SSE 请求')
+  
+  if (ctrl) {
+    ctrl.abort()
+    ctrl = null
+  }
+}
+
+// 暴露方法给模板使用
+export default {
+  methods: {
+    startChatCore,
+    stopChatCore
   }
 }
 </script>
