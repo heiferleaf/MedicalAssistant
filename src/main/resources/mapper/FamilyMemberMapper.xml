@@ -12,7 +12,7 @@
         select group_id from family_member where user_id = #{userId} and status = 'active' and is_deleted = 0 limit 1
     </select>
 
-    <insert id="insert" parameterType="FamilyMember" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insert" parameterType="com.whu.medicalbackend.family.entity.FamilyMember" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO family_member(group_id, user_id, role, join_time, status, is_deleted)
         VALUES(#{groupId}, #{userId}, #{role}, #{joinTime}, #{status}, 0)
     </insert>
