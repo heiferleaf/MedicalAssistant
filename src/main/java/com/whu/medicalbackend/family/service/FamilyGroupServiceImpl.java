@@ -249,7 +249,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
             }
 
             // 自己同意自己的申请
-            if(apply.getInviteeId().equals(userId)) {
+            if(apply.getType().equals(InviteType.apply) && apply.getInviteeId().equals(userId)) {
                 throw new BusinessException("无法同意自己的申请");
             }
 
