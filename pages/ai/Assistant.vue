@@ -43,9 +43,8 @@
 			<view class="footer">
 				<!-- 图片预览区域 -->
 				<view v-if="showImagePreview && scanImage" class="image-preview-bar">
-					<!-- H5 环境使用 img 标签 -->
-					<img v-if="isH5" :src="scanImageBase64 ? `data:image/jpeg;base64,${scanImageBase64}` : scanImage" class="preview-image"/>
-					<image v-else :src="scanImage" mode="aspectFill" class="preview-image"/>
+					<!-- 使用 image 标签，使用 Base64 显示 -->
+					<image :src="scanImageBase64 || scanImage" mode="aspectFill" class="preview-image"/>
 					<view class="remove-btn" @click="removeImage">
 						<image src="/static/Register/close.png" class="remove-icon"/>
 					</view>
@@ -588,9 +587,12 @@ export default {
 				// 如果有图片，创建图片消息
 				// 确保 imagePath 是完整的 data URL，这样保存到本地存储后才能直接显示
 				console.log('创建图片消息，scanImageBase64 长度:', this.scanImageBase64 ? this.scanImageBase64.length : 0);
-				const fullImageDataUrl = this.scanImageBase64 ? `data:image/jpeg;base64,${this.scanImageBase64}` : this.scanImage;
-				console.log('imagePath 设置:', fullImageDataUrl.substring(0, 50) + '...');
-				
+				console.log('创建图片消息，scanImageBase64 前缀:', this.scanImageBase64 ? this.scanImageBase64.substring(0, 30) : 'null');
+						
+				// scanImageBase64 已经包含 data:image/jpeg;base64, 前缀，直接使用
+				const fullImageDataUrl = this.scanImageBase64 || this.scanImage;
+				console.log('imagePath 设置:', fullImageDataUrl ? fullImageDataUrl.substring(0, 50) + '...' : 'null');
+						
 				userMsg = {
 					id: Date.now().toString(),
 					role: 'user',
@@ -599,6 +601,7 @@ export default {
 					imagePath: fullImageDataUrl,
 					createdAt: new Date().toISOString()
 				};
+				console.log('userMsg.imagePath:', userMsg.imagePath ? userMsg.imagePath.substring(0, 50) + '...' : 'null');
 			} else {
 				// 纯文字消息
 				userMsg = createMessage('user', content);
@@ -797,12 +800,12 @@ export default {
 												
 							console.log('OCR 识别结果:', this.ocrResult.substring(0, 100));
 												
-							// 3. 构造简短消息
-							messageToSend = `用户发送了一张图片，OCR 识别结果：${this.ocrResult.substring(0, 200)}。请根据这个结果回答用户问题。`;
+							// 3. 构造简短消息，明确告诉 AI 图片已经 OCR 识别过了
+							messageToSend = `【前端已 OCR 识别】药品文字识别结果：${this.ocrResult.substring(0, 200)}。请根据这个 OCR 识别结果回答用户问题。`;
 						} catch (e) {
 							console.error('OCR 识别异常:', e);
 							// 异常情况，使用备用方案
-							messageToSend = `用户发送了一张图片，但 OCR 识别失败。请告诉用户重新上传图片。`;
+							messageToSend = `【前端 OCR 识别失败】请告诉用户重新上传图片。`;
 						}
 				}
 				}
