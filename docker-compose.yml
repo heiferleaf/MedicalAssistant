@@ -53,7 +53,7 @@ services:
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
       FLASK_URL: http://8.148.94.242:8001         #  Flask
-      DASHSCOPE_API_KEY: sk-dfa4f94422704c1c84204ff096302ea5
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
       INSTANCE_ID: instance-a
     depends_on:
       - mysql
@@ -82,7 +82,7 @@ services:
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
       FLASK_URL: http://8.148.94.242:8001         #  Flask
-      DASHSCOPE_API_KEY: sk-dfa4f94422704c1c84204ff096302ea5
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
       INSTANCE_ID: instance-b
     depends_on:
       - mysql
@@ -127,7 +127,7 @@ services:
     depends_on:
 #      mysql:
 #        condition: service_healthy
-      rabbit:
+      rabbitmq:
         condition: service_healthy
     volumes:
       - ./canal-config/canal.properties:/home/admin/canal-server/conf/canal.properties
