@@ -82,6 +82,16 @@ public class AgentProxyController {
         logger.info("userId={}, sessionId={}, message 长度={}, token={}", userId, sessionId, message != null ? message.length() : 0, token != null ? "provided" : "missing");
         logger.info("===================================");
         
+        // URL 解码 message 参数
+        if (message != null && !message.isEmpty()) {
+            try {
+                message = java.net.URLDecoder.decode(message, "UTF-8");
+                logger.info("解码后 message 长度={}", message.length());
+            } catch (Exception e) {
+                logger.error("URL 解码失败", e);
+            }
+        }
+        
         return handleChatStream(userId, sessionId, message);
     }
     
