@@ -5,6 +5,7 @@ import com.whu.medicalbackend.agent.langchain4j.agents.MedicalAgent;
 import com.whu.medicalbackend.agent.core.memory.AgentMemoryRepository;
 import com.whu.medicalbackend.agent.langchain4j.core.listener.ToolExecutionBroadcaster;
 import com.whu.medicalbackend.agent.service.OcrService;
+import com.whu.medicalbackend.agent.service.ToolExecutionPendingService;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -32,6 +33,7 @@ public class AgentOrchestratorService {
     private final MedicalAgent medicalAgent;
     private final ToolExecutionBroadcaster toolExecutionBroadcaster;
     private final OcrService ocrService;
+    private final ToolExecutionPendingService toolExecutionPendingService;
     private final String flaskBaseUrl;
     private final boolean llmEnabled;
 
@@ -42,12 +44,14 @@ public class AgentOrchestratorService {
             MedicalAgent medicalAgent,
             ToolExecutionBroadcaster toolExecutionBroadcaster,
             OcrService ocrService,
+            ToolExecutionPendingService toolExecutionPendingService,
             @Value("${flask.base-url:http://localhost:8001}") String flaskBaseUrl,
             @Value("${agent.llm.enabled:false}") boolean llmEnabled) {
         this.memoryRepository = memoryRepository;
         this.flaskRagProxyService = flaskRagProxyService;
         this.chatModel = chatModel;
         this.medicalAgent = medicalAgent;
+        this.toolExecutionPendingService = toolExecutionPendingService;
         this.toolExecutionBroadcaster = toolExecutionBroadcaster;
         this.ocrService = ocrService;
         this.flaskBaseUrl = flaskBaseUrl;
@@ -259,53 +263,71 @@ public class AgentOrchestratorService {
             if (llmEnabled) {
                 try {
                     logger.info("使用 Medical Agent 进行流式处理");
-                    // 对于 Medical Agent，我们先使用非流式调用，然后模拟流式返回
-                    Map<String, Object> result = medicalAgent.execute(sessionId, userId, message, message);
                     
-                    if (result != null && result.get("success") != null && (Boolean) result.get("success")) {
-                        String assistantMessage = (String) result.get("assistant_message");
-                        String actionType = (String) result.get("action_type");
-                        String actionData = (String) result.get("action_data");
+                    // 直接调用 chat 方法，这样工具执行状态会实时发送
+                    String assistantMessage = medicalAgent.chat(sessionId, userId, message);
+                    logger.info("Agent 文本回复：{}", assistantMessage);
+                    
+                    // 检查是否有待确认的请求（通过数据库查询）
+                    List<?> pendingRequests = toolExecutionPendingService.getUserPendingRequests(Long.parseLong(userId));
+                    String actionType = null;
+                    String actionData = null;
+                    
+                    if (pendingRequests != null && !pendingRequests.isEmpty()) {
+                        // 有待确认的请求
+                        Object pending = pendingRequests.get(0);
+                        logger.info("检测到待确认请求：{}", pending);
                         
-                        if (assistantMessage != null && !assistantMessage.isBlank()) {
-                            logger.info("开始流式发送消息，长度：{}", assistantMessage.length());
+                        // 从待确认请求中提取 action 信息
+                        if (pending instanceof Map) {
+                            Map<?, ?> pendingMap = (Map<?, ?>) pending;
+                            actionType = (String) pendingMap.get("action_type");
+                            actionData = (String) pendingMap.get("tool_args_json");
                             
-                            // 将完整消息按批次流式发送（每批 10 个字符）
-                            int batchSize = 10;
-                            for (int i = 0; i < assistantMessage.length(); i += batchSize) {
-                                int end = Math.min(i + batchSize, assistantMessage.length());
-                                String batch = assistantMessage.substring(i, end);
-                                emitter.send(SseEmitter.event()
-                                    .name("message")
-                                    .data(batch));
-                                
-                                // 每 50ms 发送一批，模拟流式效果
-                                try {
-                                    Thread.sleep(50);
-                                } catch (InterruptedException e) {
-                                    Thread.currentThread().interrupt();
-                                    break;
-                                }
+                            if (actionType != null && actionData != null) {
+                                logger.info("返回 action 信息：actionType={}, actionData={}", actionType, actionData);
                             }
+                        }
+                    }
+                    
+                    if (assistantMessage != null && !assistantMessage.isBlank()) {
+                        logger.info("开始流式发送消息，长度：{}", assistantMessage.length());
+                        
+                        // 将完整消息按批次流式发送（每批 10 个字符）
+                        int batchSize = 10;
+                        for (int i = 0; i < assistantMessage.length(); i += batchSize) {
+                            int end = Math.min(i + batchSize, assistantMessage.length());
+                            String batch = assistantMessage.substring(i, end);
+                            emitter.send(SseEmitter.event()
+                                .name("message")
+                                .data(batch));
                             
-                            logger.info("流式发送完成");
-                            fullResponse.append(assistantMessage);
-                            
-                            // 保存 AI 回复到数据库
-                            if (actionType != null && !actionType.isBlank() && actionData != null) {
-                                memoryRepository.appendMessageWithAction(
-                                    sessionId, userId, "assistant", assistantMessage, actionType, actionData
-                                );
-                                // 发送 action 数据
-                                emitter.send(SseEmitter.event()
-                                    .name("action")
-                                    .data(Map.of(
-                                        "action_type", actionType,
-                                        "action_data", actionData
-                                    )));
-                            } else {
-                                memoryRepository.appendMessage(sessionId, userId, "assistant", assistantMessage);
+                            // 每 50ms 发送一批，模拟流式效果
+                            try {
+                                Thread.sleep(50);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                break;
                             }
+                        }
+                        
+                        logger.info("流式发送完成");
+                        fullResponse.append(assistantMessage);
+                        
+                        // 保存 AI 回复到数据库
+                        if (actionType != null && !actionType.isBlank() && actionData != null) {
+                            memoryRepository.appendMessageWithAction(
+                                sessionId, userId, "assistant", assistantMessage, actionType, actionData
+                            );
+                            // 发送 action 数据
+                            emitter.send(SseEmitter.event()
+                                .name("action")
+                                .data(Map.of(
+                                    "action_type", actionType,
+                                    "action_data", actionData
+                                )));
+                        } else {
+                            memoryRepository.appendMessage(sessionId, userId, "assistant", assistantMessage);
                         }
                     }
                     
