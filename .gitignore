@@ -35,3 +35,5 @@ build/
 
 temp-langchain4j/
 temp-*/
+/src/main/resources/application.yaml
+.DS_Store

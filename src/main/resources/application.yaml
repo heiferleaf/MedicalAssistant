@@ -41,9 +41,9 @@ spring:
     # JDBC URL
     url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/${MYSQL_DB:medicalassistant}?useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai
     # 数据库用户名
-    username: ${MYSQL_USER:appuser}
+    username: ${MYSQL_USER:root}
     # 数据库密码
-    password: ${MYSQL_PASSWORD:App123456}
+    password: ${MYSQL_PASSWORD:mt127715318}
     # 驱动类名（MySQL 8.x）
     driver-class-name:  com.mysql.cj.jdbc.Driver
 
@@ -89,7 +89,7 @@ mybatis:
 # 阿里云 DashScope 配置
 dashscope:
   api-key: ${DASHSCOPE_API_KEY:}
-  model: qwen-turbo  # 使用支持联网搜索的模型
+  model: qwen-max  # 使用支持联网搜索的模型
 
 # Redis Pub/Sub 判断的实例依据
 app:
