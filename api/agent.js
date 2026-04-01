@@ -61,6 +61,32 @@ export default {
         }
       });
       
+      // 添加工具状态事件监听
+      eventSource.addEventListener('tool_status', (event) => {
+        try {
+          const toolStatus = JSON.parse(event.data);
+          if (data.onToolStatus) {
+            data.onToolStatus(toolStatus);
+          }
+        } catch (error) {
+          console.error('解析工具状态事件失败:', error);
+        }
+      });
+      
+      // 添加 action 事件监听
+      eventSource.addEventListener('action', (event) => {
+        try {
+          const action = JSON.parse(event.data);
+          result.actionType = action.action_type;
+          result.actionData = action.action_data;
+          if (data.onAction) {
+            data.onAction(action);
+          }
+        } catch (error) {
+          console.error('解析 action 事件失败:', error);
+        }
+      });
+      
       eventSource.onerror = (error) => {
         eventSource.close();
         reject(error);
@@ -84,6 +110,16 @@ export default {
         onMessage: (chunk) => {
           if (data.onChunk) {
             data.onChunk(chunk)
+          }
+        },
+        onToolStatus: (toolStatus) => {
+          if (data.onToolStatus) {
+            data.onToolStatus(toolStatus)
+          }
+        },
+        onAction: (action) => {
+          if (data.onAction) {
+            data.onAction(action)
           }
         },
         onDone: () => {
