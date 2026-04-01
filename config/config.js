@@ -42,12 +42,12 @@ const USE_SIMULATOR = true; // 是否使用模拟器
 if (process.env.NODE_ENV === "production") {
   // 开发环境：点击“运行”时生效
   // 可以是 localhost，也可以是局域网 IP
-  BASE_URL = "http://8.148.94.242:80/api";
-  WS_BASE_URL = "ws://8.148.94.242:80/ws";
+  BASE_URL = "http://192.168.57.189:8080/api";
+  WS_BASE_URL = "ws://192.168.57.189:8080/ws";
 } else if (process.env.NODE_ENV === "development" && USE_SIMULATOR) {
   // 生产环境：点击“发行”打包时自动生效
-  BASE_URL = "http://8.148.94.242:80/api";
-  WS_BASE_URL = "ws://8.148.94.242:80/ws";
+  BASE_URL = "http://192.168.57.189:8080/api";
+  WS_BASE_URL = "ws://192.168.57.189:8080/ws";
 } else {
   BASE_URL = "http://localhost:80/api";
   WS_BASE_URL = "ws://localhost:80/ws";

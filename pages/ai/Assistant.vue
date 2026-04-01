@@ -610,14 +610,14 @@ export default {
 			this.scrollToBottom();
 			
 			// 添加加载状态
-			const loadingMsg = createMessage('loading', '');
-			this.messages.push(loadingMsg);
-			this.scrollToBottom();
-			this.loading = true;
-			
-			// 模拟状态变化（实际应该根据后端返回的工具调用状态来切换）
-			const statusTimer = setTimeout(() => {
-			}, 2000);
+				const loadingMsg = createMessage('loading', '');
+				this.messages.push(loadingMsg);
+				this.scrollToBottom();
+				this.loading = true;
+				
+				// 模拟状态变化（实际应该根据后端返回的工具调用状态来切换）
+				const statusTimer = setTimeout(() => {
+				}, 2000);
 			
 			try {
 				// 准备发送给 AI 的消息
@@ -879,16 +879,29 @@ export default {
 								status: 'processing',
 								error: null
 							});
-												
+							
 							// 如果还没有消息气泡，先创建一个
 							if (!assistantMsg) {
-								assistantMsg = createMessage('assistant', '');
+								// 移除加载状态消息
+								const loadingIndex = this.messages.findIndex(m => m.role === 'loading');
+								if (loadingIndex !== -1) {
+									this.messages.splice(loadingIndex, 1);
+								}
+								
+								// 创建消息气泡显示工具执行步骤
+								// 使用工具描述作为消息内容，这样用户能看到正在执行什么操作
+								assistantMsg = createMessage('assistant', toolStatus.description + '...');
 								assistantMsg.toolSteps = toolSteps;
 								this.messages.push(assistantMsg);
 								this.scrollToBottom();
 							} else {
-								// 更新工具步骤
-								assistantMsg.toolSteps = toolSteps;
+								// 更新工具步骤：通过替换整个数组元素来强制 Vue 重新渲染
+								const index = this.messages.indexOf(assistantMsg);
+								if (index !== -1) {
+									const newMsg = Object.assign({}, assistantMsg, { toolSteps: [...toolSteps] });
+									this.messages.splice(index, 1, newMsg);
+									assistantMsg = newMsg;
+								}
 							}
 												
 						} else if (toolStatus.type === 'tool_complete') {
@@ -902,7 +915,12 @@ export default {
 													
 								// 强制更新视图
 								if (assistantMsg) {
-									assistantMsg.toolSteps = [...toolSteps];
+									const index = this.messages.indexOf(assistantMsg);
+									if (index !== -1) {
+										const newMsg = Object.assign({}, assistantMsg, { toolSteps: [...toolSteps] });
+										this.messages.splice(index, 1, newMsg);
+										assistantMsg = newMsg;
+									}
 								}
 							}
 						}
