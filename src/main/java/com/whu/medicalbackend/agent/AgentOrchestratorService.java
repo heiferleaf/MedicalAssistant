@@ -4,6 +4,7 @@ import com.whu.medicalbackend.agent.flask.FlaskRagProxyService;
 import com.whu.medicalbackend.agent.langchain4j.agents.MedicalAgent;
 import com.whu.medicalbackend.agent.core.memory.AgentMemoryRepository;
 import com.whu.medicalbackend.agent.langchain4j.core.listener.ToolExecutionBroadcaster;
+import com.whu.medicalbackend.agent.service.OcrService;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -30,6 +31,7 @@ public class AgentOrchestratorService {
     private final ChatModel chatModel;
     private final MedicalAgent medicalAgent;
     private final ToolExecutionBroadcaster toolExecutionBroadcaster;
+    private final OcrService ocrService;
     private final String flaskBaseUrl;
     private final boolean llmEnabled;
 
@@ -39,13 +41,15 @@ public class AgentOrchestratorService {
             ChatModel chatModel,
             MedicalAgent medicalAgent,
             ToolExecutionBroadcaster toolExecutionBroadcaster,
-            @Value("${flask.base-url:http://127.0.0.1:8001}") String flaskBaseUrl,
+            OcrService ocrService,
+            @Value("${flask.base-url:http://localhost:8001}") String flaskBaseUrl,
             @Value("${agent.llm.enabled:false}") boolean llmEnabled) {
         this.memoryRepository = memoryRepository;
         this.flaskRagProxyService = flaskRagProxyService;
         this.chatModel = chatModel;
         this.medicalAgent = medicalAgent;
         this.toolExecutionBroadcaster = toolExecutionBroadcaster;
+        this.ocrService = ocrService;
         this.flaskBaseUrl = flaskBaseUrl;
         this.llmEnabled = llmEnabled;
 
@@ -93,50 +97,52 @@ public class AgentOrchestratorService {
         try {
             logger.info("使用 Medical Agent 处理请求");
             
-            // 检查是否包含图片数据（Base64）
-            if (message.contains("图片数据：") && message.contains("/9j/")) {
-                logger.info("检测到图片消息，手动调用 OCR 工具");
-                // 提取 Base64 数据
-                int base64Index = message.indexOf("/9j/");
-                String base64Data = message.substring(base64Index);
+            // 检查是否包含 OCR 结果（前端已经调用过 OCR）
+            boolean hasOcrResult = message.contains("OCR 识别结果：");
+            boolean hasBase64Image = message.contains("图片数据：") && message.contains("/9j/");
+            boolean hasImagePath = message.contains("图片路径：") && message.contains("/images/drug_");
+            
+            if (hasOcrResult || hasBase64Image || hasImagePath) {
+                logger.info("检测到图片消息（OCR 结果={}, Base64={}, 路径={})，直接处理不经过 LLM", hasOcrResult, hasBase64Image, hasImagePath);
                 
-                // 直接调用 OCR 工具
-                try {
-                    // 通过反射或其他方式调用 OCR 工具
-                    // 这里我们直接调用 Flask OCR 服务
-                    Map<String, Object> ocrResult = callFlaskOcr(base64Data);
+                String ocrText = null;
+                if (hasOcrResult) {
+                    // 前端已经调用过 OCR，直接提取 OCR 结果
+                    int ocrStart = message.indexOf("OCR 识别结果：") + 7;
+                    int ocrEnd = message.indexOf("。请根据", ocrStart);
+                    if (ocrEnd == -1) ocrEnd = message.length();
+                    ocrText = message.substring(ocrStart, ocrEnd).trim();
+                    logger.info("从消息中提取 OCR 结果：{}", ocrText.substring(0, Math.min(100, ocrText.length())));
                     
-                    if (ocrResult != null && (Boolean) ocrResult.get("success")) {
-                        logger.info("OCR 识别成功，结果：{}", ocrResult.get("output"));
-                        
-                        // 构建响应
-                        Map<String, Object> result = new LinkedHashMap<>();
-                        result.put("success", true);
-                        result.put("assistant_message", "药品识别结果：\n\n" + ocrResult.get("output"));
-                        result.put("need_confirm", false);
-                        result.put("actions", List.of());
-                        
-                        // 保存 OCR 结果到数据库
-                        String output = (String) ocrResult.get("output");
-                        memoryRepository.appendMessage(sessionId, userId, "assistant", output);
-                        
-                        if (withTrace) {
-                            Map<String, Object> trace = new LinkedHashMap<>();
-                            trace.put("agent_version", AGENT_VERSION);
-                            trace.put("control", "ocr_manual");
-                            trace.put("ocr_result", ocrResult);
-                            result.put("trace", trace);
-                        }
-                        
-                        return result;
-                    } else {
-                        logger.warn("OCR 识别失败：{}", ocrResult.get("message"));
+                    // 直接使用 OCR 结果回答
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    result.put("success", true);
+                    result.put("assistant_message", "药品识别结果：\n\n" + ocrText);
+                    result.put("need_confirm", false);
+                    result.put("actions", List.of());
+                    
+                    // 保存 OCR 结果到数据库
+                    memoryRepository.appendMessage(sessionId, userId, "assistant", ocrText);
+                    
+                    if (withTrace) {
+                        Map<String, Object> trace = new LinkedHashMap<>();
+                        trace.put("agent_version", AGENT_VERSION);
+                        trace.put("control", "ocr_direct");
+                        Map<String, Object> ocrData = new LinkedHashMap<>();
+                        ocrData.put("output", ocrText);
+                        trace.put("ocr_result", ocrData);
+                        result.put("trace", trace);
                     }
-                } catch (Exception e) {
-                    logger.error("OCR 调用失败", e);
+                    
+                    return result;
+                } else {
+                    // 如果有 Base64 或路径但没有 OCR 结果，调用 OCR 服务
+                    logger.info("未检测到 OCR 结果，但有图片数据，需要调用 OCR 服务（暂未实现）");
+                    // TODO: 实现 Base64 或路径的 OCR 调用
                 }
             }
             
+            // 没有图片，使用 Medical Agent 正常处理
             Map<String, Object> result = medicalAgent.execute(sessionId, userId, message, message);
 
             // 保存 AI 回复到数据库
@@ -264,16 +270,18 @@ public class AgentOrchestratorService {
                         if (assistantMessage != null && !assistantMessage.isBlank()) {
                             logger.info("开始流式发送消息，长度：{}", assistantMessage.length());
                             
-                            // 将完整消息按字符流式发送
-                            for (int i = 0; i < assistantMessage.length(); i++) {
-                                char c = assistantMessage.charAt(i);
+                            // 将完整消息按批次流式发送（每批 10 个字符）
+                            int batchSize = 10;
+                            for (int i = 0; i < assistantMessage.length(); i += batchSize) {
+                                int end = Math.min(i + batchSize, assistantMessage.length());
+                                String batch = assistantMessage.substring(i, end);
                                 emitter.send(SseEmitter.event()
                                     .name("message")
-                                    .data(String.valueOf(c)));
+                                    .data(batch));
                                 
-                                // 每 10ms 发送一个字符，模拟流式效果（更快的响应）
+                                // 每 50ms 发送一批，模拟流式效果
                                 try {
-                                    Thread.sleep(10);
+                                    Thread.sleep(50);
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
                                     break;
@@ -332,16 +340,18 @@ public class AgentOrchestratorService {
                 AiMessage aiMessage = chatResponse.aiMessage();
                 String response = aiMessage.text();
                 
-                // 将完整消息按字符流式发送
-                for (int i = 0; i < response.length(); i++) {
-                    char c = response.charAt(i);
+                // 将完整消息按批次流式发送（每批 10 个字符）
+                int batchSize = 10;
+                for (int i = 0; i < response.length(); i += batchSize) {
+                    int end = Math.min(i + batchSize, response.length());
+                    String batch = response.substring(i, end);
                     emitter.send(SseEmitter.event()
                         .name("message")
-                        .data(String.valueOf(c)));
+                        .data(batch));
                     
-                    // 每 10ms 发送一个字符，模拟流式效果
+                    // 每 50ms 发送一批，模拟流式效果
                     try {
-                        Thread.sleep(10);
+                        Thread.sleep(50);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         break;
@@ -394,71 +404,21 @@ public class AgentOrchestratorService {
         byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Data);
         logger.info("图片数据解码成功，大小：{} bytes", imageBytes.length);
         
-        // 使用 HttpURLConnection 发送 multipart/form-data 请求
-        java.net.URL url = new java.net.URL(flaskBaseUrl + "/ocr/predict");
-        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-        conn.setDoOutput(true);
-        conn.setRequestMethod("POST");
-        conn.setConnectTimeout(10000);
-        conn.setReadTimeout(30000);
+        // 使用 OcrService 调用
+        Map<String, Object> ocrResult = ocrService.recognizeDrugImage(imageBytes);
         
-        String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
-        conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
-        
-        try (java.io.OutputStream os = conn.getOutputStream()) {
-            // 写入文件部分
-            String disposition = "Content-Disposition: form-data; name=\"file\"; filename=\"drug.jpg\"\r\n";
-            String contentType = "Content-Type: image/jpeg\r\n\r\n";
-            
-            os.write(("--" + boundary + "\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            os.write(disposition.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            os.write(contentType.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            os.write(imageBytes);
-            os.write(("\r\n--" + boundary + "--\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            os.flush();
-        }
-        
-        // 获取响应
-        int statusCode = conn.getResponseCode();
-        logger.info("OCR 响应状态码：{}", statusCode);
-        
-        java.io.InputStream inputStream;
-        if (statusCode >= 400) {
-            inputStream = conn.getErrorStream();
-        } else {
-            inputStream = conn.getInputStream();
-        }
-        
-        String response;
-        try (java.io.BufferedReader br = new java.io.BufferedReader(
-                new java.io.InputStreamReader(inputStream, java.nio.charset.StandardCharsets.UTF_8))) {
-            StringBuilder responseBuilder = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) {
-                responseBuilder.append(line);
-            }
-            response = responseBuilder.toString();
-        }
-        
-        logger.info("OCR 响应内容：{}", response);
-        
-        // 解析响应
-        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        Map<String, Object> ocrResult = mapper.readValue(response, Map.class);
-        
-        // 检查响应状态
-        if ("success".equals(ocrResult.get("status"))) {
-            logger.info("OCR 识别成功");
+        if (ocrResult != null && "success".equals(ocrResult.get("status"))) {
+            logger.info("OCR 识别成功，结果：{}", ocrResult.get("output"));
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);
             result.put("ocr_result", ocrResult.get("ocr_result"));
             result.put("output", ocrResult.get("output"));
             return result;
         } else {
-            logger.warn("OCR 识别失败：{}", ocrResult.get("message"));
+            logger.warn("OCR 识别失败：{}", ocrResult != null ? ocrResult.get("message") : "null");
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", false);
-            result.put("message", ocrResult.get("message"));
+            result.put("message", ocrResult != null ? ocrResult.get("message") : "OCR 服务不可用");
             return result;
         }
     }

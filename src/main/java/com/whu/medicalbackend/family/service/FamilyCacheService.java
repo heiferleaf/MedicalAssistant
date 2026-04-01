@@ -99,7 +99,8 @@ public class FamilyCacheService {
                 .map(o -> (String) redisService.getWithHash(key ,(String) o))
                 .map(jsonStr -> {
                     try {
-                        return objectMapper.readValue(jsonStr, FamilyMemberVO.class);
+                        FamilyMemberVO familyMemberVO = objectMapper.readValue(jsonStr, FamilyMemberVO.class);
+                        return familyMemberVO;
                     } catch (JsonProcessingException e) {
                         throw new BusinessException("读取redis中的家庭成员信息出错" + e.getMessage());
                     }
