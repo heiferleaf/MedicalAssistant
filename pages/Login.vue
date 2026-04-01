@@ -131,7 +131,7 @@ export default {
           title: "登录成功",
           icon: "success",
         });
-        console.log("登录结果:", result);
+        console.log("Login Result: ", result);
 
         uni.setStorageSync("userId", result.id);
         uni.setStorageSync("username", result.username);

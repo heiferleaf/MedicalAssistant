@@ -60,7 +60,7 @@ export default {
           icon: "/static/Home/reminder.svg",
           color: "#ef4444",
         },
-        // { id: 5, name: "健康信息", icon: "/static/Home/reminder.svg", color: "#8b5cf6" },
+        { id: 5, name: "健康信息", icon: "/static/Home/reminder.svg", color: "#8b5cf6" },
         // { id: 6, name: "拍照识别", icon: "/static/Home/reminder.svg", color: "#f59e0b" },
       ],
     };
@@ -73,7 +73,7 @@ export default {
         3: "/pages/family/index",
         // 4: "/pages/ai/Assistant",
         4: "/pages/reminder/Reminder",
-        // 5: "/pages/test/health",
+        5: "/pages/test/health",
         // 6: "/pages/test/camera",
       };
       if (funcId === 3) {

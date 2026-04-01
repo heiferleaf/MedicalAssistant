@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <view class="container">
         <view class="header">
             <text class="title">自定义相机插件测试</text>
@@ -125,4 +125,29 @@ export default {
     line-height: 1.5;
     word-break: break-all;
 }
+</style> -->
+
+<template>
+  <view>
+    test camera
+    test camera
+    test camera
+  </view>
+</template>
+
+<script>
+export default {
+    data() {
+        return {
+            // 这里可以定义一些数据属性
+        }
+    },
+    methods: {
+        // 这里可以定义一些方法
+    }
+}
+</script>
+
+<style>
+
 </style>
