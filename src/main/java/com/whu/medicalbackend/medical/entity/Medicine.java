@@ -20,6 +20,7 @@ public class Medicine implements Serializable{
     private String        name;
     private String        defaultDosage;
     private String        remark;
+    private Integer       deleted;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

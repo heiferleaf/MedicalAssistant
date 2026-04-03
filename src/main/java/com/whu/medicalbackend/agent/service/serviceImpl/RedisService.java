@@ -14,6 +14,9 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class RedisService{
+
+    public static final String nullValue = "null";    // 用于缓存空值，避免缓存穿透
+
     // 使用 String 作为 Redis 缓存的数据结构
     @Autowired
     private StringRedisTemplate redisTemplate;
