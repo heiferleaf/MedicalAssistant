@@ -28,6 +28,11 @@ public interface MedicationPlanMapper{
                                                @Param("date") LocalDate date);
 
     /**
+     * 查询指定药品下未删除的计划数量
+     */
+    int countActivePlansByMedicineId(@Param("medicineId") Long medicineId);
+
+    /**
      * 插入计划
      */
     int insert(MedicationPlan plan);

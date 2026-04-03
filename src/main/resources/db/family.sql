@@ -37,20 +37,7 @@ CREATE TABLE family_member (
                                INDEX idx_group_user (group_id,user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='家庭组成员表';
 
--- ====================================
--- 6. 健康数据表
--- ====================================
-create table if not exists health_data
-(
-    id             bigint auto_increment comment '自增主键'
-    primary key,
-    user_id        bigint                             not null comment '用户ID',
-    heart_rate     double                             null comment '平均心率',
-    blood_pressure double                             null comment '平均血压',
-    measure_time   datetime                           not null comment '测量时间',
-    created_at     datetime default CURRENT_TIMESTAMP not null comment '创建时间',
-    is_deleted     tinyint  default 0                 null comment '逻辑删除'
-)
+
     comment '健康数据表';
 -- ====================================
 -- 7. 邀请/申请记录表

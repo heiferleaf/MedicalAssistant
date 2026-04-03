@@ -9,12 +9,13 @@
         <result column="name" property="name" jdbcType="VARCHAR"/>
         <result column="default_dosage" property="defaultDosage" jdbcType="VARCHAR"/>
         <result column="remark" property="remark" jdbcType="VARCHAR"/>
+        <result column="deleted" property="deleted" jdbcType="TINYINT"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
         <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <sql id="allProperties">
-        id, user_id, name, default_dosage, remark, created_at, updated_at
+        id, user_id, name, default_dosage, remark, deleted, created_at, updated_at
     </sql>
 
     <select id="findById" resultMap="BaseResultMap">
@@ -27,24 +28,24 @@
     <select id="findByUserIdAndName" resultMap="BaseResultMap">
         SELECT <include refid="allProperties"/>
         FROM medicine
-        WHERE user_id = #{userId} AND name = #{name}
+        WHERE user_id = #{userId} AND name = #{name} AND deleted = 0
             LIMIT 1
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-        INSERT INTO medicine (user_id, name, default_dosage, remark)
-        VALUES (#{userId}, #{name}, #{defaultDosage}, #{remark})
+        INSERT INTO medicine (user_id, name, default_dosage, remark, deleted)
+        VALUES (#{userId}, #{name}, #{defaultDosage}, #{remark}, 0)
     </insert>
 
     <select id="findAllByUserId" resultMap="BaseResultMap">
         SELECT <include refid="allProperties"/>
         FROM medicine
-        WHERE user_id = #{userId}
+        WHERE user_id = #{userId} AND deleted = 0
     </select>
 
-    <delete id="deleteById" parameterType="java.lang.Long">
-        DELETE FROM medicine WHERE id = #{id}
-    </delete>
+    <update id="deleteById" parameterType="java.lang.Long">
+        UPDATE medicine SET deleted = 1 WHERE id = #{id}
+    </update>
 
     <update id="update" parameterType="com.whu.medicalbackend.medical.entity.Medicine">
         UPDATE medicine SET name = #{medicine.name}, default_dosage = #{medicine.defaultDosage}, remark = #{medicine.remark}

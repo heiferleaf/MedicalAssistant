@@ -2,29 +2,88 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.whu.medicalbackend.medical.mapper.HealthDataMapper">
+<mapper namespace="com.whu.medicalbackend.health.mapper.HealthDataMapper">
 
-    <resultMap id="HealthDataMap" type="com.whu.medicalbackend.medical.entity.HealthData">
+    <resultMap id="HealthDataMap" type="com.whu.medicalbackend.health.entity.HealthData">
         <id column="id" property="id"/>
         <result column="user_id" property="userId"/>
-        <result column="group_id" property="groupId"/>
         <result column="heart_rate" property="heartRate"/>
-        <result column="blood_pressure" property="bloodPressure"/>
+        <result column="step_count" property="stepCount"/>
+        <result column="sleep_duration" property="sleepDuration"/>
+        <result column="sleep_scope" property="sleepScope"/>
+        <result column="bloodOxygen" property="bloodOxygen"/>
+        <result column="relax_type" property="relaxType"/>
+        <result column="relax_sub_type" property="relaxSubType"/>
+        <result column="relax_duration" property="relaxDuration"/>
+        <result column="pressure_max_score" property="pressureMaxScore"/>
+        <result column="pressure_min_score" property="pressureMinScore"/>
+        <result column="pressure_avg_score" property="pressureAvgScore"/>
         <result column="measure_time" property="measureTime"/>
         <result column="created_at" property="createdAt"/>
         <result column="is_deleted" property="isDeleted"/>
     </resultMap>
 
-    <insert id="insert" parameterType="com.whu.medicalbackend.medical.entity.HealthData">
-        INSERT INTO health_data (user_id, group_id, heart_rate, blood_pressure, measure_time, created_at)
-        VALUES (#{userId}, #{groupId}, #{heartRate}, #{bloodPressure}, #{measureTime}, NOW())
+    <!-- Query today's record by user_id -->
+    <select id="findByUserIdAndToday" resultMap="HealthDataMap">
+        SELECT * FROM health_data
+        WHERE user_id = #{userId}
+          AND DATE(created_at) = CURDATE()
+          AND is_deleted = 0
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.whu.medicalbackend.health.entity.HealthData" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO health_data (
+            user_id,
+            heart_rate,
+            step_count,
+            sleep_duration,
+            sleep_scope,
+            bloodOxygen,
+            relax_type,
+            relax_sub_type,
+            relax_duration,
+            pressure_max_score,
+            pressure_min_score,
+            pressure_avg_score,
+            measure_time,
+            created_at
+        ) VALUES (
+            #{userId},
+            #{heartRate},
+            #{stepCount},
+            #{sleepDuration},
+            #{sleepScope},
+            #{bloodOxygen},
+            #{relaxType},
+            #{relaxSubType},
+            #{relaxDuration},
+            #{pressureMaxScore},
+            #{pressureMinScore},
+            #{pressureAvgScore},
+            #{measureTime},
+            NOW()
+        )
     </insert>
 
-    <select id="findLatestByUserId" resultMap="HealthDataMap">
-        SELECT * FROM health_data
-        WHERE user_id = #{userId} AND is_deleted = 0
-        ORDER BY measure_time DESC
-            LIMIT 1
-    </select>
+    <!-- Selectively update fields, always updating measure_time -->
+    <update id="updateSelective" parameterType="com.whu.medicalbackend.health.entity.HealthData">
+        UPDATE health_data
+        <set>
+            <if test="heartRate != null">heart_rate = #{heartRate},</if>
+            <if test="stepCount != null">step_count = #{stepCount},</if>
+            <if test="sleepDuration != null">sleep_duration = #{sleepDuration},</if>
+            <if test="sleepScope != null">sleep_scope = #{sleepScope},</if>
+            <if test="bloodOxygen != null">bloodOxygen = #{bloodOxygen},</if>
+            <if test="relaxType != null">relax_type = #{relaxType},</if>
+            <if test="relaxSubType != null">relax_sub_type = #{relaxSubType},</if>
+            <if test="relaxDuration != null">relax_duration = #{relaxDuration},</if>
+            <if test="pressureMaxScore != null">pressure_max_score = #{pressureMaxScore},</if>
+            <if test="pressureMinScore != null">pressure_min_score = #{pressureMinScore},</if>
+            <if test="pressureAvgScore != null">pressure_avg_score = #{pressureAvgScore},</if>
+            measure_time = #{measureTime}
+        </set>
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
 
 </mapper>

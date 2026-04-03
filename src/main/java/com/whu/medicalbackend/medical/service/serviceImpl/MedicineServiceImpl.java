@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.whu.medicalbackend.medical.entity.Medicine;
 import com.whu.medicalbackend.common.exception.BusinessException;
 import com.whu.medicalbackend.medical.mapper.MedicineMapper;
+import com.whu.medicalbackend.medical.mapper.MedicationPlanMapper;
 import com.whu.medicalbackend.medical.dto.*;
 import com.whu.medicalbackend.medical.service.MedicineService;
 import com.whu.medicalbackend.medical.service.PlanService;
@@ -27,6 +28,8 @@ public class MedicineServiceImpl implements MedicineService {
 
     @Autowired
     private MedicineMapper medicineMapper;
+    @Autowired
+    private MedicationPlanMapper medicationPlanMapper;
     @Autowired
     private RedisService redisService;
 
@@ -170,11 +173,16 @@ public class MedicineServiceImpl implements MedicineService {
                 throw new BusinessException("药品不属于该用户");
             }
 
+            int activePlansCount = medicationPlanMapper.countActivePlansByMedicineId(medicineId);
+            if (activePlansCount > 0) {
+                throw new BusinessException("该药品仍在当前的用药计划中生效，请先停止/删除相关计划再移除该药品！");
+            }
+
             if(doDeleteMedicine(medicineId) != 1) {
                 throw new BusinessException("删除出错");
             }
-        } catch (DataIntegrityViolationException e) {
-            throw new BusinessException("该药品已关联用药计划，请先删除相关计划");
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             throw new BusinessException("删除出错：" + e.getMessage());
         } finally {

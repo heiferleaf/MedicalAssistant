@@ -15,7 +15,7 @@ public interface MedicineMapper {
 
     int insert(Medicine medicine);
 
-    @Select("SELECT id, user_id, name, default_dosage, remark, created_at, updated_at FROM medicine WHERE user_id = #{userId} ORDER BY created_at DESC")
+    @Select("SELECT id, user_id, name, default_dosage, remark, deleted, created_at, updated_at FROM medicine WHERE user_id = #{userId} AND deleted = 0 ORDER BY created_at DESC")
     List<Medicine> findByUserId(@Param("userId") Long userId);
 
     List<Medicine> findAllByUserId(@Param("userId") Long userId);

@@ -7,9 +7,11 @@ CREATE TABLE medicine (
                           name VARCHAR(100) NOT NULL COMMENT '药品名称',
                           default_dosage VARCHAR(50) DEFAULT NULL COMMENT '推荐剂量（可选）',
                           remark VARCHAR(255) DEFAULT NULL COMMENT '备注',
+                          deleted TINYINT NOT NULL DEFAULT 0 COMMENT '软删除标识：0-正常，1-已删除',
                           created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                           updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                          INDEX idx_user_id (user_id)
+                          INDEX idx_user_id (user_id),
+                          INDEX idx_deleted (deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='药品表';
 
 -- ====================================

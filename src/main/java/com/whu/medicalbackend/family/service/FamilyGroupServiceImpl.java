@@ -15,8 +15,8 @@ import com.whu.medicalbackend.family.mapper.FamilyEventLogMapper;
 import com.whu.medicalbackend.family.mapper.FamilyGroupMapper;
 import com.whu.medicalbackend.family.mapper.FamilyInviteApplyMapper;
 import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
-import com.whu.medicalbackend.medical.entity.HealthData;
-import com.whu.medicalbackend.medical.mapper.HealthDataMapper;
+import com.whu.medicalbackend.health.entity.HealthData;
+import com.whu.medicalbackend.health.mapper.HealthDataMapper;
 import com.whu.medicalbackend.medical.mapper.MedicationTaskMapper;
 import com.whu.medicalbackend.common.schedule.DynamicTaskScheduler;
 import com.whu.medicalbackend.family.service.serviceImpl.FamilyGroupService;
@@ -348,11 +348,20 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
                         logger.warn("解析成员缓存失败: userId={}", uid);
                     }
 
-                    HealthData latestHealth = healthDataMapper.findLatestByUserId(uid);
+                    HealthData latestHealth = healthDataMapper.findByUserIdAndToday(uid);
                     if (latestHealth != null) {
-                        detail.setLastHeartRate(latestHealth.getHeartRate());
-                        detail.setLastBloodPressure(latestHealth.getBloodPressure());
-                        detail.setHealthUpdateTime(latestHealth.getMeasureTime());
+                        detail.setHeartRate(latestHealth.getHeartRate());
+                        detail.setStepCount(latestHealth.getStepCount());
+                        detail.setSleepDuration(latestHealth.getSleepDuration());
+                        detail.setSleepScope(latestHealth.getSleepScope());
+                        detail.setBloodOxygen(latestHealth.getBloodOxygen());
+                        detail.setRelaxType(latestHealth.getRelaxType());
+                        detail.setRelaxSubType(latestHealth.getRelaxSubType());
+                        detail.setRelaxDuration(latestHealth.getRelaxDuration());
+                        detail.setPressureMaxScore(latestHealth.getPressureMaxScore());
+                        detail.setPressureMinScore(latestHealth.getPressureMinScore());
+                        detail.setPressureAvgScore(latestHealth.getPressureAvgScore());
+                        detail.setMeasureTime(latestHealth.getMeasureTime());
                     }
 
                     int completed = taskMapper.countStatusByDate(uid, LocalDate.now(), 1);
@@ -534,3 +543,4 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
         ));
     }
 }
+
