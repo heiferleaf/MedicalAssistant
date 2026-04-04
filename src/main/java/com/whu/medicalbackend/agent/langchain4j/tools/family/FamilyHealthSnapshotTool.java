@@ -46,11 +46,11 @@ public class FamilyHealthSnapshotTool {
                 FamilyHealthSnapshotVO.MemberHealthDetail member = snapshot.getMembers().get(i);
                 sb.append((i + 1)).append(". ").append(member.getNickname()).append("\n");
                 sb.append("   今日任务: ").append(member.getCompletedTasks()).append("/").append(member.getTotalTasks()).append(" 已完成\n");
-                if (member.getLastHeartRate() != null) {
-                    sb.append("   最近心率: ").append(member.getLastHeartRate()).append(" 次/分\n");
+                if (member.getHeartRate() != null) {
+                    sb.append("   最近心率: ").append(member.getHeartRate()).append(" 次/分\n");
                 }
-                if (member.getLastBloodPressure() != null) {
-                    sb.append("   最近血压: ").append(member.getLastBloodPressure()).append("\n");
+                if (member.getBloodOxygen() != null) {
+                    sb.append("   最近血氧: ").append(member.getBloodOxygen()).append("\n");
                 }
                 sb.append("\n");
             }
