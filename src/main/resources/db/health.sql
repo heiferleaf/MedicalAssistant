@@ -17,5 +17,12 @@ CREATE TABLE IF NOT EXISTS health_data (
     pressure_avg_score  INT                          NULL COMMENT '压力平均值评分（0-100）',
     measure_time        DATETIME                    NOT NULL COMMENT '测量时间',
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '创建时间',
-    is_deleted          TINYINT DEFAULT 0           NULL COMMENT '逻辑删除'
+    is_deleted          TINYINT DEFAULT 0           NULL COMMENT '逻辑删除',
+
+    INDEX idx_user_id (user_id),
+    INDEX idx_measure_time (measure_time),
+    INDEX idx_user_measure_time (user_id, measure_time),
+    INDEX idx_is_deleted (is_deleted),
+
+    CONSTRAINT fk_health_user FOREIGN KEY (user_id) REFERENCES t_user(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
