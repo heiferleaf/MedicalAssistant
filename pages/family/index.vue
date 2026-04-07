@@ -147,7 +147,7 @@ export default {
                     opType: type
                 });
 
-                uni.showToast({ title: type === 'approve' ? '已加入家庭' : '已拒绝' });
+                uni.showToast({ title: type === 'accept' ? '已加入家庭' : '已拒绝' });
 
                 // 处理完成后重新刷新整体状态
                 this.checkUserFamilyStatus();

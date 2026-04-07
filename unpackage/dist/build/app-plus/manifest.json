@@ -40,6 +40,7 @@
       "id": "1",
       "kernel": "WKWebview"
     },
+    "weexMultiProcess": false,
     "usingComponents": true,
     "nvueStyleCompiler": "uni-app",
     "compilerVersion": 3,
@@ -142,7 +143,7 @@
     "uni-app": {
       "control": "uni-v3",
       "vueVersion": "3",
-      "compilerVersion": "4.87",
+      "compilerVersion": "5.05",
       "nvueCompiler": "uni-app",
       "renderer": "auto",
       "nvue": {

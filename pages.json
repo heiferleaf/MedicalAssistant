@@ -125,6 +125,12 @@
 		  "style": {
 		    "navigationBarTitleText": "系统通知"
 		  }
+		},
+		{
+			"path": "pages/test/health",
+			"style": {
+				"navigationBarTitleText": "健康数据测试"
+			}
 		}
 	],
 	"globalStyle": {

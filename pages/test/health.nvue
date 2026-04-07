@@ -1,128 +1,213 @@
 <template>
-    <view class="container">
-        <view class="header">
-            <text class="title">自定义相机插件测试</text>
-            <text class="subtitle">Android Studio 离线调试版</text>
-        </view>
+  <view class="container">
+    <text class="title">数据同步666</text>
 
-        <button class="btn" type="primary" @click="startRecognize">启动拍照识别</button>
-
-        <scroll-view class="result-box" scroll-y="true" v-if="scanResult">
-            <text class="result-title">算法返回结果：</text>
-            <text class="result-content">{{ scanResult }}</text>
-        </scroll-view>
+    <view class="btn-group">
+      <button class="btn" type="primary" @click="doInit">
+        1. 初始化 OPPO SDK
+      </button>
+      <button class="btn" type="primary" @click="doAuth">
+        2. 请求健康数据授权
+      </button>
+      <button class="btn" type="primary" @click="doReadHeartRate">
+        3. 读取最近心率数据
+      </button>
     </view>
+
+    <view class="log-box">
+      <text class="log-title">运行日志：</text>
+      <text class="log-content">{{ statusMsg }}</text>
+    </view>
+
+    <view class="data-box">
+      <text class="data-text">{{ healthDataJson }}</text>
+    </view>
+  </view>
 </template>
 
 <script>
-// 引入我们在 Android 端注册的原生插件
-// ⚠️ 注意：这里的 'ScanCameraPlugin' 必须与你在 AS 离线工程 dcloud_uniplugins.json 中配置的 name 完全一致！
-const ScanCameraPlugin = uni.requireNativePlugin('ScanCameraPlugin');
+// 1. 标准写法：在全局作用域引入插件，确保页面一加载就能拿到引用
 
 export default {
-    data() {
-        return {
-            scanResult: ''
-        }
+  data() {
+    return {
+      statusMsg: "等待操作...\n",
+      heartRateData: "暂无数据",
+      healthDataJson: null,
+      category: ["STEP_COUNT", "DAILY_ACTIVITY_DETAIL", "BLOOD_PRESSURE_COUNT", "BLOOD_PRESSURE_DETAIL"],
+      index: 0
+    };
+  },
+  methods: {
+    // 新增：模拟控制台输出的辅助函数，将新消息拼接到尾部
+    appendLog(msg) {
+      // 获取当前时间戳 HH:mm:ss
+      const time = new Date().toTimeString().split(" ")[0];
+      const logStr = `[${time}] ${msg}\n`;
+      this.statusMsg = logStr;
+      // 同时也输出到 HBuilderX 的真实控制台，方便双端对照
+      console.log(`[OppoHealth] ${msg}`);
     },
-    methods: {
-        startRecognize() {
-            // 安全校验：防止在 H5 或标准基座下直接报错
-            if (!ScanCameraPlugin) {
-                uni.showToast({
-                    title: '插件未加载，请确认已在 AS 中正确注册',
-                    icon: 'none'
-                });
-                return;
-            }
 
-            // 每次调用前清空上一次的结果
-            this.scanResult = '等待识别...';
+    // 1. 初始化 SDK
+    doInit() {
+      try {
+        this.oppoHealth = uni.requireNativePlugin("OppoHealthModule");
 
-            // 调用 Android 端 ScanModule.java 中用 @UniJSMethod 暴露的 startScan 方法
-            ScanCameraPlugin.startScan((res) => {
-                console.log("📥 收到原生层返回的数据：", res);
-
-                if (res && res.code === 200) {
-                    this.scanResult = res.data;
-                    uni.showToast({
-                        title: '识别完成',
-                        icon: 'success'
-                    });
-                } else {
-                    this.scanResult = '识别失败或未拿到数据';
-                    uni.showToast({
-                        title: '识别异常',
-                        icon: 'error'
-                    });
-                }
-            });
+        if (!this.oppoHealth) {
+          this.appendLog(
+            "❌ 插件未加载，请确认混淆规则或 dcloud_uniplugins.json"
+          );
+          return;
         }
-    }
-}
+
+        this.appendLog("▶️ 准备调用 initSdk...");
+
+        this.oppoHealth.initSdk((res) => {
+          this.appendLog("✅ 初始化回调返回: " + res);
+        });
+      } catch (e) {
+        this.appendLog("❌ 调用 initSdk 出现 JS 异常: " + e.message);
+      }
+    },
+
+    // 2. 请求授权
+    // 2. 请求授权
+    doAuth() {
+      if (!this.oppoHealth) return this.error("插件未加载");
+
+      this.appendLog("▶️ 准备拉起授权页 requestAuth...");
+      try {
+        this.oppoHealth.requestAuth((code) => {
+          this.appendLog("⬇️ 收到授权回调，Code:", code);
+
+          if (code === 100000) {
+            this.appendLog("✅ 授权成功 (100000)");
+          } else if (code === 100007) {
+            this.appendLog("❌ 健康 app 未安装 (100007)");
+
+            // 👇 新增：优雅地引导用户去下载
+            uni.showModal({
+              title: "需要安装健康App",
+              content:
+                "为了同步您的健康数据，需要配合“欢太健康”App使用。是否立即前往安装？",
+              confirmText: "去安装",
+              cancelText: "取消",
+              success: (res) => {
+                if (res.confirm) {
+                  this.appendLog("▶️ 用户同意安装，正在拉起商店/浏览器...");
+                  // 调用我们在第二步写的 Java 原生方法
+                  this.oppoHealth.goToInstallHealthApp();
+                }
+              },
+            });
+          } else if (code === 100014) {
+            this.appendLog("⚠️ 用户取消了授权 (100014)");
+          } else {
+            this.appendLog("❌ 授权失败，未知错误");
+          }
+        });
+      } catch (e) {
+        this.appendLog("❌ 调用 requestAuth 出现 JS 异常:", e.message);
+      }
+    },
+
+    // 3. 读取心率数据
+    doReadHeartRate() {
+      if (!this.oppoHealth) return this.appendLog("❌ 插件未加载");
+
+      this.appendLog("▶️ 准备调用 readHeartRate...");
+      try {
+        // 调用你新写的万能 Java 接口
+        let typeStr = this.category[this.index % this.category.length];
+        let label = typeStr.replace(/_/g, " ");
+        let queryDays = 7; // 查询最近7天的数据
+        this.index += 1; // 每次调用切换数据类型，方便测试多个接口
+
+        this.oppoHealth.readHealthData(typeStr, queryDays, (res) => {
+          if (typeof res === "number") {
+            this.appendLog(`❌ 读取 [${label}] 失败，错误码: ${res}`);
+            this.healthDataJson = `读取失败，错误码: ${res}`;
+          } else {
+            this.appendLog(`✅ 读取 [${label}] 成功，准备解析...`);
+            
+            try {
+              const dataObj = JSON.parse(res);
+              this.appendLog(`✅ JSON 解析成功: 共 ${dataObj.length || 0} 条数据点`);
+              // 格式化展示 JSON，加上 2 个空格的缩进使其在界面上更易读
+              this.healthDataJson = JSON.stringify(dataObj, null, 2);
+              this.healthDataJson += `\n\n（显示了最近 ${queryDays} 天的 ${label} 数据）`;
+            } catch (e) {
+              this.appendLog(`❌ JSON 解析异常: ${e.message}`);
+              this.healthDataJson = res; // 解析失败则展示原始字符串
+            }
+          }
+        });
+      } catch (e) {
+        this.appendLog(`❌ readHealthData JS 异常: ${e.message}`);
+      }
+    },
+  },
+};
 </script>
 
 <style scoped>
 .container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 60rpx 40rpx;
-    height: 100vh;
-    box-sizing: border-box;
-    background-color: #f8f9fa;
-}
-
-.header {
-    text-align: center;
-    margin-bottom: 80rpx;
+  flex: 1;
+  padding: 40rpx;
+  background-color: #f5f5f5;
 }
 
 .title {
-    font-size: 44rpx;
-    font-weight: bold;
-    color: #333;
-    display: block;
-    margin-bottom: 10rpx;
+  font-size: 40rpx;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 50rpx;
+  color: #333;
 }
 
-.subtitle {
-    font-size: 28rpx;
-    color: #888;
+.btn-group {
+  margin-bottom: 40rpx;
 }
 
 .btn {
-    width: 80%;
-    height: 90rpx;
-    line-height: 90rpx;
-    border-radius: 45rpx;
-    font-size: 32rpx;
-    margin-bottom: 60rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 122, 255, 0.3);
+  margin-bottom: 20rpx;
+  font-size: 32rpx;
 }
 
-.result-box {
-    width: 100%;
-    flex: 1;
-    background-color: #282c34;
-    border-radius: 16rpx;
-    padding: 30rpx;
-    box-sizing: border-box;
+.log-box {
+  height: 400rpx; /* 固定高度，方便滚动 */
+  background-color: #ffffff;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 30rpx;
+  border: 1px solid #ddd;
 }
 
-.result-title {
-    font-size: 28rpx;
-    color: #abb2bf;
-    display: block;
-    margin-bottom: 20rpx;
-    font-weight: bold;
+.log-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #666;
+  margin-bottom: 10rpx;
 }
 
-.result-content {
-    font-size: 32rpx;
-    color: #98c379;
-    font-family: monospace;
-    line-height: 1.5;
-    word-break: break-all;
+.log-content {
+  margin-top: 20rpx;
+  font-size: 36rpx;
+  color: #007aff;
+  line-height: 40rpx;
+}
+
+.data-box {
+  flex: 1;
+  background-color: #282c34;
+  padding: 20rpx;
+  border-radius: 12rpx;
+}
+
+.data-text {
+  font-size: 24rpx;
+  color: #98c379;
+  font-family: monospace;
 }
 </style>

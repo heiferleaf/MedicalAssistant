@@ -18,3 +18,5 @@ unpackage/dist/cache/.vite/deps/
 
 .DS_Store
 
+config/
+

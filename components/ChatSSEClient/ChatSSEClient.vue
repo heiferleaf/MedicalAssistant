@@ -53,6 +53,8 @@ export default {
      * @param {Object} config.headers - 请求头
      * @param {Object} config.body - 请求体
      * @param {Function} config.onMessage - 消息回调
+     * @param {Function} config.onToolStatus - 工具状态回调
+     * @param {Function} config.onAction - action 回调
      * @param {Function} config.onDone - 完成回调
      * @param {Function} config.onError - 错误回调
      */
@@ -100,6 +102,32 @@ export default {
       
       if (this.currentConfig && this.currentConfig.onMessage) {
         this.currentConfig.onMessage(msg)
+      }
+    },
+    
+    /**
+     * renderjs 调用：收到工具状态
+     * @param {Object} toolStatus - 工具状态
+     */
+    onToolStatus(toolStatus) {
+      console.log('ChatSSEClient: 收到工具状态', toolStatus)
+      this.$emit('onToolStatus', toolStatus)
+      
+      if (this.currentConfig && this.currentConfig.onToolStatus) {
+        this.currentConfig.onToolStatus(toolStatus)
+      }
+    },
+    
+    /**
+     * renderjs 调用：收到 action
+     * @param {Object} action - action 数据
+     */
+    onAction(action) {
+      console.log('ChatSSEClient: 收到 action', action)
+      this.$emit('onAction', action)
+      
+      if (this.currentConfig && this.currentConfig.onAction) {
+        this.currentConfig.onAction(action)
       }
     },
     
@@ -182,7 +210,27 @@ function startChatCore(newVal, oldVal, ownerInstance, instance) {
           return
         }
         
-        ownerInstance.callMethod('onMessage', msg.data)
+        // 处理不同类型的事件
+        if (msg.event === 'tool_status') {
+          try {
+            const toolStatus = JSON.parse(msg.data)
+            ownerInstance.callMethod('onToolStatus', toolStatus)
+          } catch (error) {
+            console.error('解析工具状态失败:', error)
+            ownerInstance.callMethod('onMessage', msg.data)
+          }
+        } else if (msg.event === 'action') {
+          try {
+            const action = JSON.parse(msg.data)
+            ownerInstance.callMethod('onAction', action)
+          } catch (error) {
+            console.error('解析 action 失败:', error)
+            ownerInstance.callMethod('onMessage', msg.data)
+          }
+        } else {
+          // 普通消息
+          ownerInstance.callMethod('onMessage', msg.data)
+        }
       },
       
       onerror: (err) => {
