@@ -202,6 +202,25 @@ export default {
 		})
 	},
 	// #endif
+	
+	// 拦截返回按钮，强制返回到主页
+	onBackPress() {
+		console.log('onBackPress 被调用，准备返回主页');
+		uni.reLaunch({
+			url: '/pages/index/index',
+			success: () => {
+				console.log('reLaunch 成功');
+			},
+			fail: (err) => {
+				console.error('reLaunch 失败:', err);
+				// 如果 reLaunch 失败，使用 redirectTo
+				uni.redirectTo({
+					url: '/pages/index/index'
+				});
+			}
+		});
+		return true; // 阻止默认返回行为
+	},
 	methods: {
 		// #ifdef APP-PLUS
 		// 将图片路径转换为 Base64（App 端专用）

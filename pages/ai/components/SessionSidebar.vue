@@ -29,7 +29,7 @@
 					<text v-if="session.unread" class="unread-tag">{{ session.unread }}</text>
 				</view>
 				<view class="session-delete" @click.stop="$emit('delete', session, index)">
-					<text class="delete-icon">🗑️</text>
+					<text class="delete-icon">×</text>
 				</view>
 			</view>
 			<view v-if="sessions.length === 0" class="empty-tip">
@@ -144,14 +144,14 @@ $bg-light: #F8FAFC;
 	width: 25vw;
 	min-width: 200px;
 	max-width: 320px;
-	height: 100vh;
+	height: calc(100vh - 204rpx); // 减去顶部导航栏总高度 (64rpx 状态栏 + 140rpx 导航栏)
 	background: #fff;
 	border-right: 1rpx solid $border-color;
 	display: flex;
 	flex-direction: column;
 	position: absolute;
 	left: 0;
-	top: 0;
+	top: 204rpx; // 从顶部导航栏下方开始显示 (64rpx 状态栏 + 140rpx 导航栏)
 	z-index: 999;
 	transition: transform 0.3s ease;
 	transform: translateX(-100%);
@@ -301,13 +301,15 @@ $bg-light: #F8FAFC;
 				padding: 16rpx;
 				opacity: 0.6;
 				transition: opacity 0.2s;
-				
+						
 				&:active {
 					opacity: 1;
 				}
-				
+						
 				.delete-icon {
-					font-size: 28rpx;
+					font-size: 32rpx;
+					color: #ef4444; // 红色
+					font-weight: bold;
 				}
 			}
 		}
