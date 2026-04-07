@@ -43,6 +43,7 @@ services:
 
     environment:
       MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
       MYSQL_DB: medicalassistant           # 和上面 MYSQL_DATABASE 保持一致
       MYSQL_USER: appuser                  # 和上面 MYSQL_USER 保持一致
       MYSQL_PASSWORD: App123456            # 和上面 MYSQL_PASSWORD 保持一致
@@ -72,6 +73,7 @@ services:
 
     environment:
       MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
       MYSQL_DB: medicalassistant           # 和上面 MYSQL_DATABASE 保持一致
       MYSQL_USER: appuser                  # 和上面 MYSQL_USER 保持一致
       MYSQL_PASSWORD: App123456            # 和上面 MYSQL_PASSWORD 保持一致
