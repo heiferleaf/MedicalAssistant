@@ -130,7 +130,22 @@
         }
       }
     },
-    "nativePlugins": {},
+    "nativePlugins": {
+      "OppoHealthModule": {
+        "__plugin_info__": {
+          "name": "OppoHealthModule",
+          "description": "OPPO健康插件",
+          "platforms": "Android",
+          "url": "",
+          "android_package_name": "",
+          "ios_bundle_id": "",
+          "isCloud": false,
+          "bought": -1,
+          "pid": "",
+          "parameters": {}
+        }
+      }
+    },
     "statusbar": {
       "immersed": "supportedDevice",
       "style": "dark",

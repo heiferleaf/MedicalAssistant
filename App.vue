@@ -1,6 +1,6 @@
 <script>
 import { connect, closeConnection } from './config/config';
-
+import oppoHealthManager from './utils/oppoHealthManager.js';
 export default {
     onLaunch: function () {
         // 只有在确定有 token 的情况下才连接，否则在登录成功后再手动调用
@@ -24,10 +24,12 @@ export default {
             }
         }, false);
         // #endif
-
     },
     onShow: function () {
         // 可以在这里检查连接状态，如果断开了就重连
+        let test = oppoHealthManager.testAPI();
+        oppoHealthManager.consoleLog("测试函数返回值111:", test);
+        console.log("测试函数返回值222:", test);
     },
     onHide: function () {
         // 通常不需要在 Hide 时关闭，除非业务要求

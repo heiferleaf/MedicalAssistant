@@ -17,4 +17,5 @@ unpackage/dist/cache/
 .DS_Store
 
 config/
-
+test/
+nativeplugins/
