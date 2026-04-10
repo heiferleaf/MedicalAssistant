@@ -57,5 +57,4 @@
         WHERE owner_user_id = #{ownerId}
           AND is_deleted = 0
     </select>
-
 </mapper>

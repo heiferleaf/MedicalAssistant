@@ -20,6 +20,7 @@ public class RedisKeyBuilderUtil {
     public static final String LOCK_MEDICINE_DEL_PREFIX    = "lock:user:medicine:delete:";
     public static final String LOCK_MEDICINE_UPD_PREFIX    = "lock:user:medicine:update:";
     public static final String LOCK_MEDICINE_PLAN_PREFIX   = "lock:user:medicine:plan:";
+    public static final String LOCK_HEALTH_DATA_PREFIX     = "lock:health:data:";
 
     public static final String FAMILY_APPLY_LIMIT_PREFIX   = "family:apply:limit:";
     public static final String FAMILY_INVITE_LIMIT_PREFIX  = "family:invite:limit:";
@@ -28,6 +29,7 @@ public class RedisKeyBuilderUtil {
     public static final String MEMBER_CACHE_KEY_PREFIX     = "family:members:";
     public static final String ONLINE_MEMBER_CACHE_PREFIX  = "family:online:members";
     public static final String USER_MEDICINE_CACHE_PREFIX  = "user:medicine:";
+    public static final String HEALTH_DATA_CACHE_PREFIX    = "health:data:";
 
 
 
@@ -95,6 +97,11 @@ public class RedisKeyBuilderUtil {
         return LOCK_MEDICINE_PLAN_PREFIX + userId;
     }
 
+    /** 完整 Key: lock:health:data:{userId} **/
+    public static String getHealthDataLockKey(Long userId) {
+        return LOCK_HEALTH_DATA_PREFIX + userId;
+    }
+
     /** 完整 Key: family:apply:limit:{userId}:{groupId} */
     public static String getFamilyApplyLimitKey(Long userId, Long groupId) {
         return FAMILY_APPLY_LIMIT_PREFIX + userId + ":" + groupId;
@@ -122,6 +129,10 @@ public class RedisKeyBuilderUtil {
     /** 完整 Key: user:medicine:{userId} **/
     public static String getUserMedicineKey(Long userId) {
         return USER_MEDICINE_CACHE_PREFIX + userId;
+    }
+
+    public static String getHealthDataCachePrefix(Long userId) {
+        return HEALTH_DATA_CACHE_PREFIX + userId;
     }
 
     /** 完整 Key: family:alarm:{groupId}:{date} */

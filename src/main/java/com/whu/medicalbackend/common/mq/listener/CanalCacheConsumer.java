@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -73,26 +72,17 @@ public class CanalCacheConsumer {
 
             // 3. 根据表名路由到不同的缓存处理逻辑
             switch (table) {
-                case "family_member":
-                    handleFamilyMemberChange(opType, dataList);
-                    break;
-                case "family_event_log":
-                    handleEventLogChange(opType, dataList);
-                    break;
-                case "health_data":
-                case "medication_task":
+                case "family_member" -> handleFamilyMemberChange(opType, dataList);
+                case "family_event_log" -> handleEventLogChange(opType, dataList);
+                case "medication_task" ->
                     // 健康数据和服药任务的变化，都会直接影响当天的健康快照
-                    handleHealthOrTaskChange(opType, dataList);
-                    break;
-                case "user":
-                    handleUserChange(opType, dataList);
-                    break;
-                case "medicine":
-                    handleUserMedicineChange(opType, dataList);
-                    break;
-                default:
+                    handleTaskChange(opType, dataList);
+                case "health_data" -> handleHealthDataChange(opType, dataList);
+                case "user" -> handleUserChange(opType, dataList);
+                case "medicine" -> handleUserMedicineChange(opType, dataList);
+                default -> {
                     // 其他无关表，直接忽略
-                    break;
+                }
             }
 
         } catch (Exception e) {
@@ -155,7 +145,7 @@ public class CanalCacheConsumer {
     /**
      * 3. 处理 health_data (健康数据) 和 medication_task (服药任务) 变更
      */
-    private void handleHealthOrTaskChange(String opType, List<Map<String, String>> dataList) {
+    private void handleTaskChange(String opType, List<Map<String, String>> dataList) {
         String today = LocalDate.now().toString();
 
         for (Map<String, String> data : dataList) {
@@ -205,6 +195,23 @@ public class CanalCacheConsumer {
             if (userId != null) {
                 // 增删改药品，直接删除该用户的药品列表缓存
                 redisService.delete(RedisKeyBuilderUtil.getUserMedicineKey(userId));
+            }
+        }
+    }
+
+    private void handleHealthDataChange(String opType, List<Map<String, String>> dataList) {
+        String today = LocalDate.now().toString();
+
+        for (Map<String, String> data : dataList) {
+            Long userId = parseLong(data.get("user_id"));
+            if (userId != null) {
+                Long groupId = memberMapper.getGroupIdByUserId(userId);
+                if (groupId != null) {
+                    // 只要有健康数据变更，删除所在家庭组的今日快照，让其重查 DB
+                    redisService.delete(RedisKeyBuilderUtil.getFamilySnapshotKey(groupId, today));
+                }
+                String cacheKey = RedisKeyBuilderUtil.getHealthDataCachePrefix(userId);
+                redisService.delete(cacheKey);
             }
         }
     }
