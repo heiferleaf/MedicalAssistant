@@ -8,11 +8,13 @@ dist/
 
 unpackage/
 
-# 配置文件（包含后端地址等敏感信息）
-# config/
-
-# 构建缓存
+# 构建缓存（包括 Vite 依赖元数据）
 unpackage/dist/cache/
+unpackage/dist/cache/.vite/
+unpackage/dist/cache/.vite/deps/
+
+# 配置文件（本地修改不提交）
+# config/config.js  # 使用 git assume-unchanged 处理
 
 .DS_Store
 
