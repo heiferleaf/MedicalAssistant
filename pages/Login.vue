@@ -147,7 +147,7 @@ export default {
         // console.log("保存的用户名:",this.loginForm.username.trim());
 
         setTimeout(() => {
-          uni.navigateTo({
+          uni.redirectTo({
             url: "/pages/index/index",
           });
         }, 1500);
