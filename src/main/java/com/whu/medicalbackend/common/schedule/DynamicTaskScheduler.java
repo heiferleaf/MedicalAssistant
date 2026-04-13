@@ -214,42 +214,50 @@ public class DynamicTaskScheduler {
             return false;
         }
 
-        // 3. 转换为Date类型（TaskScheduler. schedule方法需要Date参数）
-        Date executeTime = Date.from(timeoutTime.atZone(ZoneId.systemDefault()).toInstant());
+        String alarmKey = "alarm:" + task.getId();
+        if (Boolean.TRUE.equals(redisService.setIfAbsent(alarmKey, "1", 24, java.util.concurrent.TimeUnit.HOURS))) {
+            // 3. 转换为Date类型（TaskScheduler. schedule方法需要Date参数）
+            Date executeTime = Date.from(timeoutTime.atZone(ZoneId.systemDefault()).toInstant());
 
-        // 4. 创建定时任务
-        ScheduledFuture<?> future = taskScheduler.schedule(
-                () -> markTaskAsMissed(task.getId()),  // 任务内容
-                executeTime  // 执行时间
-        );
+            // 4. 创建定时任务
+            ScheduledFuture<?> future = taskScheduler.schedule(
+                    () -> markTaskAsMissed(task.getId()),  // 任务内容
+                    executeTime  // 执行时间
+            );
 
-        // 5. 保存到Map（用于后续取消）
-        medicationTaskPool.put(task.getId(), future);
+            // 5. 保存到Map（用于后续取消）
+            medicationTaskPool.put(task.getId(), future);
 
-        logger.debug("【动态调度】任务ID={} 定时器已创建，将在 {} 标记为漏服",
-                task.getId(), timeoutTime);
+            logger.debug("【动态调度】任务ID={} 定时器已创建，将在 {} 标记为漏服",
+                    task.getId(), timeoutTime);
+        }
 
         // 计算提醒时间点
         LocalDateTime remindTime = taskTime.minusMinutes(5);
         Medicine medicine = medicineMapper.findById(task.getMedicineId());
+        String medName = (medicine != null) ? medicine.getName() : "未知药品";
 
-        // 没有超时，已经过了提醒时间，直接广播提醒
-        if (remindTime.isBefore(now) || remindTime.isEqual(now)) {
-            handleRemindBroadcast(task.getUserId(), medicine.getName());
-        } else {
-            executeTime = Date.from(remindTime.atZone(ZoneId.systemDefault()).toInstant());
-            ScheduledFuture<?> remindFuture = taskScheduler.schedule(
-                    () -> {
-                        handleRemindBroadcast(task.getUserId(), medicine.getName());
-                        remindTaskPool.remove(task.getId());
-                    },  // 任务内容
-                    executeTime  // 执行时间
-            );
-            remindTaskPool.put(task.getId(), future);
-            logger.debug("【动态调度】任务ID={} 定时器已创建，将在 {} 进行提醒",
-                    task.getId(), timeoutTime);
+        String remindKey = "remind:" + task.getId();
+        if (Boolean.TRUE.equals(redisService.setIfAbsent(remindKey, "1", 24, java.util.concurrent.TimeUnit.HOURS))) {
+            // 没有超时，已经过了提醒时间，直接广播提醒
+            if (remindTime.isBefore(now) || remindTime.isEqual(now)) {
+                handleRemindBroadcast(task.getUserId(), medName);
+            } else {
+                Date executeTime = Date.from(remindTime.atZone(ZoneId.systemDefault()).toInstant());
+                ScheduledFuture<?> remindFuture = taskScheduler.schedule(
+                        () -> {
+                            logger.info("进行服药任务{}提醒", task.getId());
+                            handleRemindBroadcast(task.getUserId(), medName);
+                            remindTaskPool.remove(task.getId());
+                            redisService.delete("remind:" + task.getId());
+                        },  // 任务内容
+                        executeTime  // 执行时间
+                );
+                remindTaskPool.put(task.getId(), remindFuture);
+                logger.debug("【动态调度】任务ID={} 定时器已创建，将在 {} 进行提醒",
+                        task.getId(), remindTime);
+            }
         }
-
 
         return true;
     }
@@ -299,6 +307,7 @@ public class DynamicTaskScheduler {
 
             // 3. 从Map中移除（任务已完成）
             medicationTaskPool.remove(taskId);
+            redisService.delete("alarm:" + taskId);
 
         } catch (Exception e) {
             logger.error("【动态调度】标记任务失败，ID=" + taskId, e);
@@ -334,6 +343,7 @@ public class DynamicTaskScheduler {
             // cancel(false)：不中断正在执行的任务
             // cancel(true)：强制中断正在执行的任务
             future.cancel(false);
+            redisService.delete("alarm:" + taskId);
         });
 
         medicationTaskPool.clear();
@@ -357,6 +367,7 @@ public class DynamicTaskScheduler {
             // cancel(false)：不中断正在执行的任务
             // cancel(true)：强制中断正在执行的任务
             future.cancel(false);
+            redisService.delete("remind:" + taskId);
         });
 
         remindTaskPool.clear();
@@ -387,6 +398,7 @@ public class DynamicTaskScheduler {
             future.cancel(true);
             logger.debug("【动态调度】✓ 取消任务ID={} 的漏服定时器（用户已操作）", taskId);
         }
+        redisService.delete("alarm:" + taskId);
     }
 
     public void cancelAllRemindTaskSchedule(Long taskId) {
@@ -396,6 +408,7 @@ public class DynamicTaskScheduler {
             future.cancel(true);
             logger.debug("【动态调度】✓ 取消任务ID={} 的提醒定时器（用户已操作）", taskId);
         }
+        redisService.delete("remind:" + taskId);
     }
 
     /**
