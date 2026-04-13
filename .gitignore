@@ -14,7 +14,7 @@ unpackage/dist/cache/.vite/
 unpackage/dist/cache/.vite/deps/
 
 # 配置文件（本地修改不提交）
-# config/config.js  # 使用 git assume-unchanged 处理
+config/config.js  # 使用 git assume-unchanged 处理
 
 .DS_Store
 
