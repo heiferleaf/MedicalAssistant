@@ -1,0 +1,89 @@
+{
+    "HEART_RATE_COUNT": [
+        {
+            "startTimeStamp": 0,
+            "max": "78.0", // 最大心率
+            "min": "68.0", // 最小心率
+            "average": "73.0", // 平均心率
+            "rest_hr": "0", // 静息心率
+            "sleep_base_hr": "0", // 睡眠基础心率
+            "walk_avg_hr": "0" // 步行平均心率
+        }
+    ],
+    "STEP_COUNT": [
+        {
+            "startTimeStamp": 1774540800000,
+            "step": "3444", // 步数
+            "step_goal": "8000", // 步数目标
+            "distance": "2000", // 距离
+            "calorie": "60000", // 卡路里
+            "calorie_goal": "300000", // 卡路里目标
+            "move_time": "0", // 活动时间
+            "work_minute": "0" // 运动分钟数
+        }
+    ],
+    "BLOOD_OXYGEN_COUNT": [
+        {
+            "startTimeStamp": 0,
+            "max": "99.0", // 最大血氧
+            "min": "99.0", // 最小血氧
+            "average": "99.0" // 平均血氧
+        }
+    ],
+    "RELAX_COUNT": [
+        {
+            "startTimeStamp": 0,
+            "duration": "120" // 持续时间
+        }
+    ],
+    "RELAX_DETAIL": [
+        {
+            "startTimeStamp": 1775116449000,
+            "type": "1", // 类型
+            "sub_type": "1", // 子类型
+            "pressure": "44", // 压力值 (此处可能指放松程度或相关指标)
+            "duration": "60" // 持续时间
+        }
+    ],
+    "PRESSURE_COUNT": [
+        {
+            "startTimeStamp": 0,
+            "max": "48.0", // 最大压力值
+            "min": "34.0", // 最小压力值
+            "average": "42.0" // 平均压力值
+        }
+    ],
+    "PRESSURE_DETAIL": [
+        {
+            "startTimeStamp": 1775116200000,
+            "pressure": "34", // 压力值
+            "type": "0" // 类型
+        }
+    ],
+    "DAILY_ACTIVITY_DETAIL": [
+        {
+            "startTimeStamp": 1775243940000,
+            "step": "30", // 步数
+            "distance": "21", // 距离
+            "calorie": "642" // 卡路里
+        }
+    ],
+    "BLOOD_PRESSURE_COUNT": [
+        {
+            "startTimeStamp": 0,
+            "type": "0",
+            "blood_pressure_systolic_max": "123", // 收缩压(高压)最大值
+            "blood_pressure_systolic_min": "119", // 收缩压(高压)最小值
+            "blood_pressure_diastolic_max": "81", // 舒张压(低压)最大值
+            "blood_pressure_diastolic_min": "76" // 舒张压(低压)最小值
+        }
+    ],
+    "BLOOD_PRESSURE_DETAIL": [
+        {
+            "startTimeStamp": 1775041522719,
+            "type": "2",
+            "blood_pressure_systolic": "120", // 收缩压(高压)
+            "blood_pressure_diastolic": "80" // 舒张压(低压)
+        }
+    ]
+}
