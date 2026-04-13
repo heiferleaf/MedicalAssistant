@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  flask-ocr:
+    build: .
+    container_name: medicalassistant-flask
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      # Flask 基础配置
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: 8001
+      FLASK_DEBUG: "false"
+      
+      # 数据库配置（连接宿主机 MySQL）
+      MYSQL_HOST: host.docker.internal
+      MYSQL_PORT: 3306
+      MYSQL_DB: medicalassistant
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-App123456}
+      
+      # 通义千问 API 密钥（必需）
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      
+      # RAG 配置
+      RAG_LOCAL_MODE: "true"
+      RAG_TIMEOUT: "120"
+      
+      # Neo4j 配置（可选）
+      NEO4J_URI: ${NEO4J_URI:-}
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-}
+      
+      # Ollama 配置（可选）
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-qwen2.5:7b-instruct}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # 挂载模型目录（可选，避免每次构建都复制）
+      - ./app/services/predict/resources:/app/app/services/predict/resources:ro
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - flask-net
+
+networks:
+  flask-net:
+    driver: bridge

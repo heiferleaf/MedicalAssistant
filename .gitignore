@@ -1,8 +1,36 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .env
 .venv/
 venv/
+
+# 模型文件（太大）
 checkpoint/
 app/services/predict/resources/pytorch_model/model.safetensors
 app/services/predict/resources/Bio_ClinicalBERT_local
+app/services/predict/resources/Bio_ClinicalBERT_local.zip
+*.bin
+*.pt
+*.pth
+*.pkl
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.sqlite3
+*.db
+
+# Logs
+*.log
+logs/
