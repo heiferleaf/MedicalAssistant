@@ -31,6 +31,7 @@
 
 <script>
 import familyApi from "../api/family";
+import { takeDrugPhoto } from "@/utils/camera.js";
 export default {
   data() {
     return {
@@ -60,9 +61,20 @@ export default {
           icon: "/static/Home/reminder.svg",
           color: "#ef4444",
         },
-        { id: 5, name: "健康信息", icon: "/static/Home/reminder.svg", color: "#8b5cf6" },
-        { id: 6, name: "拍照识别", icon: "/static/Home/reminder.svg", color: "#f59e0b" },
+        {
+          id: 5,
+          name: "健康信息",
+          icon: "/static/Home/reminder.svg",
+          color: "#8b5cf6",
+        },
+        {
+          id: 6,
+          name: "拍照识别",
+          icon: "/static/Home/reminder.svg",
+          color: "#f59e0b",
+        },
       ],
+      tempThumb: null,
     };
   },
   methods: {
@@ -76,6 +88,10 @@ export default {
         5: "/pages/test/health",
         6: "/pages/test/camera",
       };
+      if (funcId === 1) {
+        this.doDrugScan();
+        return;
+      }
       if (funcId === 3) {
         this.checkUserFamilyStatus();
         return;
@@ -98,6 +114,21 @@ export default {
         } else {
           uni.navigateTo({ url: "/pages/family/index" });
         }
+      }
+    },
+    async doDrugScan() {
+      try {
+        // 直接调用，内部会自动处理存储和跳转
+        const imgPath = await takeDrugPhoto();
+        // 如果本页面还需要显示预览图，也可以接收返回值
+        this.tempThumb = imgPath;
+      } catch (e) {
+        // 处理取消拍照的情况
+        console.error("拍照取消或失败", e);
+        uni.showToast({
+          title: "拍照取消",
+          icon: "none",
+        });
       }
     },
   },
