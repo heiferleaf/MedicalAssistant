@@ -41,8 +41,8 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer{
                     "/api/predict/**",
                     "/api/rag/**",
                     "/api/ocr/**",
-                    "/test/**"
-
+                    "/test/**",
+                    "/api/medical/prepare/pdf/file/**"  // PDF 下载接口，允许匿名访问
                 );
     }
 
