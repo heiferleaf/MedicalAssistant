@@ -143,11 +143,10 @@ public class PlanServiceImpl implements PlanService {
         List<MedicationTask> tasksForPlan = generateFutureTasksForPlan(plan, dto.getStartDate());
 
         LocalDate today = LocalDate.now();
-        if(today.isAfter(plan.getStartDate())) {
-            tasksForPlan.stream()
-                    .filter(task -> task.getTaskDate().equals(today))
-                    .forEach(dynamicTaskScheduler::addTaskSchedule);
-        }
+        // 只要有今天的任务，就交给定时调度器处理（内部会判断是否超时直接标记漏服，或者创建定时器）
+        tasksForPlan.stream()
+                .filter(task -> task.getTaskDate().equals(today))
+                .forEach(dynamicTaskScheduler::addTaskSchedule);
 
         // 5. 返回VO
         return new PlanVO.PlanVOBuilder()
