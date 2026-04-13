@@ -27,6 +27,13 @@ public class MedicineController {
     public Result<List<MedicineVO>> getMedicineList(
             @RequestAttribute("userId") Long userId) {
         List<MedicineVO> list = medicineService.getMedicineList(userId);
+        System.out.println("====== 获取到的药品列表 (User ID: " + userId + ") ======");
+        if (list != null) {
+            for (MedicineVO vo : list) {
+                System.out.println(vo);
+            }
+        }
+        System.out.println("========================================");
         return Result.success(list);
     }
 

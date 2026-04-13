@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 监听 Canal Binlog 消息，精准处理 Redis 缓存更新与删除
+ * 监听 Canal Binlog 消消息，精准处理 Redis 缓存更新与删除
  */
 @Slf4j
 @Component
@@ -187,7 +187,7 @@ public class CanalCacheConsumer {
     }
 
     /**
-     * 5. 处理 user_medicine (用户药品) 变更
+     * 5. 处理 medicine (用户药品) 变更
      */
     private void handleUserMedicineChange(String opType, List<Map<String, String>> dataList) {
         for (Map<String, String> data : dataList) {
