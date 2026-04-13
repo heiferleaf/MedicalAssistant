@@ -63,6 +63,7 @@
 // 引入API模块
 import loginAPI from "../api/login.js";
 import { connect } from '../config/config';
+import oppoHealthManager from "../utils/oppoHealthManager.js";
 export default {
   data() {
     return {
@@ -143,6 +144,9 @@ export default {
         uni.setStorageSync("createTime", result.createTime);
 
         connect(); 
+
+        await oppoHealthManager.fetchAllAndCache(); // 登录成功后获取健康数据并缓存
+        oppoHealthManager.initBackgroundSync(); // 登录成功后启动后台同步
 
         // console.log("保存的用户名:",this.loginForm.username.trim());
 
