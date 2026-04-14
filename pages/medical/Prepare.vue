@@ -769,30 +769,36 @@ export default {
       uni.showLoading({ title: '生成 PDF 中...' })
       try {
         const accessToken = uni.getStorageSync('accessToken') || ''
+        
+        // 使用正确的数据源
         const payload = {
           generatedTime: this.documentInfo.generatedTime || '',
           department: this.documentInfo.department || '',
           patient: this.documentInfo.patient || '',
           visitDate: this.documentInfo.visitDate || '',
-          medications: (this.documentInfo.medications || []).map(med => ({
+          // 使用 uniqueMedications 而不是 documentInfo.medications
+          medications: (this.uniqueMedications || []).map(med => ({
             id: med.id,
-            name: med.name,
-            schedule: med.schedule,
-            takenDays: med.takenDays,
-            missedCount: med.missedCount,
-            status: med.status
+            name: med.name || '未知药品',
+            schedule: med.schedule || '',
+            takenDays: med.takenDays || 0,
+            missedCount: 0,
+            status: '正常'
           })),
-          healthData: (this.documentInfo.healthData || []).map(data => ({
-            id: data.id,
-            date: data.date,
-            indicator: data.indicator,
-            value: data.value,
-            unit: data.unit,
-            status: data.status
+          // 使用 abnormalData 而不是 healthData
+          healthData: (this.abnormalData || []).map(data => ({
+            id: data.id || '',
+            date: data.date || '',
+            indicator: data.indicator || '',
+            value: data.value || '',
+            unit: data.unit || '',
+            status: data.status || ''
           })),
           questions: this.documentInfo.questions || [],
           otherInfo: this.documentInfo.otherInfo || ''
         }
+        
+        console.log('[PDF] payload=', payload)
 
         const res = await uni.request({
           url: `${BASE_URL}/medical/prepare/pdf`,
@@ -827,14 +833,10 @@ export default {
         uni.showToast({ title: 'PDF 已打开', icon: 'success' })
         // #endif
 
-        // #ifndef H5
-        // 小程序/App 环境：使用 downloadFile 下载
-        // 注意：downloadFile 的 header 参数需要确保 token 正确
+        // #ifdef APP-PLUS
+        // App 环境：使用 downloadFile 下载
         uni.downloadFile({
           url: fileUrl,
-          header: {
-            'Authorization': `Bearer ${accessToken}`
-          },
           timeout: 20000,
           success: (downloadRes) => {
             console.log('[PDF] download success', downloadRes.statusCode, downloadRes.tempFilePath)
@@ -848,9 +850,10 @@ export default {
                 },
                 fail: (openErr) => {
                   console.error('[PDF] openDocument fail', openErr)
+                  // 备用方案：显示文件路径让用户手动打开
                   uni.showModal({
-                    title: '打开失败',
-                    content: '文件已下载，但无法打开',
+                    title: '提示',
+                    content: '文件已下载到：' + downloadRes.tempFilePath,
                     showCancel: false
                   })
                 }
@@ -879,9 +882,59 @@ export default {
           },
           fail: (err) => {
             console.error('[PDF] download fail', err)
+            // 备用方案：直接显示 URL
             uni.showModal({
-              title: '下载失败',
-              content: err.errMsg || '网络错误',
+              title: '提示',
+              content: 'PDF 地址：' + fileUrl + '\n\n请复制链接到浏览器打开',
+              showCancel: false,
+              confirmText: '复制链接',
+              success: (modalRes) => {
+                if (modalRes.confirm) {
+                  uni.setClipboardData({
+                    data: fileUrl,
+                    success: () => {
+                      uni.showToast({ title: '已复制', icon: 'success' })
+                    }
+                  })
+                }
+              }
+            })
+          }
+        })
+        // #endif
+
+        // #ifdef MP-WEIXIN
+        // 微信小程序环境：使用 downloadFile
+        uni.downloadFile({
+          url: fileUrl,
+          timeout: 20000,
+          success: (downloadRes) => {
+            if (downloadRes.statusCode === 200) {
+              uni.openDocument({
+                filePath: downloadRes.tempFilePath,
+                showMenu: true,
+                fail: (err) => {
+                  console.error('[PDF] openDocument fail', err)
+                  uni.showModal({
+                    title: '提示',
+                    content: '文件已下载，但无法打开',
+                    showCancel: false
+                  })
+                }
+              })
+            } else {
+              uni.showModal({
+                title: '下载失败',
+                content: `HTTP ${downloadRes.statusCode}`,
+                showCancel: false
+              })
+            }
+          },
+          fail: (err) => {
+            console.error('[PDF] download fail', err)
+            uni.showModal({
+              title: '提示',
+              content: 'PDF 地址：' + fileUrl,
               showCancel: false
             })
           }
