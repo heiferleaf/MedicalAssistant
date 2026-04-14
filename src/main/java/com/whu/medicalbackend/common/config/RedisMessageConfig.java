@@ -23,6 +23,7 @@ public class RedisMessageConfig{
         container.setConnectionFactory(factory);
 
         MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(wsPubSubBroadcaster, "onRedisMessage");
+        messageListenerAdapter.afterPropertiesSet(); // 初始化 MessageListenerAdapter
         container.addMessageListener(messageListenerAdapter, new PatternTopic("ws:group:*"));
 
         return container;

@@ -12,6 +12,7 @@ services:
       MYSQL_DATABASE: medicalassistant     # 实际的数据库名
       MYSQL_USER: appuser                  # 给 SpringBoot 用的普通用户
       MYSQL_PASSWORD: App123456            # 普通用户密码，自己设置
+      TZ: Asia/Shanghai                    # 设置时区为东八区
     volumes:                               # 如果容器挂了，数据就没了，所以需要映射到磁盘
       - mysql_data:/var/lib/mysql          # 数据持久化
       - ./mysql_conf/my.cnf:/etc/mysql/conf.d/my.cnf:ro
@@ -56,6 +57,7 @@ services:
       FLASK_URL: http://8.148.94.242:8001         #  Flask
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
       INSTANCE_ID: instance-a
+      TZ: Asia/Shanghai
     depends_on:
       - mysql
       - redis
@@ -86,6 +88,7 @@ services:
       FLASK_URL: http://8.148.94.242:8001         #  Flask
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
       INSTANCE_ID: instance-b
+      TZ: Asia/Shanghai
     depends_on:
       - mysql
       - redis

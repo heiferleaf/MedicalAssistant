@@ -140,14 +140,17 @@ public class PlanServiceImpl implements PlanService {
         planMapper.insert(plan);
 
         // 4. 生成所有任务（从开始日期到结束日期）
-        List<MedicationTask> tasksForPlan = generateFutureTasksForPlan(plan, dto.getStartDate());
+        generateFutureTasksForPlan(plan, dto.getStartDate());
 
         LocalDate today = LocalDate.now();
-        if(today.isAfter(plan.getStartDate())) {
-            tasksForPlan.stream()
-                    .filter(task -> task.getTaskDate().equals(today))
-                    .forEach(dynamicTaskScheduler::addTaskSchedule);
-        }
+        // 只要有今天的任务，就交给定时调度器处理（内部会判断是否超时直接标记漏服，或者创建定时器）
+        // 从数据库查询出来，这样能保证所有的任务都有完整的属性（尤其是 ID），避免批量插入时 ID 回填失败的问题
+        List<MedicationTask> todayTasks = taskMapper.findByUserIdAndDate(userId, today)
+                .stream()
+                .filter(task -> task.getPlanId().equals(plan.getId()))
+                .collect(Collectors.toList());
+
+        todayTasks.forEach(dynamicTaskScheduler::addTaskSchedule);
 
         // 5. 返回VO
         return new PlanVO.PlanVOBuilder()
