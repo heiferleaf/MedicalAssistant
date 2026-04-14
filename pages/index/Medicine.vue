@@ -8,47 +8,107 @@
         <view class="top-bar">
           <text class="page-title">健康数据</text>
           <view class="action-btns">
-            <view class="icon-btn" @tap="openCalendar">
-              <image class="icon" src="/static/Health/calendar.svg" />
-            </view>
-            <view class="icon-btn" @tap="addData">
-              <image class="icon" src="/static/Health/plus-circle.svg" />
-            </view>
+            
           </view>
         </view>
 
-        <view class="index-card">
-          <view class="card-top">
-            <view>
-              <text class="card-label">本周健康指数</text>
-              <view class="score-row">
-                <text class="score-num">{{ healthIndex.score }}</text>
-                <text class="score-tag" :style="{ color: healthIndex.color }">
-                  {{ healthIndex.level }}
-                </text>
+        <swiper
+          class="health-swiper"
+          circular
+          :indicator-dots="true"
+          indicator-active-color="#ffffff"
+          previous-margin="0rpx"
+          next-margin="0rpx"
+        >
+          <swiper-item>
+            <view class="index-card">
+              <view class="card-top">
+                <view>
+                  <text class="card-label">本周健康指数</text>
+                  <view class="score-row">
+                    <text class="score-num">{{ healthIndex.score }}</text>
+                    <text
+                      class="score-tag"
+                      :style="{ color: healthIndex.color }"
+                    >
+                      {{ healthIndex.level }}
+                    </text>
+                  </view>
+                </view>
+                <view class="trend-icon">
+                  <image class="icon" :src="healthStatusIcon" />
+                </view>
+              </view>
+
+              <view class="card-bottom">
+                <text class="trend-text">{{ healthTrendText() }}</text>
+                <view class="chart-mini">
+                  <view
+                    v-for="(bar, index) in getStepBars()"
+                    :key="index"
+                    class="bar"
+                    :style="{
+                      height: bar.height,
+                      opacity: bar.isToday ? '1' : '0.3',
+                      background: bar.isToday ? '#fff' : 'rgba(255,255,255,1)',
+                    }"
+                  ></view>
+                </view>
               </view>
             </view>
-            <view class="trend-icon">
-              <image class="icon" :src="healthStatusIcon" />
-            </view>
-          </view>
+          </swiper-item>
 
-          <view class="card-bottom">
-            <text class="trend-text">{{ healthTrendText() }}</text>
-            <view class="chart-mini">
-              <view
-                v-for="(bar, index) in getStepBars()"
-                :key="index"
-                class="bar"
-                :style="{
-                  height: bar.height,
-                  opacity: bar.isToday ? '1' : '0.3',
-                  background: bar.isToday ? '#fff' : 'rgba(255,255,255,1)',
-                }"
-              ></view>
+          <swiper-item>
+            <view class="index-card bg-cyan-card">
+              <view class="card-top">
+                <view>
+                  <text class="card-label">今日放松训练</text>
+                  <view class="score-row">
+                    <text class="score-num">{{
+                      relax_duration !== "--"
+                        ? Math.round(relax_duration / 60)
+                        : "--"
+                    }}</text>
+                    <text class="score-tag">分钟</text>
+                  </view>
+                </view>
+                <view class="trend-icon">
+                  <image class="icon" src="/static/Health/relax.svg" />
+                </view>
+              </view>
+              <view class="card-bottom">
+                <view class="relax-info">
+                  <text class="trend-text">类型：{{ getRelaxType() }}</text>
+                  <text class="trend-text">模式：{{ getRelaxSubType() }}</text>
+                </view>
+              </view>
             </view>
-          </view>
-        </view>
+          </swiper-item>
+
+          <swiper-item>
+            <view class="index-card bg-purple-card">
+              <view class="card-top">
+                <view>
+                  <text class="card-label">今日压力水平</text>
+                  <view class="score-row">
+                    <text class="score-num">{{ average_pressure }}</text>
+                    <text class="score-tag">{{
+                      evaluatePressure(average_pressure).text.replace("● ", "")
+                    }}</text>
+                  </view>
+                </view>
+                <view class="trend-icon">
+                  <image class="icon" src="/static/Health/pressure_white.svg" />
+                </view>
+              </view>
+              <view class="card-bottom">
+                <text class="trend-text"
+                  >范围：{{ min_pressure }} - {{ max_pressure }} (分)</text
+                >
+              </view>
+            </view>
+          </swiper-item>
+        </swiper>
       </header>
 
       <section class="stats-section">
@@ -69,7 +129,7 @@
             </text>
           </view>
 
-          <view class="stat-card half">
+          <!-- <view class="stat-card half">
             <view class="stat-header">
               <view class="icon-tag bg-blue">
                 <image class="icon" src="/static/Prepare/blood pressure.svg" />
@@ -94,7 +154,7 @@
                   .text
               }}
             </text>
-          </view>
+          </view> -->
 
           <view class="stat-card">
             <view class="stat-header">
@@ -114,7 +174,7 @@
             </text>
           </view>
 
-          <view class="stat-card">
+          <!-- <view class="stat-card">
             <view class="stat-header">
               <view class="icon-tag bg-blue">
                 <image class="icon" src="/static/Health/pressure.svg" />
@@ -128,7 +188,7 @@
             <text :class="['status-dot', evaluatePressure(pressure).color]">
               {{ evaluatePressure(pressure).text }}
             </text>
-          </view>
+          </view> -->
         </view>
 
         <view class="stat-card full sleep-card">
@@ -213,6 +273,12 @@ export default {
         level: "--",
         color: "#94a3b8",
       },
+      relax_type: "--",
+      relax_sub_type: "--",
+      relax_duration: "--",
+      max_pressure: "--",
+      min_pressure: "--",
+      average_pressure: "--",
     };
   },
   mounted() {
@@ -221,7 +287,7 @@ export default {
   methods: {
     async fetchData() {
       // 页面加载时可以初始化数据或调用接口
-      await oppoHealthManager.fetchAllAndCache();
+      // await oppoHealthManager.fetchAllAndCache();
 
       this.fullstr = uni.getStorageSync("OPPO_HEALTH_FULL_DATA");
       this.full = JSON.parse(this.fullstr);
@@ -248,6 +314,12 @@ export default {
       this.min_blood_oxygen =
         this.full?.BLOOD_OXYGEN_COUNT[0]?.blood_oxygen_min || "--";
       this.pressure = this.full?.PRESSURE_COUNT[0]?.average || "--";
+      this.relax_type = this.full?.RELAX_DETAIL[0]?.type || "--";
+      this.relax_sub_type = this.full?.RELAX_DETAIL[0]?.sub_type || "--";
+      this.relax_duration = this.full?.RELAX_DETAIL[0]?.duration || "--";
+      this.max_pressure = this.full?.PRESSURE_COUNT[0]?.max || "--";
+      this.min_pressure = this.full?.PRESSURE_COUNT[0]?.min || "--";
+      this.average_pressure = this.full?.PRESSURE_COUNT[0]?.average || "--";
 
       this.computeHealthIndex();
     },
@@ -438,6 +510,50 @@ export default {
       // 3. 一般 (< 75 分)
       return "/static/Health/simple.svg";
     },
+    getRelaxType() {
+      const type = parseInt(this.relax_type);
+      const typeMap = {
+        1: "呼吸",
+        2: "冥想",
+        3: "游戏",
+        "-2": "全部",
+      };
+      return typeMap[type] || "--";
+    },
+
+    // 获取放松子类型（模式）名称
+    getRelaxSubType() {
+      const type = parseInt(this.relax_type);
+      const subType = parseInt(this.relax_sub_type);
+
+      if (isNaN(type) || isNaN(subType)) return "--";
+
+      const subTypeMap = {
+        1: {
+          // 呼吸
+          1: "自然呼吸",
+          2: "蜂鸣式呼吸",
+          3: "助眠式呼吸",
+        },
+        2: {
+          // 冥想
+          1: "情绪觉知",
+          2: "躯体扫描",
+          3: "工作小憩",
+          4: "正念行走",
+          5: "助眠冥想",
+        },
+        3: {
+          // 游戏
+          1: "捏泡泡",
+          2: "打地鼠",
+        },
+      };
+
+      // 先找对应大类的 Map，再找具体子类的名称
+      const group = subTypeMap[type];
+      return group ? group[subType] || "默认模式" : "--";
+    },
   },
 };
 </script>
@@ -526,18 +642,38 @@ $bg-dark: #0f172a;
       }
     }
   }
-
+  .relax-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4rpx;
+  }
   .index-card {
+	height: 90%;
+    margin: 0 15rpx;
+	box-sizing: border-box;
     background: $primary-color;
-    padding: 50rpx;
+    padding: 45rpx;
     border-radius: 60rpx;
     color: #fff;
-    box-shadow: 0 20rpx 40rpx rgba(99, 102, 241, 0.3);
+	justify-content: space-between;
+    box-shadow: 0 15rpx 30rpx rgba(99, 102, 241, 0.2);
 
+    // 放松卡片：清新青绿色
+    &.bg-cyan-card {
+      background: linear-gradient(135deg, #06b6d4, #0891b2);
+      box-shadow: 0 20rpx 40rpx rgba(8, 145, 178, 0.3);
+    }
+
+    // 压力卡片：深邃紫色
+    &.bg-purple-card {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      box-shadow: 0 20rpx 40rpx rgba(124, 58, 237, 0.3);
+    }
     .card-top {
       display: flex;
-      justify-content: space-between;
-      margin-bottom: 30rpx;
+    flex-direction: row; // nvue 强制声明
+    justify-content: space-between;
+    align-items: flex-start;
 
       .card-label {
         font-size: 28rpx;
@@ -589,6 +725,15 @@ $bg-dark: #0f172a;
         }
       }
     }
+  }
+}
+.health-swiper {
+  height: 420rpx; // 根据你卡片内容的实际高度调整
+  margin-top: 20rpx;
+
+  // 穿透修改指示点位置（可选）
+  :deep(.uni-swiper-dot) {
+    margin-bottom: -10rpx;
   }
 }
 

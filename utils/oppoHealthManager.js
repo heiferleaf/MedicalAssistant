@@ -48,8 +48,10 @@ class OppoHealthManager {
     return new Promise((resolve, reject) => {
       sdk.requestAuth((code) => {
         if (code === 100000) {
+          this.consoleLog("授权成功");
           resolve(true);
         } else if (code === 100007) {
+          this.consoleLog("需要安装健康App");
           uni.showModal({
             title: "需要安装健康App",
             content: "为了同步您的健康数据，需要配合“欢太健康”App使用。",
@@ -69,6 +71,7 @@ class OppoHealthManager {
   // 3. 读取指定类型的健康数据
   async readData(type, days = 1) {
     const sdk = this.getSdk();
+    this.consoleLog(`读取数据: ${type}, 最近 ${days} 天`);
     return new Promise((resolve, reject) => {
       sdk.readHealthData(type, days, (res) => {
         if (typeof res === "number") {
@@ -130,6 +133,7 @@ class OppoHealthManager {
       await this.init();
 
       // 1. 并发读取所有类型的数据
+      this.consoleLog(`开始全量读取数据，查询最近 ${queryDays} 天...`);
       const results = await Promise.all(
         this.allCategories.map((cat) => this.readData(cat, queryDays)),
       );
@@ -174,6 +178,18 @@ class OppoHealthManager {
         resolve(res);
       });
     });
+  }
+
+  async initBackgroundSync() {
+    await this.init();
+    const sdk = this.getSdk();
+    // 启动后台同步，设置 20 分钟
+    // 即使 App 退到后台，Android 系统也会按此频率调度 Java 层的 Worker
+    const token = uni.getStorageSync("accessToken");
+    this.consoleLog("启动后台同步，Token: " + token);
+    const userId = uni.getStorageSync("userId");
+    this.consoleLog("启动后台同步，UserID: " + userId);
+    sdk.startBackgroundSync(token, userId, 20);
   }
 }
 
