@@ -41,14 +41,6 @@ public class PrintPdfController {
         // 使用绝对路径
         String absolutePath = System.getProperty("user.dir") + "/uploads/printpdf/" + fileName;
         File file = new File(absolutePath);
-        
-        System.out.println("[PDF] ========== getPdfFile 开始 ==========");
-        System.out.println("[PDF] fileName: " + fileName);
-        System.out.println("[PDF] absolutePath: " + absolutePath);
-        System.out.println("[PDF] file.exists(): " + file.exists());
-        System.out.println("[PDF] file.canRead(): " + file.canRead());
-        System.out.println("[PDF] file.length(): " + file.length());
-        System.out.println("[PDF] ========== getPdfFile 结束 ==========");
 
         if (!file.exists()) {
             System.err.println("[PDF] 文件不存在：" + absolutePath);
