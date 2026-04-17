@@ -63,9 +63,6 @@
             <image class="section-icon" src="/static/Home/medical-list.svg" mode="aspectFit" />
             <text class="section-title">近期用药清单</text>
           </view>
-          <button class="edit-section-btn" @click="editMedications">
-            <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
-          </button>
         </view>
 
         <view class="medication-list">
@@ -100,9 +97,6 @@
             <image class="section-icon" src="/static/Home/warning.svg" mode="aspectFit" />
             <text class="section-title">健康数据情况</text>
           </view>
-          <button class="edit-section-btn" @click="editHealthData">
-            <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
-          </button>
         </view>
 
         <!-- 近期健康数据概览 -->
@@ -397,37 +391,37 @@ export default {
 
       const overview = [];
       
-      // 计算心率平均值
+      // 获取最近一天的心率数据
       const hrData = data.HEART_RATE_COUNT || [];
       if (hrData.length > 0) {
-        const validHr = hrData.filter(item => item.average && parseFloat(item.average) > 0);
-        if (validHr.length > 0) {
-          const avgHr = validHr.reduce((sum, item) => sum + parseFloat(item.average), 0) / validHr.length;
-          const isAbnormal = avgHr < 60 || avgHr > 100;
+        const latestHr = hrData[0]; // 取最新的一条数据
+        if (latestHr.average) {
+          const hr = parseFloat(latestHr.average);
+          const isAbnormal = hr < 60 || hr > 100;
           overview.push({
             type: 'heartRate',
-            indicator: '平均心率',
-            value: avgHr.toFixed(0),
+            indicator: '心率',
+            value: hr.toFixed(0),
             unit: 'bpm',
-            status: isAbnormal ? (avgHr < 60 ? '偏慢' : '偏快') : '正常',
-            statusClass: isAbnormal ? (avgHr < 60 ? 'status-warning' : 'status-danger') : 'status-normal',
+            status: isAbnormal ? (hr < 60 ? '偏慢' : '偏快') : '正常',
+            statusClass: isAbnormal ? (hr < 60 ? 'status-warning' : 'status-danger') : 'status-normal',
             isAbnormal
           });
         }
       }
 
-      // 计算血压平均值
+      // 获取最近一天的血压数据
       const bpData = data.BLOOD_PRESSURE_COUNT || [];
       if (bpData.length > 0) {
-        const validBp = bpData.filter(item => item.blood_pressure_systolic_max && parseInt(item.blood_pressure_systolic_max) > 0);
-        if (validBp.length > 0) {
-          const avgSys = validBp.reduce((sum, item) => parseInt(item.blood_pressure_systolic_max), 0) / validBp.length;
-          const avgDia = validBp.reduce((sum, item) => parseInt(item.blood_pressure_diastolic_min || 0), 0) / validBp.length;
-          const isAbnormal = avgSys > 130 || avgDia > 85;
+        const latestBp = bpData[0]; // 取最新的一条数据
+        if (latestBp.blood_pressure_systolic_max) {
+          const sys = parseInt(latestBp.blood_pressure_systolic_max);
+          const dia = parseInt(latestBp.blood_pressure_diastolic_min || 0);
+          const isAbnormal = sys > 130 || dia > 85;
           overview.push({
             type: 'bloodPressure',
-            indicator: '平均血压',
-            value: `${avgSys.toFixed(0)}/${avgDia.toFixed(0)}`,
+            indicator: '血压',
+            value: `${sys.toFixed(0)}/${dia.toFixed(0)}`,
             unit: 'mmHg',
             status: isAbnormal ? '偏高' : '正常',
             statusClass: isAbnormal ? 'status-danger' : 'status-normal',
@@ -436,26 +430,26 @@ export default {
         }
       }
 
-      // 计算血氧平均值
+      // 获取最近一天的血氧数据
       const oxyData = data.BLOOD_OXYGEN_COUNT || [];
       if (oxyData.length > 0) {
-        const validOxy = oxyData.filter(item => item.blood_oxygen_min && parseFloat(item.blood_oxygen_min) > 0);
-        if (validOxy.length > 0) {
-          const avgOxy = validOxy.reduce((sum, item) => parseFloat(item.blood_oxygen_min), 0) / validOxy.length;
-          const isAbnormal = avgOxy < 95;
+        const latestOxy = oxyData[0]; // 取最新的一条数据
+        if (latestOxy.blood_oxygen_min) {
+          const oxy = parseFloat(latestOxy.blood_oxygen_min);
+          const isAbnormal = oxy < 95;
           overview.push({
             type: 'bloodOxygen',
-            indicator: '平均血氧',
-            value: avgOxy.toFixed(1),
+            indicator: '血氧',
+            value: oxy.toFixed(1),
             unit: '%',
-            status: isAbnormal ? (avgOxy >= 90 ? '偏低' : '极低') : '正常',
-            statusClass: isAbnormal ? (avgOxy >= 90 ? 'status-warning' : 'status-danger') : 'status-normal',
+            status: isAbnormal ? (oxy >= 90 ? '偏低' : '极低') : '正常',
+            statusClass: isAbnormal ? (oxy >= 90 ? 'status-warning' : 'status-danger') : 'status-normal',
             isAbnormal
           });
         }
       }
 
-      // 添加睡眠数据
+      // 获取最近一天的睡眠数据
       const sleepData = data.SLEEP_COUNT || [];
       if (sleepData.length > 0 && sleepData[0].total) {
         const duration = (sleepData[0].total / 3600).toFixed(1);
@@ -463,7 +457,7 @@ export default {
         const isAbnormal = duration < 6 || duration > 9 || score < 60;
         overview.push({
           type: 'sleep',
-          indicator: '昨晚睡眠',
+          indicator: '睡眠',
           value: duration,
           unit: '小时',
           status: isAbnormal ? '不足' : '充足',
@@ -472,7 +466,7 @@ export default {
         });
       }
 
-      console.log('[Prepare] 健康数据概览:', overview);
+      console.log('[Prepare] 近期健康数据:', overview);
       return overview;
     },
 
@@ -769,30 +763,36 @@ export default {
       uni.showLoading({ title: '生成 PDF 中...' })
       try {
         const accessToken = uni.getStorageSync('accessToken') || ''
+        
+        // 使用正确的数据源
         const payload = {
           generatedTime: this.documentInfo.generatedTime || '',
           department: this.documentInfo.department || '',
           patient: this.documentInfo.patient || '',
           visitDate: this.documentInfo.visitDate || '',
-          medications: (this.documentInfo.medications || []).map(med => ({
+          // 使用 uniqueMedications 而不是 documentInfo.medications
+          medications: (this.uniqueMedications || []).map(med => ({
             id: med.id,
-            name: med.name,
-            schedule: med.schedule,
-            takenDays: med.takenDays,
-            missedCount: med.missedCount,
-            status: med.status
+            name: med.name || '未知药品',
+            schedule: med.schedule || '',
+            takenDays: med.takenDays || 0,
+            missedCount: 0,
+            status: '正常'
           })),
-          healthData: (this.documentInfo.healthData || []).map(data => ({
-            id: data.id,
-            date: data.date,
-            indicator: data.indicator,
-            value: data.value,
-            unit: data.unit,
-            status: data.status
+          // 使用 abnormalData 而不是 healthData
+          healthData: (this.abnormalData || []).map(data => ({
+            id: data.id || '',
+            date: data.date || '',
+            indicator: data.indicator || '',
+            value: data.value || '',
+            unit: data.unit || '',
+            status: data.status || ''
           })),
           questions: this.documentInfo.questions || [],
           otherInfo: this.documentInfo.otherInfo || ''
         }
+        
+        console.log('[PDF] payload=', payload)
 
         const res = await uni.request({
           url: `${BASE_URL}/medical/prepare/pdf`,
@@ -827,14 +827,10 @@ export default {
         uni.showToast({ title: 'PDF 已打开', icon: 'success' })
         // #endif
 
-        // #ifndef H5
-        // 小程序/App 环境：使用 downloadFile 下载
-        // 注意：downloadFile 的 header 参数需要确保 token 正确
+        // #ifdef APP-PLUS
+        // App 环境：使用 downloadFile 下载
         uni.downloadFile({
           url: fileUrl,
-          header: {
-            'Authorization': `Bearer ${accessToken}`
-          },
           timeout: 20000,
           success: (downloadRes) => {
             console.log('[PDF] download success', downloadRes.statusCode, downloadRes.tempFilePath)
@@ -848,9 +844,10 @@ export default {
                 },
                 fail: (openErr) => {
                   console.error('[PDF] openDocument fail', openErr)
+                  // 备用方案：显示文件路径让用户手动打开
                   uni.showModal({
-                    title: '打开失败',
-                    content: '文件已下载，但无法打开',
+                    title: '提示',
+                    content: '文件已下载到：' + downloadRes.tempFilePath,
                     showCancel: false
                   })
                 }
@@ -879,9 +876,59 @@ export default {
           },
           fail: (err) => {
             console.error('[PDF] download fail', err)
+            // 备用方案：直接显示 URL
             uni.showModal({
-              title: '下载失败',
-              content: err.errMsg || '网络错误',
+              title: '提示',
+              content: 'PDF 地址：' + fileUrl + '\n\n请复制链接到浏览器打开',
+              showCancel: false,
+              confirmText: '复制链接',
+              success: (modalRes) => {
+                if (modalRes.confirm) {
+                  uni.setClipboardData({
+                    data: fileUrl,
+                    success: () => {
+                      uni.showToast({ title: '已复制', icon: 'success' })
+                    }
+                  })
+                }
+              }
+            })
+          }
+        })
+        // #endif
+
+        // #ifdef MP-WEIXIN
+        // 微信小程序环境：使用 downloadFile
+        uni.downloadFile({
+          url: fileUrl,
+          timeout: 20000,
+          success: (downloadRes) => {
+            if (downloadRes.statusCode === 200) {
+              uni.openDocument({
+                filePath: downloadRes.tempFilePath,
+                showMenu: true,
+                fail: (err) => {
+                  console.error('[PDF] openDocument fail', err)
+                  uni.showModal({
+                    title: '提示',
+                    content: '文件已下载，但无法打开',
+                    showCancel: false
+                  })
+                }
+              })
+            } else {
+              uni.showModal({
+                title: '下载失败',
+                content: `HTTP ${downloadRes.statusCode}`,
+                showCancel: false
+              })
+            }
+          },
+          fail: (err) => {
+            console.error('[PDF] download fail', err)
+            uni.showModal({
+              title: '提示',
+              content: 'PDF 地址：' + fileUrl,
               showCancel: false
             })
           }
