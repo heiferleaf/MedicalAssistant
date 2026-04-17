@@ -100,7 +100,7 @@ export default {
   },
   methods: {
     goBack() { uni.navigateBack(); },
-    goLogin() { uni.navigateTo({ url: '/pages/Login' }); },
+    goLogin() { uni.redirectTo({ url: '/pages/Login' }); },
     async handleRegister() {
       if (!this.agreed) { uni.showToast({ title: "请先同意协议", icon: "none" }); return; }
       if (!this.formData.username) { uni.showToast({ title: "请输入账号", icon: "none" }); return; }
