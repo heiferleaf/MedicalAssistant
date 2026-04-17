@@ -63,9 +63,6 @@
             <image class="section-icon" src="/static/Home/medical-list.svg" mode="aspectFit" />
             <text class="section-title">近期用药清单</text>
           </view>
-          <button class="edit-section-btn" @click="editMedications">
-            <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
-          </button>
         </view>
 
         <view class="medication-list">
@@ -100,9 +97,6 @@
             <image class="section-icon" src="/static/Home/warning.svg" mode="aspectFit" />
             <text class="section-title">健康数据情况</text>
           </view>
-          <button class="edit-section-btn" @click="editHealthData">
-            <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
-          </button>
         </view>
 
         <!-- 近期健康数据概览 -->
@@ -397,37 +391,37 @@ export default {
 
       const overview = [];
       
-      // 计算心率平均值
+      // 获取最近一天的心率数据
       const hrData = data.HEART_RATE_COUNT || [];
       if (hrData.length > 0) {
-        const validHr = hrData.filter(item => item.average && parseFloat(item.average) > 0);
-        if (validHr.length > 0) {
-          const avgHr = validHr.reduce((sum, item) => sum + parseFloat(item.average), 0) / validHr.length;
-          const isAbnormal = avgHr < 60 || avgHr > 100;
+        const latestHr = hrData[0]; // 取最新的一条数据
+        if (latestHr.average) {
+          const hr = parseFloat(latestHr.average);
+          const isAbnormal = hr < 60 || hr > 100;
           overview.push({
             type: 'heartRate',
-            indicator: '平均心率',
-            value: avgHr.toFixed(0),
+            indicator: '心率',
+            value: hr.toFixed(0),
             unit: 'bpm',
-            status: isAbnormal ? (avgHr < 60 ? '偏慢' : '偏快') : '正常',
-            statusClass: isAbnormal ? (avgHr < 60 ? 'status-warning' : 'status-danger') : 'status-normal',
+            status: isAbnormal ? (hr < 60 ? '偏慢' : '偏快') : '正常',
+            statusClass: isAbnormal ? (hr < 60 ? 'status-warning' : 'status-danger') : 'status-normal',
             isAbnormal
           });
         }
       }
 
-      // 计算血压平均值
+      // 获取最近一天的血压数据
       const bpData = data.BLOOD_PRESSURE_COUNT || [];
       if (bpData.length > 0) {
-        const validBp = bpData.filter(item => item.blood_pressure_systolic_max && parseInt(item.blood_pressure_systolic_max) > 0);
-        if (validBp.length > 0) {
-          const avgSys = validBp.reduce((sum, item) => parseInt(item.blood_pressure_systolic_max), 0) / validBp.length;
-          const avgDia = validBp.reduce((sum, item) => parseInt(item.blood_pressure_diastolic_min || 0), 0) / validBp.length;
-          const isAbnormal = avgSys > 130 || avgDia > 85;
+        const latestBp = bpData[0]; // 取最新的一条数据
+        if (latestBp.blood_pressure_systolic_max) {
+          const sys = parseInt(latestBp.blood_pressure_systolic_max);
+          const dia = parseInt(latestBp.blood_pressure_diastolic_min || 0);
+          const isAbnormal = sys > 130 || dia > 85;
           overview.push({
             type: 'bloodPressure',
-            indicator: '平均血压',
-            value: `${avgSys.toFixed(0)}/${avgDia.toFixed(0)}`,
+            indicator: '血压',
+            value: `${sys.toFixed(0)}/${dia.toFixed(0)}`,
             unit: 'mmHg',
             status: isAbnormal ? '偏高' : '正常',
             statusClass: isAbnormal ? 'status-danger' : 'status-normal',
@@ -436,26 +430,26 @@ export default {
         }
       }
 
-      // 计算血氧平均值
+      // 获取最近一天的血氧数据
       const oxyData = data.BLOOD_OXYGEN_COUNT || [];
       if (oxyData.length > 0) {
-        const validOxy = oxyData.filter(item => item.blood_oxygen_min && parseFloat(item.blood_oxygen_min) > 0);
-        if (validOxy.length > 0) {
-          const avgOxy = validOxy.reduce((sum, item) => parseFloat(item.blood_oxygen_min), 0) / validOxy.length;
-          const isAbnormal = avgOxy < 95;
+        const latestOxy = oxyData[0]; // 取最新的一条数据
+        if (latestOxy.blood_oxygen_min) {
+          const oxy = parseFloat(latestOxy.blood_oxygen_min);
+          const isAbnormal = oxy < 95;
           overview.push({
             type: 'bloodOxygen',
-            indicator: '平均血氧',
-            value: avgOxy.toFixed(1),
+            indicator: '血氧',
+            value: oxy.toFixed(1),
             unit: '%',
-            status: isAbnormal ? (avgOxy >= 90 ? '偏低' : '极低') : '正常',
-            statusClass: isAbnormal ? (avgOxy >= 90 ? 'status-warning' : 'status-danger') : 'status-normal',
+            status: isAbnormal ? (oxy >= 90 ? '偏低' : '极低') : '正常',
+            statusClass: isAbnormal ? (oxy >= 90 ? 'status-warning' : 'status-danger') : 'status-normal',
             isAbnormal
           });
         }
       }
 
-      // 添加睡眠数据
+      // 获取最近一天的睡眠数据
       const sleepData = data.SLEEP_COUNT || [];
       if (sleepData.length > 0 && sleepData[0].total) {
         const duration = (sleepData[0].total / 3600).toFixed(1);
@@ -463,7 +457,7 @@ export default {
         const isAbnormal = duration < 6 || duration > 9 || score < 60;
         overview.push({
           type: 'sleep',
-          indicator: '昨晚睡眠',
+          indicator: '睡眠',
           value: duration,
           unit: '小时',
           status: isAbnormal ? '不足' : '充足',
@@ -472,7 +466,7 @@ export default {
         });
       }
 
-      console.log('[Prepare] 健康数据概览:', overview);
+      console.log('[Prepare] 近期健康数据:', overview);
       return overview;
     },
 
