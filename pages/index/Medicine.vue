@@ -286,40 +286,39 @@ export default {
   },
   methods: {
     async fetchData() {
-      // 页面加载时可以初始化数据或调用接口
-      // await oppoHealthManager.fetchAllAndCache();
-
       this.fullstr = uni.getStorageSync("OPPO_HEALTH_FULL_DATA");
       this.full = JSON.parse(this.fullstr);
+      
+      // 获取最后一个元素
+      const lastHeartRate = this.full?.HEART_RATE_COUNT?.slice(-1)[0];
+      const lastBloodPressure = this.full?.BLOOD_PRESSURE_COUNT?.slice(-1)[0];
+      const lastSleep = this.full?.SLEEP_COUNT?.slice(-1)[0];
+      const lastStep = this.full?.STEP_COUNT?.slice(-1)[0];
+      const lastBloodOxygen = this.full?.BLOOD_OXYGEN_COUNT?.slice(-1)[0];
+      const lastPressure = this.full?.PRESSURE_COUNT?.slice(-1)[0];
+      const lastRelax = this.full?.RELAX_DETAIL?.slice(-1)[0];
 
-      this.heart_rate = this.full?.HEART_RATE_COUNT[0]?.average || "--";
-      this.max_blood_pressure =
-        this.full?.BLOOD_PRESSURE_COUNT[0]?.blood_pressure_systolic_max || "--";
-      this.min_blood_pressure =
-        this.full?.BLOOD_PRESSURE_COUNT[0]?.blood_pressure_diastolic_min ||
-        "--";
-      this.sleep_duration = this.full?.SLEEP_COUNT[0]?.total
-        ? (this.full?.SLEEP_COUNT[0]?.total / 3600).toFixed(1)
-        : "--";
-      this.sleep_score = this.full?.SLEEP_COUNT[0]?.sleep_score || "--";
-      this.step_count = this.full?.STEP_COUNT[0]?.step || "--";
-      this.stepGoal = this.full?.STEP_COUNT[0]?.step_goal || "--";
+      this.heart_rate = lastHeartRate?.average || "--";
+      this.max_blood_pressure = lastBloodPressure?.blood_pressure_systolic_max || "--";
+      this.min_blood_pressure = lastBloodPressure?.blood_pressure_diastolic_min || "--";
+      this.sleep_duration = lastSleep?.total ? (lastSleep.total / 3600).toFixed(1) : "--";
+      this.sleep_score = lastSleep?.sleep_score || "--";
+      this.step_count = lastStep?.step || "--";
+      this.stepGoal = lastStep?.step_goal || "--";
 
-      this.stepCompletion =
-        this.stepGoal > 0
-          ? ((this.step_count / this.stepGoal) * 100).toFixed(1)
-          : 0;
-      this.max_blood_oxygen =
-        this.full?.BLOOD_OXYGEN_COUNT[0]?.blood_oxygen_max || "--";
-      this.min_blood_oxygen =
-        this.full?.BLOOD_OXYGEN_COUNT[0]?.blood_oxygen_min || "--";
-      this.pressure = this.full?.PRESSURE_COUNT[0]?.average || "--";
-      this.relax_type = this.full?.RELAX_DETAIL[0]?.type || "--";
-      this.relax_sub_type = this.full?.RELAX_DETAIL[0]?.sub_type || "--";
-      this.relax_duration = this.full?.RELAX_DETAIL[0]?.duration || "--";
-      this.max_pressure = this.full?.PRESSURE_COUNT[0]?.max || "--";
-      this.min_pressure = this.full?.PRESSURE_COUNT[0]?.min || "--";
-      this.average_pressure = this.full?.PRESSURE_COUNT[0]?.average || "--";
+      this.stepCompletion = this.stepGoal > 0
+        ? ((this.step_count / this.stepGoal) * 100).toFixed(1)
+        : 0;
+        
+      this.max_blood_oxygen = lastBloodOxygen?.blood_oxygen_max || "--";
+      this.min_blood_oxygen = lastBloodOxygen?.blood_oxygen_min || "--";
+      this.pressure = lastPressure?.average || "--";
+      this.relax_type = lastRelax?.type || "--";
+      this.relax_sub_type = lastRelax?.sub_type || "--";
+      this.relax_duration = lastRelax?.duration || "--";
+      this.max_pressure = lastPressure?.max || "--";
+      this.min_pressure = lastPressure?.min || "--";
+      this.average_pressure = lastPressure?.average || "--";
 
       this.computeHealthIndex();
     },
@@ -327,76 +326,142 @@ export default {
       // 基础分 0
       let score = 0;
       const data = this.full;
-      if (!data) return 0;
+      if (!data) {
+        this.healthIndex = {
+          score: 0,
+          level: "无数据",
+          color: "#999999",
+        };
+        return;
+      }
 
-      // --- 1. 步数评分 (满分 30) ---
-      const stepData = data.STEP_COUNT?.[0];
+      // --- 1. 步数评分 (满分 25) ---
+      const stepData = data.STEP_COUNT?.slice(-1)[0];
       if (stepData) {
-        const steps = parseInt(stepData.step_count || 0);
+        const steps = parseInt(stepData.step || 0);
         const goal = parseInt(stepData.step_goal || 8000);
-        // 按完成比例打分，最高 30 分
-        score += Math.max(Math.min((steps / goal) * 30, 30), 18);
+        // 按完成比例打分，最低保底8分，最高25分
+        let stepScore = (steps / goal) * 25;
+        stepScore = Math.min(stepScore, 25);
+        stepScore = Math.max(stepScore, 8);
+        score += stepScore;
       }
 
       // --- 2. 睡眠评分 (满分 30) ---
-      const sleepData = data.SLEEP_COUNT?.[0];
+      const sleepData = data.SLEEP_COUNT?.slice(-1)[0];
       if (sleepData) {
-        // 睡眠分由两部分组成：时长占比(15分) + 官方评分占比(15分)
+        // 睡眠分由两部分组成：时长评分(15分) + 官方睡眠评分(15分)
         const durationHours = (sleepData.total || 0) / 3600;
         const sleepScoreOrigin = parseInt(sleepData.sleep_score || 0);
 
-        // 时长分：6-9小时为满分，过少或过多递减
-        let durationScore = 0;
-        if (durationHours >= 6 && durationHours <= 9) durationScore = 15;
-        else {
-          durationScore = 9;
+        // 时长分：7-8小时满分，6-7小时或8-9小时12分，其他9分
+        let durationScore = 9;
+        if (durationHours >= 7 && durationHours <= 8) {
+          durationScore = 15;
+        } else if ((durationHours >= 6 && durationHours < 7) || (durationHours > 8 && durationHours <= 9)) {
+          durationScore = 12;
         }
 
-        score += Math.max(durationScore, 9);
-        score += (sleepScoreOrigin / 100) * 15;
+        // 官方睡眠评分：0-100分映射到0-15分
+        let sleepScorePart = (sleepScoreOrigin / 100) * 15;
+        
+        score += durationScore + sleepScorePart;
       }
 
       // --- 3. 心血管状态评分 (满分 30) ---
       // 心率分 (15分)
-      const hr = parseFloat(data.HEART_RATE_COUNT?.[0]?.average || 0);
-      if (hr >= 60 && hr <= 100) score += 15; // 正常静息心率
-      else {
-        score += 9;
+      const hrData = data.HEART_RATE_COUNT?.slice(-1)[0];
+      if (hrData) {
+        const hr = parseFloat(hrData.average || 0);
+        if (hr >= 60 && hr <= 100) {
+          score += 15; // 正常静息心率
+        } else if (hr >= 50 && hr < 60) {
+          score += 12; // 稍慢（运动员常见）
+        } else if (hr > 100 && hr <= 120) {
+          score += 9; // 稍快
+        } else {
+          score += 6; // 异常
+        }
       }
 
       // 血压分 (15分)
-      const sysMax = parseInt(
-        data.BLOOD_PRESSURE_COUNT?.[0]?.blood_pressure_systolic_max || 0
-      );
-      const diaMin = parseInt(
-        data.BLOOD_PRESSURE_COUNT?.[0]?.blood_pressure_diastolic_min || 0
-      );
-      if (sysMax > 0) {
-        // 理想血压收缩压 < 130 且 舒张压 < 85
-        if (sysMax <= 130 && diaMin <= 85) score += 15;
-        else score += 9;
+      const bpData = data.BLOOD_PRESSURE_COUNT?.slice(-1)[0];
+      if (bpData) {
+        const sysMax = parseInt(bpData.blood_pressure_systolic_max || 0);
+        const diaMin = parseInt(bpData.blood_pressure_diastolic_min || 0);
+        
+        if (sysMax > 0) {
+          // 理想血压：< 120/80
+          if (sysMax < 120 && diaMin < 80) {
+            score += 15;
+          } 
+          // 正常高值：120-129/80-84
+          else if (sysMax >= 120 && sysMax <= 129 && diaMin >= 80 && diaMin <= 84) {
+            score += 12;
+          }
+          // 轻度高血压：130-139/85-89
+          else if (sysMax >= 130 && sysMax <= 139 && diaMin >= 85 && diaMin <= 89) {
+            score += 9;
+          }
+          // 高血压：>= 140/90
+          else if (sysMax >= 140 || diaMin >= 90) {
+            score += 6;
+          }
+          else {
+            score += 9;
+          }
+        }
       }
 
-      // --- 4. 血氧分 (满分 10) ---
-      const oxy = parseFloat(
-        data.BLOOD_OXYGEN_COUNT?.[0]?.blood_oxygen_min || 0
-      );
-      if (oxy >= 95) score += 10;
-      else if (oxy >= 90) score += 6;
+      // --- 4. 血氧评分 (满分 15) ---
+      const oxyData = data.BLOOD_OXYGEN_COUNT?.slice(-1)[0];
+      if (oxyData) {
+        const oxyMin = parseFloat(oxyData.blood_oxygen_min || 0);
+        const oxyMax = parseFloat(oxyData.blood_oxygen_max || 0);
+        const oxyAvg = (oxyMin + oxyMax) / 2;
+        
+        if (oxyAvg >= 96) {
+          score += 15; // 优秀
+        } else if (oxyAvg >= 94) {
+          score += 12; // 良好
+        } else if (oxyAvg >= 92) {
+          score += 9; // 正常偏低
+        } else if (oxyAvg >= 90) {
+          score += 6; // 偏低
+        } else {
+          score += 3; // 异常
+        }
+      }
 
-      // 最终得分四舍五入
-      const finalScore = Math.round(score);
+      // 最终得分限制在 0-100 之间
+      const finalScore = Math.min(Math.max(Math.round(score), 0), 100);
+
+      // 评级标准优化
+      let level = "一般";
+      let color = "#FF3B30";
+      
+      if (finalScore >= 90) {
+        level = "优秀";
+        color = "#4CD964";
+      } else if (finalScore >= 75) {
+        level = "良好";
+        color = "#FEB300";
+      } else if (finalScore >= 60) {
+        level = "一般";
+        color = "#FF9500";
+      } else if (finalScore >= 40) {
+        level = "需关注";
+        color = "#FF3B30";
+      } else {
+        level = "数据不足";
+        color = "#999999";
+      }
 
       // 返回得分和评级
       this.healthIndex = {
         score: finalScore,
-        level: finalScore >= 90 ? "优秀" : finalScore >= 75 ? "良好" : "一般",
-        color:
-          finalScore >= 90
-            ? "#4CD964"
-            : finalScore >= 75
-            ? "#FEB300"
-            : "#FF3B30",
+        level: level,
+        color: color,
       };
     },
     // 动态生成趋势描述文字
@@ -728,7 +793,7 @@ $bg-dark: #0f172a;
   }
 }
 .health-swiper {
-  height: 420rpx; // 根据你卡片内容的实际高度调整
+  height: 360rpx; // 根据你卡片内容的实际高度调整
   margin-top: 20rpx;
 
   // 穿透修改指示点位置（可选）

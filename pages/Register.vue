@@ -99,7 +99,7 @@ export default {
     };
   },
   methods: {
-    goBack() { uni.navigateBack(); },
+    goBack() { uni.redirectTo({ url: `/pages/Login?username=${this.formData.username}&password=${this.formData.password}` }); },
     goLogin() { uni.redirectTo({ url: '/pages/Login' }); },
     async handleRegister() {
       if (!this.agreed) { uni.showToast({ title: "请先同意协议", icon: "none" }); return; }

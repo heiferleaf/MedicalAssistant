@@ -36,22 +36,43 @@ class OppoHealthManager {
     return new Promise((resolve, reject) => {
       if (!sdk) return reject("插件未加载");
       sdk.initSdk((res) => {
+        // this.consoleLog("[OppoHealth] Init:", res);
         console.log("[OppoHealth] Init:", res);
         resolve(res);
       });
     });
   }
-
+  // 添加重启方法
+  restartApp() {
+    // #ifdef APP-PLUS
+    plus.runtime.restart();
+    // #endif
+  }
   // 2. 授权逻辑 (包含自动引导安装)
   async auth() {
     const sdk = this.getSdk();
     return new Promise((resolve, reject) => {
       sdk.requestAuth((code) => {
         if (code === 100000) {
-          this.consoleLog("授权成功");
+          // this.consoleLog("授权成功");
+          uni.setStorageSync('HEALTH_AUTHORIZED', true);
+          // 显示重启弹窗
+          uni.showModal({
+            title: "授权成功",
+            content: "授权成功，需要重启应用以生效",
+            confirmText: "立即重启",
+            success: (res) => {
+              if (res.confirm) {
+                // 重启APP
+                this.restartApp();
+              } else {
+                resolve(true);
+              }
+            }
+          });
           resolve(true);
         } else if (code === 100007) {
-          this.consoleLog("需要安装健康App");
+          // this.consoleLog("需要安装健康App");
           uni.showModal({
             title: "需要安装健康App",
             content: "为了同步您的健康数据，需要配合“欢太健康”App使用。",
@@ -71,13 +92,13 @@ class OppoHealthManager {
   // 3. 读取指定类型的健康数据
   async readData(type, days = 1) {
     const sdk = this.getSdk();
-    this.consoleLog(`读取数据: ${type}, 最近 ${days} 天`);
     return new Promise((resolve, reject) => {
       sdk.readHealthData(type, days, (res) => {
         if (typeof res === "number") {
           reject({ type, code: res });
         } else {
           try {
+            // this.consoleLog(`读取数据: ${type}, 最近 ${days} 天, res:${JSON.stringify(res)}`);
             resolve(JSON.parse(res));
           } catch (e) {
             resolve(res); // 解析失败返回原始字符串
@@ -128,12 +149,12 @@ class OppoHealthManager {
    * 核心新增函数：全量读取并缓存数据
    * @param {Number} queryDays 查询天数，默认15天
    */
-  async fetchAllAndCache(queryDays = 15) {
+  async fetchAllAndCache(queryDays = 28) {
     try {
       await this.init();
 
       // 1. 并发读取所有类型的数据
-      this.consoleLog(`开始全量读取数据，查询最近 ${queryDays} 天...`);
+      // this.consoleLog(`开始全量读取数据，查询最近 ${queryDays} 天...`);
       const results = await Promise.all(
         this.allCategories.map((cat) => this.readData(cat, queryDays)),
       );
@@ -149,8 +170,6 @@ class OppoHealthManager {
 
       // 3. Stringify 并存入 Storage
       const jsonStr = JSON.stringify(fullData);
-      console.log("[OppoHealth] 全量数据字符串:", jsonStr);
-      this.consoleLog("全量数据字符串: " + jsonStr);
       uni.setStorageSync("OPPO_HEALTH_FULL_DATA", jsonStr);
 
       console.log("[OppoHealth] 全量数据已更新至 Storage");
@@ -186,9 +205,9 @@ class OppoHealthManager {
     // 启动后台同步，设置 20 分钟
     // 即使 App 退到后台，Android 系统也会按此频率调度 Java 层的 Worker
     const token = uni.getStorageSync("accessToken");
-    this.consoleLog("启动后台同步，Token: " + token);
+    // this.consoleLog("启动后台同步，Token: " + token);
     const userId = uni.getStorageSync("userId");
-    this.consoleLog("启动后台同步，UserID: " + userId);
+    // this.consoleLog("启动后台同步，UserID: " + userId);
     sdk.startBackgroundSync(token, userId, 20);
   }
 }

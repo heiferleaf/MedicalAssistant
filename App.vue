@@ -34,14 +34,14 @@ export default {
   },
   onShow: function () {
     // 可以在这里检查连接状态，如果断开了就重连
-    oppoHealthManager.consoleLog(
-      "App onShow: Checking connection and refreshing data..."
-    );
+    // oppoHealthManager.consoleLog(
+    //   "App onShow: Checking connection and refreshing data..."
+    // );
     this.getHealthData(); // 进入前台时获取最新数据
   },
   onHide: function () {
     // 通常不需要在 Hide 时关闭，除非业务要求
-    oppoHealthManager.consoleLog("App onHide: Pausing data updates...");
+    // oppoHealthManager.consoleLog("App onHide: Pausing data updates...");
   },
   onUnload: function () {
     closeConnection(); // 销毁时释放资源 [cite: 334]
@@ -50,10 +50,34 @@ export default {
     // 其他全局方法可以放在这里
     async getHealthData() {
       // 进入前台时获取最新数据
+      const hasAuthorized = uni.getStorageSync("HEALTH_AUTHORIZED");
+      if (!hasAuthorized) this.showAuthDialog();
       const token = uni.getStorageSync("accessToken");
       if (token) {
         await oppoHealthManager.fetchAllAndCache();
       }
+    },
+    // 显示授权弹窗或跳转授权页
+    async showAuthDialog() {
+      uni.showModal({
+        title: '授权提示',
+        content: '为了记录您的健康数据，需要授权访问OPPO健康数据',
+        confirmText: '去授权',
+        success: async(res) => {
+          if (res.confirm) {
+            // 延迟一下确保弹窗关闭
+            setTimeout(async () => {
+              try {
+                await oppoHealthManager.init();
+                await oppoHealthManager.auth();
+              } catch (error) {
+                console.error('授权失败', error);
+              }
+            }, 100);
+          }
+        }
+      });
+      uni.hideModal();
     },
   },
 };

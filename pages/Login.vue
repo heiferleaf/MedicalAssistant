@@ -107,7 +107,11 @@ export default {
       );
     },
   },
-  onLoad() {
+  onLoad(options) {
+    if(options.username && options.password){
+      this.loginForm.username = options.username;
+      this.loginForm.password = options.password;
+    }
     this.checkRememberedAccount();
   },
   methods: {
