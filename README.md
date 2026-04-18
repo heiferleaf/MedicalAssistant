@@ -1,25 +1,134 @@
-# MedicalAssistant 基于Agent的医药助手 -- 后端部分
+# MedicalAssistant Backend
 
----
+医疗助手后端服务（Spring Boot）。
 
-## 架构简要说明
+## 技术栈
 
-- 业务逻辑架构：后端部分采用 `SprintBoot` 架构，使用经典的 `MVC` 分层设计
-- 数据库：通过添加 `MyBatis` 依赖，连接 `MySQL` 数据库
+- Java 17+
+- Spring Boot
+- Maven
+- MyBatis（XML Mapper）
+- MySQL
+- Docker / Docker Compose
 
-## MVC 具体说明
+## 项目结构
 
-> 按照业务处理流程说明
+```text
+backend/
+├── src/
+│   ├── main/
+│   │   ├── java/com/whu/medicalbackend/
+│   │   └── resources/
+│   │       ├── application.yaml
+│   │       ├── db/
+│   │       └── mapper/
+│   └── test/
+├── docker/
+│   └── init.sql
+├── docker-compose.yml
+├── Dockerfile
+└── pom.xml
+```
 
-- `dto` :处理前端通过 `HTTP` 请求，传给后端的`get`URL参数或者`post`请求体参数
-- `controller` :处理器层，通过`Spring Validation`的参数校验请求，会使用处理器持有的`service`，对Tomcat服务器收到的HTTP请求进行处理
-- `service` :逻辑业务处理，对控制器收到的数据，借助`repository`，进行业务逻辑处理
-- `repository` :数据仓库层，内部持有`mapper`，主要实现`service`业务需求和实际`mapper`得到数据的格式转换
-- `mapper` :映射层，通过配置文件，连接数据库，对数据库进行操作
-- `entity` :实体包，存放数据库中，关系模式对应的Java类,也是`mapper`使用和返回的数据类型
-- `exception` :异常包，存放自定义的异常，以及全局的异常处理器。在`controller`收到的异常，会直接进入处理器的对应方法
-- `commom` :公共包，存放所有业务通过的返回数据包装类，包括状态码的枚举类和返回数据的封装类
-- `util` :工具包，存放`service`层处理业务时，需要使用的工具
-- `config` :配置包，存放执行定时任务调度线程池的配置类
-- `schedule` :任务调度包，实现每日定时生成任务，并配置每一个任务的超时漏服处理
-- `handler` :类型处理包，实现了`entity`中，`LocalTime / List<LocalTime>` \<--> `JdbcType.VARCHAR` 的转换。具体在`MyBatis`的`xml`文件中配置使用
+## 环境要求
+
+- JDK 17 或更高版本
+- Maven 3.8+
+- MySQL 8.x
+- （可选）Docker Desktop
+
+## 快速开始
+
+### 1. 克隆并进入后端目录
+
+```bash
+cd /Users/motao/Desktop/MedicalAssistant/backend
+```
+
+### 2. 配置数据库
+
+1. 创建数据库（例如 `medical_assistant`）。
+2. 执行 `src/main/resources/db/` 下的 SQL 文件：
+   - `database.sql`
+   - `user.sql`
+   - `family.sql`
+   - `medicalPlan.sql`
+   - `agentMemory.sql`
+
+> 也可以参考 `docker/init.sql` 进行初始化。
+
+### 3. 修改配置
+
+编辑：
+
+- `src/main/resources/application.yaml`
+
+按本地环境修改数据库连接、端口、账号密码等配置。
+
+### 4. 启动项目
+
+```bash
+./mvnw spring-boot:run
+```
+
+或：
+
+```bash
+mvn spring-boot:run
+```
+
+### 5. 运行测试
+
+```bash
+./mvnw test
+```
+
+## Docker 运行（可选）
+
+### 使用 Docker Compose
+
+```bash
+docker compose up -d --build
+```
+
+查看日志：
+
+```bash
+docker compose logs -f
+```
+
+停止服务：
+
+```bash
+docker compose down
+```
+
+## 打包
+
+```bash
+./mvnw clean package -DskipTests
+```
+
+生成的 jar 位于 `target/` 目录。
+
+## 常见问题
+
+1. **数据库连接失败**
+   - 检查 `application.yaml` 的 `url/username/password`。
+   - 确认 MySQL 已启动并允许本机连接。
+
+2. **端口被占用**
+   - 修改 `application.yaml` 中 `server.port`，或释放占用端口。
+
+3. **Mapper XML 未生效**
+   - 检查 `resources/mapper/` 路径与 MyBatis 扫描配置是否一致。
+
+## 开发说明
+
+- 主要启动类：`MedicalBackendApplication.java`
+- 核心包路径：`com.whu.medicalbackend`
+- 推荐在 VS Code 或 IntelliJ IDEA 中开发。
+
+## License
+
+如无特殊说明，默认仅用于学习与项目内部使用。

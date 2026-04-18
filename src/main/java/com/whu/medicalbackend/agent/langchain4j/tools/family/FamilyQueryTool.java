@@ -1,14 +1,12 @@
 package com.whu.medicalbackend.agent.langchain4j.tools.family;
 
-import com.whu.medicalbackend.dto.FamilyDetailVO;
-import com.whu.medicalbackend.service.FamilyGroupService;
+import com.whu.medicalbackend.family.dto.FamilyDetailVO;
+import com.whu.medicalbackend.family.service.serviceImpl.FamilyGroupService;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 @Component
 public class FamilyQueryTool {

@@ -37,22 +37,8 @@ CREATE TABLE family_member (
                                INDEX idx_group_user (group_id,user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='家庭组成员表';
 
--- ====================================
--- 6. 健康数据表
--- ====================================
-CREATE TABLE health_data (
-                             id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '健康数据唯一ID，自增主键',
-                             user_id BIGINT NOT NULL COMMENT '用户ID，关联用户表',
-                             group_id BIGINT NOT NULL COMMENT '所属家庭组ID，关联family_group.id',
-                             record_date DATE NOT NULL COMMENT '数据记录所属日期',
-                             health_value VARCHAR(512) COMMENT '主要健康监测数据，JSON格式（如血压、血糖等）',
-                             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '数据生成时间',
-                             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-                             is_deleted BOOLEAN DEFAULT 0 COMMENT '0=正常，1=软删除',
-                             INDEX idx_user_id (user_id),
-                             INDEX idx_group_id (group_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='家庭成员健康数据表';
 
+    comment '健康数据表';
 -- ====================================
 -- 7. 邀请/申请记录表
 -- ====================================

@@ -1,5 +1,6 @@
 package com.whu.medicalbackend.util;
 
+import com.whu.medicalbackend.common.util.PasswordUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

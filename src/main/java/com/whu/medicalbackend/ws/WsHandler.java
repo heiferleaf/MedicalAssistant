@@ -1,7 +1,7 @@
 package com.whu.medicalbackend.ws;
 
-import com.whu.medicalbackend.service.serviceImpl.RedisService;
-import com.whu.medicalbackend.util.RedisKeyBuilderUtil; // 引入工具类
+import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
+import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil; // 引入工具类
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,7 +26,7 @@ public class WsHandler extends TextWebSocketHandler {
         if(userId != null) {
             sessionManager.add(userId, session);
 
-            // 使用工具类构建在线状态的 Hash Key: ws:online:members
+            // 使用工具类构建在线状态的 Hash Key: family:online:members
             String onlineKey = RedisKeyBuilderUtil.getOnlineMemberKey();
             redisService.putWithHash(onlineKey, userId.toString(), "1");
 

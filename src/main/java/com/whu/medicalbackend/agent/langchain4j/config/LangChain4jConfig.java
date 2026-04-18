@@ -58,6 +58,7 @@ public class LangChain4jConfig implements WebMvcConfigurer {
         return QwenChatModel.builder()
                 .apiKey(dashscopeApiKey)
                 .modelName(dashscopeModel)
+                .enableSearch(true)  // 启用联网搜索功能
                 .build();
     }
 

@@ -1,6 +1,6 @@
 package com.whu.medicalbackend.ws.event;
 
-import com.whu.medicalbackend.enumField.FamilyEventEnum;
+import com.whu.medicalbackend.common.enumField.FamilyEventEnum;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 

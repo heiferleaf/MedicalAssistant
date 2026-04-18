@@ -1,6 +1,6 @@
 package com.whu.medicalbackend.ws;
 
-import com.whu.medicalbackend.util.JwtUtil;
+import com.whu.medicalbackend.common.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;

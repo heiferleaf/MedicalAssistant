@@ -2,8 +2,8 @@ package com.whu.medicalbackend.agent.langchain4j.tools.task;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-import com.whu.medicalbackend.service.TaskService;
-import com.whu.medicalbackend.dto.TaskVO;
+import com.whu.medicalbackend.medical.service.TaskService;
+import com.whu.medicalbackend.medical.dto.TaskVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

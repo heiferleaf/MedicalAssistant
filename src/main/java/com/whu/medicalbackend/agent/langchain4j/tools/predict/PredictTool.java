@@ -1,8 +1,8 @@
 package com.whu.medicalbackend.agent.langchain4j.tools.predict;
 
-import com.whu.medicalbackend.predict.PredictService;
-import com.whu.medicalbackend.predict.PredictRequest;
-import com.whu.medicalbackend.predict.PredictResponse;
+import com.whu.medicalbackend.agent.predict.PredictService;
+import com.whu.medicalbackend.agent.predict.PredictRequest;
+import com.whu.medicalbackend.agent.predict.PredictResponse;
 import dev.langchain4j.agent.tool.Tool;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

@@ -1,8 +1,8 @@
 package com.whu.medicalbackend.agent.langchain4j.tools.family;
 
-import com.whu.medicalbackend.dto.FamilyAlarmVO;
-import com.whu.medicalbackend.dto.FamilyDetailVO;
-import com.whu.medicalbackend.service.FamilyGroupService;
+import com.whu.medicalbackend.family.dto.FamilyAlarmVO;
+import com.whu.medicalbackend.family.dto.FamilyDetailVO;
+import com.whu.medicalbackend.family.service.serviceImpl.FamilyGroupService;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import org.slf4j.Logger;

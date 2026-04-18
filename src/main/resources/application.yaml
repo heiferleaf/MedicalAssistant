@@ -1,10 +1,12 @@
 # 服务器配置
 server:
   port: 8080
+  # 最大 HTTP 请求大小（支持 Base64 图片）
+  max-http-form-post-size: 50MB
 
-# Flask AI service (same host)
+# Flask AI service (云端服务)
 flask:
-  base-url: ${FLASK_URL:http://127.0.0.1:8001}
+  base-url: ${FLASK_URL:http://8.148.94.242:8001}
   timeout-ms: 120000
 
 # Compatibility: some components expect ai.rag.*
@@ -19,19 +21,29 @@ rag:
     url: ${flask.base-url}
     timeout-ms: ${flask.timeout-ms}
 
-# Spring配置
+# Spring 配置
 spring:
   application:
     name: mediacalbackend
+  
+  # 日志配置
+  main:
+    log-startup-info: true
+
+  # 文件上传大小限制（支持 Base64 图片）
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
   # 数据源配置
   datasource:
     # JDBC URL
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/${MYSQL_DB:MedicalAssistant}?useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3307}/${MYSQL_DB:medicalassistant}?useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai
     # 数据库用户名
-    username: ${MYSQL_USER:root}
+    username: ${MYSQL_USER:appuser}
     # 数据库密码
-    password: ${MYSQL_PASSWORD:1234}
+    password: ${MYSQL_PASSWORD:App123456}
     # 驱动类名（MySQL 8.x）
     driver-class-name:  com.mysql.cj.jdbc.Driver
 
@@ -48,14 +60,25 @@ spring:
           max-active: 8 # 连接池最大连接数
           max-idle: 8 # 最大空闲连接数
 
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # 消费者并发数（多线程消费）
+        concurrency: 2
+        max-concurrency: 5
+
 # MyBatis配置
 mybatis:
   # Mapper XML文件位置
   mapper-locations: classpath:mapper/*.xml
   # 实体类别名包（XML中可以直接用类名，不用写全限定名）
-  type-aliases-package: com.whu.medicalbackend.entity
+  type-aliases-package: com.whu
   # 实体类型转换处理（LocalTime(List<LocalTime>) <-> VARCHAR）
-  type-handlers-package: com.whu.medicalbackend.handler
+  type-handlers-package: com.whu
   # MyBatis全局配置
   configuration:
     # 开启驼峰命名映射：create_time -> createTime
@@ -67,6 +90,10 @@ mybatis:
 dashscope:
   api-key: ${DASHSCOPE_API_KEY:}
   model: qwen-turbo  # 使用支持联网搜索的模型
+
+# Redis Pub/Sub 判断的实例依据
+app:
+  instance-id: ${INSTANCE_ID:local}
 
 # Agent 配置
 agent:
@@ -80,3 +107,11 @@ agent:
 
 printpdf:
   output-dir: ./uploads/printpdf
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.whu.medicalbackend: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet: DEBUG

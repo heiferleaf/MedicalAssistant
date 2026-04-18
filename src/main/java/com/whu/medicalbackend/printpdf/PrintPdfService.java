@@ -17,16 +17,19 @@ import java.util.UUID;
 @Service
 public class PrintPdfService {
 
-    private static final String OUTPUT_DIR = "uploads/printpdf";
+    private static final String OUTPUT_DIR = System.getProperty("user.dir") + "/uploads/printpdf";
 
     public String generatePdf(PrintPdfRequest request) throws Exception {
         File dir = new File(OUTPUT_DIR);
         if (!dir.exists()) {
-            dir.mkdirs();
+            boolean created = dir.mkdirs();
+            System.out.println("[PDF] 创建目录：" + OUTPUT_DIR + ", 成功：" + created);
         }
 
         String fileName = "prepare_" + UUID.randomUUID() + ".pdf";
         File file = new File(dir, fileName);
+        
+        System.out.println("[PDF] 保存文件：" + file.getAbsolutePath());
 
         Document document = new Document(PageSize.A4, 50, 50, 50, 50);
         PdfWriter.getInstance(document, new FileOutputStream(file));
