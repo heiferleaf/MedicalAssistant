@@ -167,7 +167,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
             apply.setRemark(remark);
             applyMapper.insert(apply);
 
-            redisService.setWithExpire(limitedKey, "1", 48, TimeUnit.HOURS);
+            redisService.setWithExpire(limitedKey, "1", 1, TimeUnit.MINUTES);
             dynamicTaskScheduler.addInviteExpireTask(apply.getId(), apply.getExpireTime());
 
         } finally {
@@ -224,7 +224,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
             invite.setRemark(remark);
             applyMapper.insert(invite);
 
-            redisService.setWithExpire(limitedKey, "1", 48, TimeUnit.HOURS);
+            redisService.setWithExpire(limitedKey, "1", 1, TimeUnit.MINUTES);
             dynamicTaskScheduler.addInviteExpireTask(invite.getId(), invite.getExpireTime());
         } finally {
             redisService.unlock(lockKey);
