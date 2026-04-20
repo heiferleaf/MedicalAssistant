@@ -55,6 +55,7 @@ export default {
       const token = uni.getStorageSync("accessToken");
       if (token) {
         await oppoHealthManager.fetchAllAndCache();
+        await oppoHealthManager.syncToBackend();
       }
     },
     // 显示授权弹窗或跳转授权页

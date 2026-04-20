@@ -174,6 +174,7 @@ function handleMessage(pushData) {
 
   // 核心：通知前端页面实时刷新
   // 我们根据 type 定义不同的事件名，或者统一用一个事件名
+  console.log("handleMessage: ", type);
   switch (type) {
     case "medicine_alarm":
     case "medicine_update":

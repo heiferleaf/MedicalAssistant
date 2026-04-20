@@ -169,9 +169,9 @@ export default {
         uni.setStorageSync("userName", this.loginForm.username.trim());
         uni.setStorageSync("createTime", result.createTime);
 
+        this.loading = false;
         connect();
 
-        this.loading = false;
         await oppoHealthManager.fetchAllAndCache(); // 登录成功后获取健康数据并缓存
         oppoHealthManager.initBackgroundSync(); // 登录成功后启动后台同步
 

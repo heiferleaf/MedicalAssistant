@@ -340,6 +340,7 @@ export default {
 
     // 点击“审批中心”时触发
     openApplyCenter() {
+      this.getMessage();
       if (this.applyList.length === 0) {
         uni.showToast({ title: "暂无待处理申请", icon: "none" });
         return;
