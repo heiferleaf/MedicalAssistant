@@ -283,7 +283,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
                 String logDesc = (apply.getType() == InviteType.apply) ? "通过申请加入小组" : "接受邀请加入小组";
                 eventLogMapper.insertLog(apply.getGroupId(), apply.getInviteeId(), EventLogEnum.INFO.name(), logDesc);
 
-                publishJoinEvent(apply.getGroupId(), apply.getInviteeId());
+//                publishJoinEvent(apply.getGroupId(), apply.getInviteeId());
             }
 
             // 取消定时任务
@@ -412,7 +412,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
             }
 
             eventLogMapper.insertLog(groupId, userId, EventLogEnum.INFO.name(), "成员主动退出小组");
-            publishQuitEvent(groupId, userId);
+//            publishQuitEvent(groupId, userId);
 
         } finally {
             redisService.unlock(lockKey);
@@ -510,7 +510,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
     }
 
 
-    private void publishJoinEvent(Long groupId, Long userId) {
+    public void publishJoinEvent(Long groupId, Long userId) {
         User newUser = userMapper.findByUserId(userId);
         if(newUser == null) return;
 
@@ -527,7 +527,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
         ));
     }
 
-    private void publishQuitEvent(Long groupId, Long userId) {
+    public void publishQuitEvent(Long groupId, Long userId) {
         User newUser = userMapper.findByUserId(userId);
         if(newUser == null) return;
         Map<String, Object> pushData = new HashMap<>();
