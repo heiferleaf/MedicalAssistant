@@ -51,6 +51,7 @@ public class WsPubSubBroadcaster{
     }
 
     public void onRedisMessage(String messageBody, String channel) {
+        log.info("【Pub/Sub】收到 Redis 消息, channel={}, message={}", channel, messageBody);
         try {
             BroadcastMessage msg = objectMapper.readValue(messageBody, BroadcastMessage.class);
 
@@ -61,6 +62,8 @@ public class WsPubSubBroadcaster{
             WebSocketSession session = sessionManager.get(msg.getUserId());
             if(session != null && session.isOpen()) {
                 pushLocalSession(msg.getUserId(), msg.getJsonPayload(), session);
+            } else {
+                log.warn("【Pub/Sub】用户 {} 的 WebSocket 会话不存在或已关闭，无法推送消息", msg.getUserId());
             }
 
         } catch (JsonProcessingException e) {
@@ -69,6 +72,7 @@ public class WsPubSubBroadcaster{
     }
 
     private void pushLocalSession(Long userId, String jsonPayload, WebSocketSession session) {
+        log.info("【Pub/Sub】尝试推送消息到本地 WebSocket 会话, userId={}, sessionId={}", userId, session.getId());
         if (session != null && session.isOpen()) {
             try {
                 session.sendMessage(new TextMessage(jsonPayload));

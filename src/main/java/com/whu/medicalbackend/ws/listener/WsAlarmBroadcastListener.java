@@ -30,8 +30,6 @@ public class WsAlarmBroadcastListener{
     @Autowired
     private RedisService redisService;
     @Autowired
-    private WebSocketSessionManager sessionManager;
-    @Autowired
     private FamilyCacheService familyCacheService;
     @Autowired
     private ObjectMapper objectMapper;
