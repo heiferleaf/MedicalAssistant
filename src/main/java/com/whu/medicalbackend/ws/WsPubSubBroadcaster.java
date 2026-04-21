@@ -13,12 +13,14 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.data.redis.connection.Message;
+import org.springframework.data.redis.connection.MessageListener;
 
 import java.io.IOException;
 
 @Slf4j
 @Component
-public class WsPubSubBroadcaster{
+public class WsPubSubBroadcaster implements MessageListener {
     private static final String CHANNEL_PREFIX = "ws:group:";
 
     @Autowired
@@ -50,12 +52,16 @@ public class WsPubSubBroadcaster{
         }
     }
 
-    public void onRedisMessage(String messageBody, String channel) {
+    @Override
+    public void onMessage(Message message, byte[] pattern) {
+        String channel = redisTemplate.getStringSerializer().deserialize(message.getChannel());
+        String messageBody = redisTemplate.getStringSerializer().deserialize(message.getBody());
+
         log.info("【Pub/Sub】收到 Redis 消息, channel={}, message={}", channel, messageBody);
         try {
             BroadcastMessage msg = objectMapper.readValue(messageBody, BroadcastMessage.class);
 
-            if(!msg.getSourceInstanceId().equals(instance)) {
+            if(msg.getSourceInstanceId().equals(instance)) {
                 return;
             }
 
@@ -73,7 +79,7 @@ public class WsPubSubBroadcaster{
 
     private void pushLocalSession(Long userId, String jsonPayload, WebSocketSession session) {
         log.info("【Pub/Sub】尝试推送消息到本地 WebSocket 会话, userId={}, sessionId={}", userId, session.getId());
-        if (session != null && session.isOpen()) {
+        if (session.isOpen()) {
             try {
                 session.sendMessage(new TextMessage(jsonPayload));
                 log.debug("【Pub/Sub】推送成功, userId={}", userId);
