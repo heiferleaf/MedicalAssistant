@@ -112,7 +112,28 @@ export default {
         uni.showToast({ title: "注册成功", icon: "success" });
         setTimeout(() => { uni.navigateBack(); }, 1000);
       } catch (e) { console.error(e); }
-    }
+    },
+        async showAuthDialog() {
+      uni.showModal({
+        title: '授权提示',
+        content: '为了记录您的健康数据，需要授权访问OPPO健康数据',
+        confirmText: '去授权',
+        success: async(res) => {
+          if (res.confirm) {
+            // 延迟一下确保弹窗关闭
+            setTimeout(async () => {
+              try {
+                await oppoHealthManager.init();
+                await oppoHealthManager.auth();
+              } catch (error) {
+                console.error('授权失败', error);
+              }
+            }, 100);
+          }
+        }
+      });
+      uni.hideModal();
+    },
   }
 };
 </script>

@@ -50,8 +50,8 @@ export default {
     // 其他全局方法可以放在这里
     async getHealthData() {
       // 进入前台时获取最新数据
-      const hasAuthorized = uni.getStorageSync("HEALTH_AUTHORIZED");
-      if (!hasAuthorized) this.showAuthDialog();
+      // const hasAuthorized = uni.getStorageSync("HEALTH_AUTHORIZED");
+      // if (!hasAuthorized) this.showAuthDialog();
       const token = uni.getStorageSync("accessToken");
       if (token) {
         await oppoHealthManager.fetchAllAndCache();
@@ -59,27 +59,27 @@ export default {
       }
     },
     // 显示授权弹窗或跳转授权页
-    async showAuthDialog() {
-      uni.showModal({
-        title: '授权提示',
-        content: '为了记录您的健康数据，需要授权访问OPPO健康数据',
-        confirmText: '去授权',
-        success: async(res) => {
-          if (res.confirm) {
-            // 延迟一下确保弹窗关闭
-            setTimeout(async () => {
-              try {
-                await oppoHealthManager.init();
-                await oppoHealthManager.auth();
-              } catch (error) {
-                console.error('授权失败', error);
-              }
-            }, 100);
-          }
-        }
-      });
-      uni.hideModal();
-    },
+    // async showAuthDialog() {
+    //   uni.showModal({
+    //     title: '授权提示',
+    //     content: '为了记录您的健康数据，需要授权访问OPPO健康数据',
+    //     confirmText: '去授权',
+    //     success: async(res) => {
+    //       if (res.confirm) {
+    //         // 延迟一下确保弹窗关闭
+    //         setTimeout(async () => {
+    //           try {
+    //             await oppoHealthManager.init();
+    //             await oppoHealthManager.auth();
+    //           } catch (error) {
+    //             console.error('授权失败', error);
+    //           }
+    //         }, 100);
+    //       }
+    //     }
+    //   });
+    //   uni.hideModal();
+    // },
   },
 };
 </script>

@@ -323,7 +323,6 @@ export default {
     },
     async initData() {
       await this.fetchData();
-      await this.getMessage();
       await this.getHealth();
       await this.getAlarms();
     },
@@ -366,14 +365,12 @@ export default {
 
         if (res.code === 200) {
           uni.showToast({ title: "处理成功" });
-          console.log("申请处理结果: ", res);
-          // this.getMessage(); // 刷新列表
-          // this.fetchData(); // 刷新成员列表（如果同意了人的话）
+          this.getMessage(); // 刷新列表
+          this.fetchData(); // 刷新成员列表（如果同意了人的话）
           if (this.applyList.length <= 1) this.showApplyModal = false;
         }
       } catch (e) {
         console.error("报错显示:", e);
-        // uni.showToast({ title: '操作失败', icon: 'none' });
       } finally {
         uni.hideLoading();
       }
@@ -421,7 +418,7 @@ export default {
           }
         }
       } catch (e) {
-        // uni.showToast({ title: '加载失败', icon: 'none' });
+        console.log("获取失败: ",e);
       }
     },
 
