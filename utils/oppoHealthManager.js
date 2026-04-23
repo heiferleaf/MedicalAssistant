@@ -116,29 +116,58 @@ class OppoHealthManager {
     if (!userId) return;
 
     try {
-      await this.init();
-      // 获取今天的数据（1天内）
-      const [heart, steps, oxygen, sleep] = await Promise.all([
-        this.readData("heart_rate", 1).catch(() => []),
-        this.readData("step_count", 1).catch(() => []),
-        this.readData("blood_oxygen", 1).catch(() => []),
-        this.readData("sleep", 1).catch(() => []),
-      ]);
+      // 从本地存储获取完整数据
+      const fullStr = uni.getStorageSync("OPPO_HEALTH_FULL_DATA");
+      if (!fullStr) {
+        console.log("[OppoHealth] 无本地存储数据");
+        return;
+      }
 
-      // 提取最新值或平均值（根据后端字段需求）
+      const full = JSON.parse(fullStr);
+      
+      // 获取最后一个元素（最新数据）
+      const lastHeartRate = full?.HEART_RATE_COUNT?.slice(-1)[0];
+      const lastBloodPressure = full?.BLOOD_PRESSURE_COUNT?.slice(-1)[0];
+      const lastSleep = full?.SLEEP_COUNT?.slice(-1)[0];
+      const lastStep = full?.STEP_COUNT?.slice(-1)[0];
+      const lastBloodOxygen = full?.BLOOD_OXYGEN_COUNT?.slice(-1)[0];
+      const lastPressure = full?.PRESSURE_COUNT?.slice(-1)[0];
+      const lastRelax = full?.RELAX_DETAIL?.slice(-1)[0];
+
+      // 构建符合后端接口的请求体
       const payload = {
         userId: userId,
-        heartRate: heart.length > 0 ? heart[0].value : null,
-        stepCount: steps.length > 0 ? steps[0].value : null,
-        bloodOxygen: oxygen.length > 0 ? oxygen[0].value : null,
-        // 睡眠通常取第一条（最晚结束的那条）
-        sleepDuration: sleep.length > 0 ? sleep[0].duration / 3600 : null,
-        measureTime: new Date().toISOString(),
+        heartRate: lastHeartRate?.average || null,
+        stepCount: lastStep?.step || null,
+        sleepDuration: lastSleep?.total ? (lastSleep.total / 3600).toFixed(1) : null,
+        sleepScope: lastSleep?.sleep_score || null,
+        bloodOxygen: lastBloodOxygen?.blood_oxygen_max || null,  // 根据你的字段，用的是max
+        relaxType: lastRelax?.type || null,
+        relaxSubType: lastRelax?.sub_type || null,
+        relaxDuration: lastRelax?.duration || null,
+        pressureMaxScore: lastPressure?.max || null,
+        pressureMinScore: lastPressure?.min || null,
+        pressureAvgScore: lastPressure?.average || null,
+        measureTime: new Date().toISOString()
       };
 
-      // 只有当有数据时才上传
-      if (Object.values(payload).some((v) => v !== null && v !== userId)) {
-        return await this.upload(payload);
+      // 可选：添加血压相关字段（后端文档里没有，但你可能需要）
+      // 如果需要血压，可以加上：
+      // bloodPressureMax: lastBloodPressure?.blood_pressure_systolic_max || null,
+      // bloodPressureMin: lastBloodPressure?.blood_pressure_diastolic_min || null,
+
+      // 检查是否有有效数据（至少有一个健康数据）
+      const hasValidData = Object.values(payload).some(
+        (v) => v !== null && v !== userId && v !== undefined
+      );
+
+      if (hasValidData) {
+        // 调用上传接口
+        const res = await this.upload(payload);
+        console.log("[OppoHealth] 同步成功", res);
+        return res;
+      } else {
+        console.log("[OppoHealth] 无有效数据可同步");
       }
     } catch (e) {
       console.error("[OppoHealth] Sync Error:", e);
@@ -176,6 +205,10 @@ class OppoHealthManager {
       return fullData;
     } catch (e) {
       console.error("[OppoHealth] 全量读取失败:", e);
+      uni.showToast({
+        title: "同步健康数据失败，记得打开OPPO健康应用",
+        icon: "none",
+      });
       throw e;
     }
   }

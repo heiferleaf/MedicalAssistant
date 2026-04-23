@@ -171,13 +171,21 @@ export default {
       return Math.min(10, Math.floor(days / 30) + 1);
     },
     initData() {
-      this.fullstr = uni.getStorageSync("OPPO_HEALTH_FULL_DATA");
-      this.full = JSON.parse(this.fullstr);
-
       const username = uni.getStorageSync("username") || "小明";
       this.username = username;
       this.createTime = uni.getStorageSync("createTime") || "";
 
+      const fullstr = uni.getStorageSync("OPPO_HEALTH_FULL_DATA");
+      if (fullstr) {
+          try {
+              this.full = JSON.parse(fullstr);
+          } catch (e) {
+              console.error("解析健康数据失败:", e);
+              this.full = null;
+          }
+      } else {
+          this.full = null;
+      }
       this.heart_rate = this.full?.HEART_RATE_COUNT[0]?.average || "--";
       this.max_blood_oxygen =
         this.full?.BLOOD_OXYGEN_COUNT[0]?.blood_oxygen_max || "--";

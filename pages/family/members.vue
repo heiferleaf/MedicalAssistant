@@ -41,7 +41,7 @@
             </view>
             <view class="text-info">
               <text class="tag">主家庭组</text>
-              <text class="title">幸福一家人</text>
+              <text class="title">{{ groupInfo.groupName }}</text>
               <text class="desc">家庭 ID: {{ groupInfo.groupId }}</text>
             </view>
           </view>
@@ -287,15 +287,7 @@ export default {
       applyList: [], // 申请列表数据
       healthData: [],
       showAlarmModal: false, // 控制弹窗显示隐藏
-      alarmList: [
-        // 你的接口数据
-        {
-          alarmId: 123,
-          memberName: "张三",
-          medicineName: "降压药A",
-          alarmTime: "2026-03-20 08:36:10",
-        },
-      ],
+      alarmList: [],
     };
   },
   onLoad() {

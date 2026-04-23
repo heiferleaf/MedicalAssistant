@@ -159,6 +159,7 @@ export default {
           icon: "success",
         });
         console.log("Login Result: ", result);
+        oppoHealthManager.consoleLog("Login Result: "+ JSON.stringify(result));
 
         uni.setStorageSync("userId", result.id);
         uni.setStorageSync("username", result.username);
@@ -172,24 +173,15 @@ export default {
         this.loading = false;
         connect();
 
-        await oppoHealthManager.fetchAllAndCache(); // 登录成功后获取健康数据并缓存
-        oppoHealthManager.initBackgroundSync(); // 登录成功后启动后台同步
-
-        // console.log("保存的用户名:",this.loginForm.username.trim());
-
         setTimeout(() => {
           uni.redirectTo({
             url: "/pages/index/index",
           });
         }, 1500);
+
+        oppoHealthManager.fetchAllAndCache(); // 登录成功后获取健康数据并缓存
+        oppoHealthManager.initBackgroundSync(); // 登录成功后启动后台同步
       } catch (error) {
-        if (!this.loading) {
-          setTimeout(() => {
-            uni.redirectTo({
-              url: "/pages/index/index",
-            });
-          }, 1500);
-        }
         console.error("登录失败:", error);
       } finally {
         this.loading = false;

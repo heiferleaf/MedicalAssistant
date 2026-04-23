@@ -155,8 +155,7 @@ export default {
         this.showPrivacyPopup = false;
     },
     openPrivacyLink() {
-        // Here you'd open the link normally via a web-view or uni method
-        uni.showToast({ title: "即将跳转浏览器查看", icon: "none" });
+      this.showAuthDialog();
     },
     async handleRegister() {
       if (!this.agreed) { uni.showToast({ title: "请先同意协议", icon: "none" }); return; }
@@ -170,7 +169,7 @@ export default {
         setTimeout(() => { uni.navigateBack(); }, 1000);
       } catch (e) { console.error(e); }
     },
-        async showAuthDialog() {
+    async showAuthDialog() {
       uni.showModal({
         title: '授权提示',
         content: '为了记录您的健康数据，需要授权访问OPPO健康数据',
