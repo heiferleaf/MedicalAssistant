@@ -9,6 +9,7 @@ import com.whu.medicalbackend.common.mq.entity.CanalMessage;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
 import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
 import com.whu.medicalbackend.family.service.FamilyCacheService;
+import com.whu.medicalbackend.family.service.FamilyGroupServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
@@ -39,6 +40,8 @@ public class CanalCacheConsumer {
 
     @Autowired
     private FamilyMemberMapper memberMapper; // 需要用到它来反查 user_id 对应的 group_id
+    @Autowired
+    private FamilyGroupServiceImpl familyGroupServiceImpl;
 
     /**
      * 监听 Topic/Queue: redis_data_change
@@ -110,15 +113,16 @@ public class CanalCacheConsumer {
                 if ("INSERT".equals(opType) || ("UPDATE".equals(opType) && "active".equals(status))) {
                     // 加入或重新激活：同步该成员信息到 Hash
                     familyCacheService.syncSingleMemberToCache(groupId, userId);
+                    familyGroupServiceImpl.publishJoinEvent(groupId, userId);
                 } else if ("DELETE".equals(opType) || ("UPDATE".equals(opType) && "quit".equals(status))) {
                     // 退出或被移出：从 Hash 中移除该成员
                     familyCacheService.removeMemberFromCache(groupId, userId);
+                    familyGroupServiceImpl.publishQuitEvent(groupId, userId);
                 }
 
                 // 只要成员发生变动（进出），今天的快照和今日警报就必须失效重建
                 redisService.delete(RedisKeyBuilderUtil.getFamilySnapshotKey(groupId, today));
                 redisService.delete(RedisKeyBuilderUtil.getFamilyAlarmKey(groupId, today));
-
             } catch (JsonProcessingException e) {
                 log.error("FamilyMember JSON 序列化写入缓存失败", e);
             }

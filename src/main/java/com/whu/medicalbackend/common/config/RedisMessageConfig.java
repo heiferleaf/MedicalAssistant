@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 
 /**
  * 提供 Redis 的Pub/Sub 模式的 Redis 容器配置
@@ -22,9 +21,7 @@ public class RedisMessageConfig{
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(factory);
 
-        MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(wsPubSubBroadcaster, "onRedisMessage");
-        messageListenerAdapter.afterPropertiesSet(); // 初始化 MessageListenerAdapter
-        container.addMessageListener(messageListenerAdapter, new PatternTopic("ws:group:*"));
+        container.addMessageListener(wsPubSubBroadcaster, new PatternTopic("ws:group:*"));
 
         return container;
     }
