@@ -779,14 +779,15 @@ export default {
             missedCount: 0,
             status: '正常'
           })),
-          // 使用 abnormalData 而不是 healthData
-          healthData: (this.abnormalData || []).map(data => ({
+          // 使用 healthOverview（近期所有健康数据）而不是 abnormalData
+          healthData: (this.healthOverview || []).map(data => ({
             id: data.id || '',
             date: data.date || '',
             indicator: data.indicator || '',
             value: data.value || '',
             unit: data.unit || '',
-            status: data.status || ''
+            status: data.status || '',
+            isAbnormal: data.isAbnormal || false
           })),
           questions: this.documentInfo.questions || [],
           otherInfo: this.documentInfo.otherInfo || ''
@@ -821,119 +822,30 @@ export default {
           return
         }
 
-        // #ifdef H5
-        // H5 环境：直接在新窗口打开（不需要认证，因为后端已配置公开访问）
-        window.open(fileUrl, '_blank')
-        uni.showToast({ title: 'PDF 已打开', icon: 'success' })
-        // #endif
-
-        // #ifdef APP-PLUS
-        // App 环境：使用 downloadFile 下载
-        uni.downloadFile({
-          url: fileUrl,
-          timeout: 20000,
-          success: (downloadRes) => {
-            console.log('[PDF] download success', downloadRes.statusCode, downloadRes.tempFilePath)
-            if (downloadRes.statusCode === 200) {
-              // 下载成功，打开 PDF
-              uni.openDocument({
-                filePath: downloadRes.tempFilePath,
-                showMenu: true,
+        // 统一处理：显示成功提示和下载链接
+        console.log('[PDF] 生成成功，fileUrl:', fileUrl)
+        
+        uni.showModal({
+          title: 'PDF 生成成功',
+          content: '点击下方按钮复制链接，然后在浏览器中打开下载',
+          showCancel: false,
+          confirmText: '复制链接并打开',
+          success: (modalRes) => {
+            if (modalRes.confirm) {
+              // 复制链接
+              uni.setClipboardData({
+                data: fileUrl,
                 success: () => {
-                  console.log('[PDF] openDocument success')
-                },
-                fail: (openErr) => {
-                  console.error('[PDF] openDocument fail', openErr)
-                  // 备用方案：显示文件路径让用户手动打开
-                  uni.showModal({
-                    title: '提示',
-                    content: '文件已下载到：' + downloadRes.tempFilePath,
-                    showCancel: false
+                  uni.showToast({ 
+                    title: '已复制，请打开浏览器粘贴链接', 
+                    icon: 'success',
+                    duration: 3000
                   })
                 }
-              })
-            } else if (downloadRes.statusCode === 402 || downloadRes.statusCode === 401) {
-              // Token 过期或无效
-              console.error('[PDF] download fail: 认证失败')
-              uni.showModal({
-                title: '认证失败',
-                content: '请重新登录后重试',
-                showCancel: false,
-                success: () => {
-                  // 跳转到登录页
-                  uni.reLaunch({ url: '/pages/login/Login' })
-                }
-              })
-            } else {
-              // 其他错误
-              console.error('[PDF] download fail: HTTP', downloadRes.statusCode)
-              uni.showModal({
-                title: '下载失败',
-                content: `HTTP ${downloadRes.statusCode}`,
-                showCancel: false
               })
             }
-          },
-          fail: (err) => {
-            console.error('[PDF] download fail', err)
-            // 备用方案：直接显示 URL
-            uni.showModal({
-              title: '提示',
-              content: 'PDF 地址：' + fileUrl + '\n\n请复制链接到浏览器打开',
-              showCancel: false,
-              confirmText: '复制链接',
-              success: (modalRes) => {
-                if (modalRes.confirm) {
-                  uni.setClipboardData({
-                    data: fileUrl,
-                    success: () => {
-                      uni.showToast({ title: '已复制', icon: 'success' })
-                    }
-                  })
-                }
-              }
-            })
           }
         })
-        // #endif
-
-        // #ifdef MP-WEIXIN
-        // 微信小程序环境：使用 downloadFile
-        uni.downloadFile({
-          url: fileUrl,
-          timeout: 20000,
-          success: (downloadRes) => {
-            if (downloadRes.statusCode === 200) {
-              uni.openDocument({
-                filePath: downloadRes.tempFilePath,
-                showMenu: true,
-                fail: (err) => {
-                  console.error('[PDF] openDocument fail', err)
-                  uni.showModal({
-                    title: '提示',
-                    content: '文件已下载，但无法打开',
-                    showCancel: false
-                  })
-                }
-              })
-            } else {
-              uni.showModal({
-                title: '下载失败',
-                content: `HTTP ${downloadRes.statusCode}`,
-                showCancel: false
-              })
-            }
-          },
-          fail: (err) => {
-            console.error('[PDF] download fail', err)
-            uni.showModal({
-              title: '提示',
-              content: 'PDF 地址：' + fileUrl,
-              showCancel: false
-            })
-          }
-        })
-        // #endif
       } catch (e) {
         console.error('[PDF] generate error=', e)
         uni.showModal({
