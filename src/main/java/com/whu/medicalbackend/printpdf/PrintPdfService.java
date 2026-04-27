@@ -73,18 +73,22 @@ public class PrintPdfService {
             }
         }
 
-        addSectionTitle(document, "二、异常健康数据", sectionFont);
+        addSectionTitle(document, "二、近期健康数据", sectionFont);
         List<PrintPdfRequest.HealthDataItem> healthData = request.getHealthData();
         if (healthData == null || healthData.isEmpty()) {
             addLine(document, "无", textFont);
         } else {
             for (PrintPdfRequest.HealthDataItem item : healthData) {
+                String statusMark = "";
+                // 如果有 isAbnormal 字段，添加状态标记
+                if (item.getIsAbnormal() != null && item.getIsAbnormal()) {
+                    statusMark = " [" + nvl(item.getStatus()) + "]";
+                }
                 addLine(
                         document,
-                        "- " + nvl(item.getDate()) +
-                                " | " + nvl(item.getIndicator()) +
-                                " | " + nvl(item.getValue()) + " " + nvl(item.getUnit()) +
-                                " | " + nvl(item.getStatus()),
+                        "- " + nvl(item.getIndicator()) +
+                                ": " + nvl(item.getValue()) + " " + nvl(item.getUnit()) +
+                                statusMark,
                         textFont
                 );
             }

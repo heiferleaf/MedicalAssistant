@@ -77,6 +77,7 @@ public class PrintPdfRequest {
         private String value;
         private String unit;
         private String status;
+        private Boolean isAbnormal;
 
         public Long getId() {
             return id;
@@ -124,6 +125,14 @@ public class PrintPdfRequest {
 
         public void setStatus(String status) {
             this.status = status;
+        }
+
+        public Boolean getIsAbnormal() {
+            return isAbnormal;
+        }
+
+        public void setIsAbnormal(Boolean isAbnormal) {
+            this.isAbnormal = isAbnormal;
         }
     }
 
