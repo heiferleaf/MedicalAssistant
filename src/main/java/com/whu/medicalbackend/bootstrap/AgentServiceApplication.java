@@ -14,7 +14,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.whu.medicalbackend.medical.service",
         "com.whu.medicalbackend.family.service",
         "com.whu.medicalbackend.health.service",
-        "com.whu.medicalbackend.user.service"
+        "com.whu.medicalbackend.user.service",
+        "com.whu.medicalbackend.user.repository"
 })
 @MapperScan({
         "com.whu.medicalbackend.agent.mapper",
