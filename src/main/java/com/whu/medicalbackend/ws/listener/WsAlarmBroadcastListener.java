@@ -42,7 +42,7 @@ public class WsAlarmBroadcastListener{
     /**
      * 使用 @Async 确保广播不阻塞主业务流程（如审批事务）
      */
-    @Async
+    @Async("wsPushExecutor")
     @EventListener
     public void handleFamilyPushEvent(FamilyPushEvent event) throws JsonProcessingException {
         Long groupId = event.getGroupId();
@@ -76,7 +76,7 @@ public class WsAlarmBroadcastListener{
         });
     }
 
-    @Async
+    @Async("wsPushExecutor")
     @EventListener
     public void handleUserTaskMedicineRemindEvent(UserTaskMedicineRemindEvent event) throws JsonProcessingException {
         Long userId = event.getUserId();

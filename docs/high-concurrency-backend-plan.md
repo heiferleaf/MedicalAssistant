@@ -408,3 +408,247 @@ WebSocket 场景：
 - 单 JVM 内存状态迁移到 Redis/DB/消息队列。
 - 数据库访问批量化，索引按真实查询重建。
 - 先建立指标和压测基线，再逐步调参和拆模块。
+
+## 9. 基础设施层建设专项
+
+当前主线任务应从“直接优化具体业务接口”转为“先补基础设施层”。原因是消息投递、hook、延迟任务、WebSocket 路由、缓存失效、AI 异步任务都会横跨多个业务模块。如果没有统一的基础设施抽象，后续拆微服务时会把耦合一起带出去。
+
+### 9.1 当前可复用资产
+
+项目里已经具备部分基础设施雏形：
+
+- `spring-boot-starter-amqp` 已引入，`docker-compose.yml` 已包含 RabbitMQ。
+- `CanalCacheConsumer` 已通过 RabbitMQ 消费 Canal binlog，用于缓存失效。
+- `WsPubSubBroadcaster` 已用 Redis Pub/Sub 做跨实例 WebSocket 广播雏形。
+- `ApplicationEventPublisher` 已用于家庭组、健康数据、服药任务事件。
+- `RedisService` 和 Redisson 已用于缓存、分布式锁和幂等控制。
+
+但这些能力目前是分散的：业务事件、缓存事件、推送事件、延迟任务事件没有统一事件模型；`@Async` 没有启用和隔离线程池；RabbitMQ 只服务 Canal 缓存消费，还没有承载业务事件削峰。
+
+### 9.2 基础设施层目标
+
+基础层建设的目标不是一次性把单体拆成多个服务，而是先把单体内部变成“模块化单体 + 统一基础设施”。这样既能快速降低并发风险，也为后续微服务拆分保留清晰边界。
+
+目标能力：
+
+- 统一业务事件总线：业务代码只发布领域事件，不直接调用推送、短信、缓存刷新、AI 后处理。
+- 统一消息队列封装：RabbitMQ 负责削峰、重试、死信、异步消费。
+- 统一 hook 机制：在业务动作完成后触发扩展点，例如任务状态变更后触发缓存失效、家庭告警、WebSocket 推送、后续通知。
+- 统一延迟任务平台：服药提醒、漏服标记、邀请过期不再依赖单 JVM `ScheduledFuture`。
+- 统一异步线程池：WebSocket 推送、AI 调用、PDF 生成、领域事件消费互相隔离。
+- 统一观测指标：消息积压、消费失败、重试次数、事件耗时、线程池队列长度可观测。
+
+### 9.3 建议包结构
+
+建议先在单体内建立稳定包结构，后续拆服务时按这些边界迁移：
+
+```text
+common/infra/
+  async/              # 线程池、@Async executor、任务装饰器
+  event/              # DomainEvent、EventPublisher、EventSubscriber
+  mq/                 # RabbitMQ exchange/queue/routing 封装
+  hook/               # Hook 定义、注册、执行链
+  delay/              # 延迟任务接口、Redis ZSet 或 RabbitMQ 延迟队列实现
+  idempotency/        # 幂等键、去重表、Redis 去重
+  observability/      # Actuator/Micrometer、自定义指标
+  resilience/         # 熔断、限流、bulkhead、重试
+```
+
+业务模块只依赖 `common/infra` 暴露的接口，不直接依赖 RabbitMQ、Redis Pub/Sub、线程池实现细节。
+
+### 9.4 事件总线与消息队列模型
+
+统一事件模型：
+
+```text
+DomainEvent
+  eventId             # 全局唯一 ID，用于幂等
+  eventType           # 例如 medication.task.status.changed
+  aggregateType       # task / plan / family / health / agent
+  aggregateId
+  userId
+  groupId
+  occurredAt
+  traceId
+  payload
+```
+
+推荐 RabbitMQ 拓扑：
+
+```text
+exchange: medical.domain.topic
+  medication.task.*          -> queue.medication.task
+  family.*                   -> queue.family.event
+  health.*                   -> queue.health.event
+  ws.push.*                  -> queue.ws.push
+  ai.task.*                  -> queue.ai.task
+  cache.invalidate.*         -> queue.cache.invalidate
+
+exchange: medical.delay.topic
+  medication.remind          -> queue.delay.medication.remind
+  medication.missed          -> queue.delay.medication.missed
+  family.invite.expire       -> queue.delay.family.invite
+
+exchange: medical.dlx.topic
+  # 所有失败超过阈值的消息进入死信队列，供人工排查和补偿
+```
+
+短期可以继续保留 Canal 消费缓存失效，但业务写操作应逐步发布领域事件。Canal 更适合兜底一致性和跨系统同步，不适合作为全部业务 hook 的唯一来源，因为它缺少业务语义。
+
+### 9.5 Hook 机制设计
+
+hook 负责把“业务动作之后要做什么”标准化，避免 Service 中直接塞入推送、缓存、日志、通知逻辑。
+
+建议定义以下扩展点：
+
+- `MedicationTaskStatusChangedHook`
+  - 删除家庭快照缓存。
+  - 需要时写入家庭告警日志。
+  - 发布 `ws.push.medication`。
+  - 取消或更新延迟任务。
+- `MedicationPlanChangedHook`
+  - 重建未来任务。
+  - 删除药品/任务相关缓存。
+  - 发布计划变更推送。
+- `FamilyMemberChangedHook`
+  - 同步家庭成员缓存。
+  - 删除家庭快照和告警缓存。
+  - 发布成员变更推送。
+- `HealthDataChangedHook`
+  - 删除健康数据缓存和家庭快照缓存。
+  - 发布健康数据变更推送。
+- `AgentTaskCompletedHook`
+  - 写入会话消息。
+  - 发布 AI 任务完成推送。
+  - 记录耗时和 token 等指标。
+
+hook 执行策略：
+
+- 同事务内只做必要校验和 outbox 记录。
+- 事务提交后再异步执行 hook，避免推送或外部调用拖慢主事务。
+- 每个 hook 使用 `eventId + hookName` 做幂等。
+- hook 失败进入重试队列，超过阈值进入死信队列。
+
+### 9.6 延迟任务改造
+
+服药提醒、漏服标记、邀请过期应从 JVM 内存调度迁移到统一延迟任务平台。
+
+短期推荐两种方案之一：
+
+1. Redis ZSet 延迟队列
+   - `delay:ready:{taskType}` 保存待执行任务。
+   - score 为执行时间戳。
+   - 消费者用 Lua 或 Redisson lock 原子抢占。
+   - 适合当前项目快速落地。
+
+2. RabbitMQ 延迟队列
+   - 使用 TTL + DLX 或 delayed-message 插件。
+   - 与后续 MQ 体系一致。
+   - 需要确认部署环境是否允许启用插件。
+
+任务体字段：
+
+```text
+DelayTask
+  taskId
+  taskType
+  bizId
+  executeAt
+  retryCount
+  maxRetry
+  payload
+```
+
+迁移顺序：
+
+1. 保留 `DynamicTaskScheduler` 业务处理方法，但抽出 `MedicationReminderJob`、`MedicationMissedJob`、`FamilyInviteExpireJob`。
+2. 新增 `DelayTaskPublisher`，创建计划或邀请时只写延迟任务。
+3. 新增 `DelayTaskConsumer`，由多实例竞争消费。
+4. 移除 `medicationTaskPool`、`remindTaskPool`、`inviteTaskPool` 这些本机 Map。
+
+### 9.7 WebSocket 基础设施改造
+
+当前 Redis Pub/Sub 是可行雏形，但应从 `ws:group:*` 广播升级为明确的用户路由。
+
+建议模型：
+
+- Redis 维护 `ws:route:user:{userId} -> instanceId`，设置 TTL。
+- Redis 维护 `ws:online:user:{userId}` 心跳 TTL，不再使用无 TTL 的在线 Hash。
+- 每个实例订阅 `ws:node:{instanceId}`。
+- 业务只发布 `WsPushCommand` 到 MQ 或 Redis，基础设施层负责路由到实例。
+- 本地同一用户允许多端连接，`WebSocketSessionManager` 改为 `userId -> sessionId set`。
+- 对同一个 session 串行发送，避免并发 `sendMessage`。
+
+短期实现可以继续用 Redis Pub/Sub；中期应让业务事件先进入 RabbitMQ 的 `queue.ws.push`，再由 ws-push 消费者做路由和发送。
+
+### 9.8 微服务拆分路线
+
+不建议现在直接物理拆服务。应先按模块边界完成“模块化单体”，再按流量和故障隔离需求拆出服务。
+
+建议最终服务边界：
+
+- `user-service`
+  - 用户、登录、JWT、刷新 token。
+- `medication-service`
+  - 药品、计划、服药任务、漏服标记。
+- `family-service`
+  - 家庭组、成员、邀请申请、家庭事件日志。
+- `health-service`
+  - 健康数据、家庭健康快照。
+- `agent-service`
+  - Agent 会话、RAG、Predict、OCR、工具调用。
+- `notification-service`
+  - WebSocket、短信、邮件、站内通知。
+- `scheduler-service`
+  - 延迟任务、补偿任务、批处理任务。
+- `gateway-service`
+  - 鉴权、限流、路由、灰度。
+
+拆分顺序：
+
+1. 先拆 `agent-service`，因为它慢、重、失败率高，最需要与核心业务隔离。
+2. 再拆 `notification-service`，集中处理 WebSocket 和外部通知。
+3. 再拆 `scheduler-service`，避免所有业务实例都承担延迟任务。
+4. 最后拆 `medication/family/health/user`，这些模块数据关联更强，应等事件和一致性机制稳定后再拆。
+
+拆分前置条件：
+
+- 所有跨模块调用先改为接口或事件，不直接跨包读写实现类。
+- 所有跨模块数据变更有领域事件。
+- 每个消费者有幂等和死信处理。
+- 关键链路有 traceId 和指标。
+- 数据库表可以先共库不同 schema，后续再独立数据库。
+
+### 9.9 优先落地清单
+
+第一批基础设施任务：
+
+1. 启用 `@EnableAsync`，新增 `AsyncConfig`，配置 `domainEventExecutor`、`wsPushExecutor`、`aiExecutor`、`pdfExecutor`。
+2. 新增统一 `DomainEvent`、`DomainEventPublisher`、`DomainEventHandler`。
+3. 新增 RabbitMQ 基础配置：domain exchange、delay exchange、DLX、JSON message converter。
+4. 把 `WsAlarmBroadcastListener` 从本地 `@EventListener` 逐步迁移为 `ws.push` 队列消费者。
+5. 新增 hook 执行框架，先接入任务状态变更、家庭成员变更、健康数据变更三个高价值 hook。
+6. 新增延迟任务发布/消费接口，先替换服药提醒和漏服标记。
+7. 为 MQ 消费增加幂等表或 Redis 幂等键。
+8. 接入 Actuator/Micrometer，增加 MQ、线程池、延迟任务积压指标。
+
+第二批基础设施任务：
+
+1. Agent/RAG/Predict 改为异步任务模型，RabbitMQ 入队，返回 `taskId`。
+2. WebSocket 在线状态改为带 TTL 的用户路由表。
+3. 建立 outbox 表，保证“数据库提交成功”和“事件最终发布”一致。
+4. 建立死信补偿接口和后台管理查询。
+5. 按模块边界收敛依赖，为后续拆服务做准备。
+
+### 9.10 验收标准
+
+基础设施层第一阶段完成后，应满足：
+
+- 核心业务 Service 不直接调用 WebSocket 推送实现。
+- 核心业务 Service 不直接创建本机延迟定时器。
+- 至少任务状态变更、家庭成员变更、健康数据变更三类事件走统一事件模型。
+- RabbitMQ 有业务事件队列、延迟任务队列、死信队列。
+- 消费者具备幂等、重试、失败日志。
+- 多实例部署时，同一延迟任务只会被一个实例消费。
+- 任意实例发布推送事件，在线用户所在实例都能收到并发送。
+- 可以看到线程池队列长度、MQ 积压、消费失败、延迟任务积压等指标。
