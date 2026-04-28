@@ -28,6 +28,7 @@ import com.whu.medicalbackend.ws.event.FamilyMemberUpdateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -78,7 +79,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
 
     private static final Logger logger = LoggerFactory.getLogger(FamilyGroupServiceImpl.class);
     @Autowired
-    private DynamicTaskScheduler dynamicTaskScheduler;
+    private ObjectProvider<DynamicTaskScheduler> dynamicTaskSchedulerProvider;
 
     /**
      * 1.1 创建家庭组
@@ -168,7 +169,10 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
             applyMapper.insert(apply);
 
             redisService.setWithExpire(limitedKey, "1", 1, TimeUnit.MINUTES);
-            dynamicTaskScheduler.addInviteExpireTask(apply.getId(), apply.getExpireTime());
+            DynamicTaskScheduler dynamicTaskScheduler = dynamicTaskSchedulerProvider.getIfAvailable();
+            if (dynamicTaskScheduler != null) {
+                dynamicTaskScheduler.addInviteExpireTask(apply.getId(), apply.getExpireTime());
+            }
 
         } finally {
             redisService.unlock(lockKey);
@@ -225,7 +229,10 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
             applyMapper.insert(invite);
 
             redisService.setWithExpire(limitedKey, "1", 1, TimeUnit.MINUTES);
-            dynamicTaskScheduler.addInviteExpireTask(invite.getId(), invite.getExpireTime());
+            DynamicTaskScheduler dynamicTaskScheduler = dynamicTaskSchedulerProvider.getIfAvailable();
+            if (dynamicTaskScheduler != null) {
+                dynamicTaskScheduler.addInviteExpireTask(invite.getId(), invite.getExpireTime());
+            }
         } finally {
             redisService.unlock(lockKey);
         }
@@ -286,8 +293,10 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
 //                publishJoinEvent(apply.getGroupId(), apply.getInviteeId());
             }
 
-            // 取消定时任务
-            dynamicTaskScheduler.cancelInviteExpireTask(applyId);
+            DynamicTaskScheduler dynamicTaskScheduler = dynamicTaskSchedulerProvider.getIfAvailable();
+            if (dynamicTaskScheduler != null) {
+                dynamicTaskScheduler.cancelInviteExpireTask(applyId);
+            }
 
         } finally {
             redisService.unlock(lockKey);
@@ -543,4 +552,3 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
         ));
     }
 }
-

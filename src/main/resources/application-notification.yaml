@@ -1,0 +1,22 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: medical-notification-service
+
+service:
+  role: notification
+  websocket:
+    enabled: true
+
+infra:
+  legacy-scheduler:
+    enabled: false
+  canal-cache-consumer:
+    enabled: false
+  domain-event-consumer:
+    enabled: false
+  delay:
+    redis:
+      enabled: false

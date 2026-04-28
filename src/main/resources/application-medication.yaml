@@ -1,0 +1,22 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: medical-medication-service
+
+service:
+  role: medication
+  websocket:
+    enabled: false
+
+infra:
+  legacy-scheduler:
+    enabled: false
+  canal-cache-consumer:
+    enabled: false
+  domain-event-consumer:
+    enabled: false
+  delay:
+    redis:
+      enabled: false

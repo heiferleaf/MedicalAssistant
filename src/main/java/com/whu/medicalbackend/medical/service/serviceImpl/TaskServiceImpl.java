@@ -20,6 +20,7 @@ import com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent;
 import com.whu.medicalbackend.ws.event.FamilyMedicineUpdateEvent;
 import io.jsonwebtoken.lang.Assert;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,7 +54,7 @@ public class TaskServiceImpl implements TaskService {
     private MedicineMapper medicineMapper;
 
     @Autowired
-    private DynamicTaskScheduler dynamicTaskScheduler;
+    private ObjectProvider<DynamicTaskScheduler> dynamicTaskSchedulerProvider;
 
     @Autowired
     private RedisService redisService;
@@ -186,7 +187,10 @@ public class TaskServiceImpl implements TaskService {
 
 
         // 7. 取消定时标记为漏服的任务
-        dynamicTaskScheduler.cancelTaskSchedule(taskId);
+        DynamicTaskScheduler dynamicTaskScheduler = dynamicTaskSchedulerProvider.getIfAvailable();
+        if (dynamicTaskScheduler != null) {
+            dynamicTaskScheduler.cancelTaskSchedule(taskId);
+        }
 
         return new TaskVO.TaskVOBuilder()
                 .fromEntity(task, medicineName)

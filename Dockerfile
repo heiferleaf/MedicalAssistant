@@ -29,5 +29,5 @@ COPY --from=builder /build/target/*.jar app.jar
 # 声明容器使用 8080 端口
 EXPOSE 8080
 
-# 容器启动时执行的命令
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# MAIN_CLASS 为空时按原单体启动；设置后可从同一个镜像启动指定微服务入口
+ENTRYPOINT ["sh", "-c", "if [ -n \"$MAIN_CLASS\" ]; then exec java $JAVA_OPTS -Dloader.main=$MAIN_CLASS -cp app.jar org.springframework.boot.loader.launch.PropertiesLauncher \"$@\"; else exec java $JAVA_OPTS -jar app.jar \"$@\"; fi", "--"]

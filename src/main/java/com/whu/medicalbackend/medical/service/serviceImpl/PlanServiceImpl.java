@@ -17,6 +17,7 @@ import com.whu.medicalbackend.medical.service.PlanService;
 import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,7 +65,7 @@ public class PlanServiceImpl implements PlanService {
     private FamilyMemberMapper memberMapper;
 
     @Autowired
-    private DynamicTaskScheduler dynamicTaskScheduler;
+    private ObjectProvider<DynamicTaskScheduler> dynamicTaskSchedulerProvider;
 
     /**
      * 获取用户的所有计划
@@ -150,7 +151,10 @@ public class PlanServiceImpl implements PlanService {
                 .filter(task -> task.getPlanId().equals(plan.getId()))
                 .collect(Collectors.toList());
 
-        todayTasks.forEach(dynamicTaskScheduler::addTaskSchedule);
+        DynamicTaskScheduler dynamicTaskScheduler = dynamicTaskSchedulerProvider.getIfAvailable();
+        if (dynamicTaskScheduler != null) {
+            todayTasks.forEach(dynamicTaskScheduler::addTaskSchedule);
+        }
 
         // 5. 返回VO
         return new PlanVO.PlanVOBuilder()
@@ -222,7 +226,10 @@ public class PlanServiceImpl implements PlanService {
 
         // 取消今天任务的定时器
         for (MedicationTask task : todayTasks) {
-            dynamicTaskScheduler.cancelTaskSchedule(task.getId());
+            DynamicTaskScheduler dynamicTaskScheduler = dynamicTaskSchedulerProvider.getIfAvailable();
+            if (dynamicTaskScheduler != null) {
+                dynamicTaskScheduler.cancelTaskSchedule(task.getId());
+            }
 
         }
     }
@@ -256,7 +263,10 @@ public class PlanServiceImpl implements PlanService {
         if(todayTasks != null) {
             // 取消今天任务的定时器
             for (MedicationTask task : todayTasks) {
-                dynamicTaskScheduler.cancelTaskSchedule(task.getId());
+                DynamicTaskScheduler dynamicTaskScheduler = dynamicTaskSchedulerProvider.getIfAvailable();
+                if (dynamicTaskScheduler != null) {
+                    dynamicTaskScheduler.cancelTaskSchedule(task.getId());
+                }
             }
         }
 
