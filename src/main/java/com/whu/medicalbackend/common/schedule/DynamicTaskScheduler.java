@@ -18,6 +18,7 @@ import com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent;
 import com.whu.medicalbackend.ws.event.UserTaskMedicineRemindEvent;
 import io.jsonwebtoken.lang.Assert;
 import jakarta.annotation.PostConstruct;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,7 @@ import java.util.concurrent.ScheduledFuture;
  * 3. 策略模式：不同任务有不同的超时时间
  */
 @Component
+@ConditionalOnProperty(prefix = "infra.legacy-scheduler", name = "enabled", havingValue = "true", matchIfMissing = true)
 @Transactional(rollbackFor = Exception.class)
 public class DynamicTaskScheduler {
 

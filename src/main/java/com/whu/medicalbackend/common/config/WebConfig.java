@@ -4,7 +4,9 @@ import com.whu.medicalbackend.common.interceptor.AuthInterceptor;
 import com.whu.medicalbackend.ws.WsHandler;
 import com.whu.medicalbackend.ws.WsHandshakeInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -18,11 +20,20 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer{
     @Autowired
     private AuthInterceptor authInterceptor;
 
-    @Autowired
-    private WsHandler wsHandler;
+    private final ObjectProvider<WsHandler> wsHandlerProvider;
+    private final ObjectProvider<WsHandshakeInterceptor> wsHandshakeInterceptorProvider;
+    private final boolean websocketEnabled;
 
     @Autowired
-    private WsHandshakeInterceptor wsHandshakeInterceptor;
+    public WebConfig(
+            ObjectProvider<WsHandler> wsHandlerProvider,
+            ObjectProvider<WsHandshakeInterceptor> wsHandshakeInterceptorProvider,
+            @Value("${service.websocket.enabled:true}") boolean websocketEnabled
+    ) {
+        this.wsHandlerProvider = wsHandlerProvider;
+        this.wsHandshakeInterceptorProvider = wsHandshakeInterceptorProvider;
+        this.websocketEnabled = websocketEnabled;
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -57,7 +68,16 @@ public class WebConfig implements WebMvcConfigurer, WebSocketConfigurer{
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-                // 入口映射
+        if (!websocketEnabled) {
+            return;
+        }
+
+        WsHandler wsHandler = wsHandlerProvider.getIfAvailable();
+        WsHandshakeInterceptor wsHandshakeInterceptor = wsHandshakeInterceptorProvider.getIfAvailable();
+        if (wsHandler == null || wsHandshakeInterceptor == null) {
+            return;
+        }
+
         registry.addHandler(wsHandler, "/ws")
                 .addInterceptors(wsHandshakeInterceptor)
                 // 配置允许跨域

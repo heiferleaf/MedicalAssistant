@@ -1,5 +1,6 @@
 package com.whu.medicalbackend.common.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
@@ -10,6 +11,7 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
+@ConditionalOnProperty(prefix = "infra.legacy-scheduler", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class SchedulingConfig implements SchedulingConfigurer {
 
     @Override

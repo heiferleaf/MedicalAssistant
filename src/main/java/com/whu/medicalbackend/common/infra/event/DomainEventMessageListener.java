@@ -6,10 +6,12 @@ import com.whu.medicalbackend.common.infra.mq.MqNames;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(prefix = "infra.domain-event-consumer", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DomainEventMessageListener {
 
     private final DomainEventHookExecutor hookExecutor;

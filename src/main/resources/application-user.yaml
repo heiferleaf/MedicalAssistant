@@ -1,0 +1,22 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: medical-user-service
+
+service:
+  role: user
+  websocket:
+    enabled: false
+
+infra:
+  legacy-scheduler:
+    enabled: false
+  canal-cache-consumer:
+    enabled: false
+  domain-event-consumer:
+    enabled: false
+  delay:
+    redis:
+      enabled: false

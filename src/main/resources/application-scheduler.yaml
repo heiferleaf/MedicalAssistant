@@ -1,0 +1,22 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: medical-scheduler-service
+
+service:
+  role: scheduler
+  websocket:
+    enabled: false
+
+infra:
+  legacy-scheduler:
+    enabled: true
+  canal-cache-consumer:
+    enabled: false
+  domain-event-consumer:
+    enabled: false
+  delay:
+    redis:
+      enabled: false

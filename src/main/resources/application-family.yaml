@@ -1,0 +1,22 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: medical-family-service
+
+service:
+  role: family
+  websocket:
+    enabled: false
+
+infra:
+  legacy-scheduler:
+    enabled: false
+  canal-cache-consumer:
+    enabled: false
+  domain-event-consumer:
+    enabled: false
+  delay:
+    redis:
+      enabled: false

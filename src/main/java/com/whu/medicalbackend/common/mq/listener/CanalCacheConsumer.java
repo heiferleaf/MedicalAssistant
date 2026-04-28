@@ -11,6 +11,7 @@ import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
 import com.whu.medicalbackend.family.service.FamilyCacheService;
 import com.whu.medicalbackend.family.service.FamilyGroupServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
@@ -27,6 +28,7 @@ import java.util.Map;
  */
 @Slf4j
 @Component
+@ConditionalOnProperty(prefix = "infra.canal-cache-consumer", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class CanalCacheConsumer {
 
     @Autowired

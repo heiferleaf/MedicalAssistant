@@ -1,0 +1,173 @@
+x-backend-env: &backend-env
+  MYSQL_HOST: mysql
+  MYSQL_PORT: 3306
+  MYSQL_DB: medicalassistant
+  MYSQL_USER: appuser
+  MYSQL_PASSWORD: App123456
+  REDIS_HOST: redis
+  SPRING_RABBITMQ_HOST: rabbitmq
+  SPRING_RABBITMQ_PORT: 5672
+  SPRING_RABBITMQ_USERNAME: guest
+  SPRING_RABBITMQ_PASSWORD: guest
+  FLASK_URL: http://8.148.94.242:8001
+  DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
+  TZ: Asia/Shanghai
+
+x-backend-service: &backend-service
+  build: .
+  restart: always
+  depends_on:
+    mysql:
+      condition: service_healthy
+    redis:
+      condition: service_started
+    rabbitmq:
+      condition: service_healthy
+  networks:
+    - app-net
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: medical-ms-mysql
+    restart: always
+    command: --server-id=123 --log-bin=mysql-bin --binlog-format=ROW --binlog-row-image=FULL --character-set-server=utf8mb4
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: Root123456
+      MYSQL_DATABASE: medicalassistant
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: App123456
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql_conf/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pRoot123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: medical-ms-redis
+    restart: always
+    command: redis-server
+    networks:
+      - app-net
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: medical-ms-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - app-net
+
+  user-service:
+    <<: *backend-service
+    container_name: medical-user-service
+    environment:
+      <<: *backend-env
+      MAIN_CLASS: com.whu.medicalbackend.bootstrap.UserServiceApplication
+      INSTANCE_ID: user-service
+    expose:
+      - "8081"
+
+  medication-service:
+    <<: *backend-service
+    container_name: medical-medication-service
+    environment:
+      <<: *backend-env
+      MAIN_CLASS: com.whu.medicalbackend.bootstrap.MedicationServiceApplication
+      INSTANCE_ID: medication-service
+    expose:
+      - "8082"
+
+  family-service:
+    <<: *backend-service
+    container_name: medical-family-service
+    environment:
+      <<: *backend-env
+      MAIN_CLASS: com.whu.medicalbackend.bootstrap.FamilyServiceApplication
+      INSTANCE_ID: family-service
+    expose:
+      - "8083"
+
+  health-service:
+    <<: *backend-service
+    container_name: medical-health-service
+    environment:
+      <<: *backend-env
+      MAIN_CLASS: com.whu.medicalbackend.bootstrap.HealthServiceApplication
+      INSTANCE_ID: health-service
+    expose:
+      - "8084"
+
+  agent-service:
+    <<: *backend-service
+    container_name: medical-agent-service
+    environment:
+      <<: *backend-env
+      MAIN_CLASS: com.whu.medicalbackend.bootstrap.AgentServiceApplication
+      INSTANCE_ID: agent-service
+    expose:
+      - "8085"
+
+  notification-service:
+    <<: *backend-service
+    container_name: medical-notification-service
+    environment:
+      <<: *backend-env
+      MAIN_CLASS: com.whu.medicalbackend.bootstrap.NotificationServiceApplication
+      INSTANCE_ID: notification-service
+    expose:
+      - "8086"
+
+  scheduler-service:
+    <<: *backend-service
+    container_name: medical-scheduler-service
+    environment:
+      <<: *backend-env
+      MAIN_CLASS: com.whu.medicalbackend.bootstrap.SchedulerServiceApplication
+      INSTANCE_ID: scheduler-service
+    expose:
+      - "8087"
+
+  nginx:
+    image: nginx:alpine
+    container_name: medical-ms-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.microservices.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/static/avatar:/usr/share/nginx/static/avatar:ro
+      - ./nginx/static/images:/usr/share/nginx/static/images:ro
+    depends_on:
+      - user-service
+      - medication-service
+      - family-service
+      - health-service
+      - agent-service
+      - notification-service
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  mysql_data:
