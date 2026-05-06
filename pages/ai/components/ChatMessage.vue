@@ -67,21 +67,21 @@
 			</view>
 		</view>
 		
-		<!-- 用户消息：保持原有样式 -->
-		<view v-else :class="['chat-bubble', 'chat-bubble-user']">
-			<!-- 图片显示在文字上方 -->
+		<!-- 用户消息容器（文字 + 图片） -->
+		<view v-if="role === 'user'" class="chat-bubble chat-bubble-user">
+			<!-- 图片（如果有） -->
 			<image 
-				v-if="shouldShowImage" 
+				v-if="image" 
 				class="msg-img" 
 				:src="image" 
-				mode="aspectFill"
-				@error="handleImageError"
+				mode="aspectFit"
+				show-menu-by-longpress
 				@load="handleImageLoad"
+				@error="handleImageError"
 			/>
-			
-			<!-- 文字内容 -->
-			<text v-if="type === 'text'" class="msg-text">{{ content }}</text>
-			<slot></slot>
+			<!-- 文字内容（如果有） -->
+			<text v-if="content" class="msg-text">{{ content }}</text>
+			<slot name="text"></slot>
 		</view>
 	</view>
 </template>
@@ -141,14 +141,6 @@ export default {
 			default: () => []
 		}
 	},
-	computed: {
-		// 计算属性：确保图片响应式更新
-		shouldShowImage() {
-			// 显式访问 image 属性，触发 Vue 的响应式依赖追踪
-			const img = this.image;
-			return img && img.length > 100;
-		}
-	},
 	data() {
 		return {
 		};
@@ -156,12 +148,14 @@ export default {
 	methods: {
 		// 处理图片加载成功
 		handleImageLoad(e) {
-			console.log('图片加载成功:', e);
+			console.log('✅ 图片加载成功:', e.detail);
+			console.log('图片尺寸:', e.detail.width, 'x', e.detail.height);
 		},
-		
+				
 		// 处理图片加载失败
 		handleImageError(e) {
-			console.error('图片加载失败:', e);
+			console.error('❌ 图片加载失败:', e);
+			console.error('图片数据:', this.image ? this.image.substring(0, 100) + '...' : '无图片数据');
 		},
 		
 		// 处理确认操作
@@ -239,6 +233,7 @@ $primary: #6366f1;
 	line-height: 1.6;
 	word-wrap: break-word;  // 允许长单词换行
 	word-break: break-word;  // 允许在任意字符间断行
+	display: inline-block;  // 根据内容自适应宽度
 	
 	&.chat-bubble-user {
 		background: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -249,18 +244,40 @@ $primary: #6366f1;
 	}
 }
 
+/* 图片消息框：完全透明，无背景无边框，独立显示 */
+.image-message-container {
+	width: 100%;
+	display: flex;
+	justify-content: flex-end;  // 图片靠右对齐，与文字消息一致
+	margin-top: 16rpx;  // 与文字消息的间距
+	padding: 0 30rpx;  // 与文字消息的内边距一致
+	
+	.msg-img {
+		max-width: 600rpx;  // 限制图片最大宽度
+		max-height: 800rpx;  // 限制图片最大高度
+		height: auto;  // 高度自适应
+		width: auto;  // 宽度自适应
+		border-radius: 16rpx;  // 图片圆角
+		display: block;
+		object-fit: contain;  // 保持图片比例完整显示
+		background: transparent;  // 透明背景
+	}
+}
+
 .msg-text {
+	display: block;
+	word-wrap: break-word;
+	word-break: break-all;
+}
+
+/* 调试信息样式 */
+.debug-info {
+	font-size: 20rpx;
+	color: #999;
+	margin-top: 10rpx;
 	display: block;
 }
 
-.msg-img {
-	width: 100%;
-	height: 240rpx;
-	border-radius: 20rpx;
-	margin-bottom: 16rpx;
-	display: block;
-	object-fit: cover;
-}
 
 .loading-dots {
 	display: flex;

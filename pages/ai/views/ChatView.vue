@@ -8,11 +8,15 @@
 			@scrolltolower="loadMore"
 		>
 			<view class="chat-content">
+				<!-- 消息列表 -->
 				<view
 					v-for="msg in messages"
 					:key="msg.id"
 					:id="'msg-' + msg.id"
+					class="message-wrapper"
 				>
+					<!-- 调试：输出消息数据 -->
+					<!-- <text>消息类型：{{ msg.role }}, 图片：{{ !!msg.imagePath }}</text> -->
 					<ChatMessage
 						:messageId="msg.id"
 						:role="msg.role"
@@ -28,6 +32,11 @@
 						<!-- 插槽：用于扩展特殊消息类型 -->
 						<slot :name="'message-' + msg.id" :msg="msg"></slot>
 					</ChatMessage>
+				</view>
+				
+				<!-- 加载状态 -->
+				<view v-if="loading" class="loading-message">
+					<ChatMessage role="loading" />
 				</view>
 			</view>
 		</scroll-view>
@@ -100,6 +109,25 @@ export default {
 	.chat-content {
 		padding: 30rpx;
 		padding-bottom: 60rpx;
+		
+		.message-wrapper {
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;  // 所有内容靠右对齐
+			margin-bottom: 40rpx;  // 消息间距
+			
+			&:last-child {
+				margin-bottom: 0;
+			}
+		}
+		
+		.loading-message {
+			width: 100%;
+			display: flex;
+			justify-content: flex-start;  // loading 靠左
+			margin-top: 20rpx;
+		}
 	}
 }
 </style>

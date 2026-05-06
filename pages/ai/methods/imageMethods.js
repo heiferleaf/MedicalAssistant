@@ -41,8 +41,22 @@ export default {
      */
     handleOCRSuccess(data) {
       console.log('OCR 识别成功:', data);
+      
+      // 检查后端返回的状态
+      if (data.status === 'error') {
+        // 后端返回错误（例如：too many values to unpack）
+        console.error('后端 OCR 处理异常:', data.message);
+        
+        // 直接调用失败处理
+        this.handleOCRError(new Error(data.message || 'OCR 处理异常'));
+        return;
+      }
+      
+      // 正常情况：提取 OCR 结果
       this.ocrResult = data.output || data.ocr_result || '';
       this.ocrLoading = false;
+      
+      console.log('✅ OCR 识别结果长度:', this.ocrResult.length);
     },
     
     /**
@@ -331,8 +345,25 @@ export default {
      */
     handleOCRSuccess(data) {
       console.log('OCR 识别成功:', data);
+      
+      // 检查后端返回的状态
+      if (data.status === 'error') {
+        // 后端返回错误（例如：too many values to unpack）
+        console.error('后端 OCR 处理异常:', data.message);
+        this.ocrResult = '';
+        this.ocrLoading = false;
+        
+        // 触发错误事件
+        this.$emit('ocr-error', new Error(data.message || 'OCR 处理异常'));
+        return;
+      }
+      
+      // 正常情况：提取 OCR 结果
       this.ocrResult = data.output || data.ocr_result || '';
       this.ocrLoading = false;
+      
+      // 触发成功事件
+      this.$emit('ocr-success', data);
     },
     
     /**

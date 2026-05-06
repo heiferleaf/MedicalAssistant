@@ -35,14 +35,21 @@ export default {
       let userMsg;
       if (hasImage) {
         const fullImageDataUrl = this.scanImageBase64 || this.scanImage;
+        // 修复：保留用户实际输入的文字内容
         userMsg = {
           id: Date.now().toString(),
           role: 'user',
-          type: 'image',
-          content: content || '帮我识别这个药品',
+          type: 'image',  // 图片消息类型
+          content: content,  // 保留用户实际输入的文字
           imagePath: fullImageDataUrl,
           createdAt: new Date().toISOString()
         };
+        console.log('📸 创建图片消息:', {
+          id: userMsg.id,
+          content: userMsg.content,
+          imagePathLength: userMsg.imagePath ? userMsg.imagePath.length : 0,
+          imagePathPreview: userMsg.imagePath ? userMsg.imagePath.substring(0, 50) + '...' : '无'
+        });
       } else {
         userMsg = createMessage('user', content);
       }
@@ -59,10 +66,17 @@ export default {
         // 准备发送给 AI 的消息
         let messageToSend = content || '帮我识别这个药品';
         
+        console.log('🔵 原始消息内容:', messageToSend);
+        console.log('是否有图片:', hasImage);
+        
         // 处理图片消息
         if (hasImage) {
+          console.log('📸 开始处理图片消息...');
           messageToSend = await this.handleImageMessage(messageToSend, hasImage);
+          console.log('✅ OCR 处理后消息:', messageToSend.substring(0, 200) + '...');
         }
+        
+        console.log('🚀 最终发送给 AI 的消息:', messageToSend.substring(0, 200) + '...');
         
         // 发送消息并处理流式响应（调用 chatStreamMethods 模块）
         await this.handleStreamResponse(messageToSend, content);
@@ -710,7 +724,10 @@ export default {
      */
     scrollToBottom() {
       if (this.messages.length > 0) {
-        this.scrollToMsgId = 'msg-' + (this.messages.length - 1);
+        const lastMsg = this.messages[this.messages.length - 1];
+        this.$nextTick(() => {
+          this.scrollToMsgId = 'msg-' + lastMsg.id;
+        });
       }
     },
     
