@@ -41,7 +41,7 @@
             </view>
             <view class="text-info">
               <text class="tag">主家庭组</text>
-              <text class="title">幸福一家人</text>
+              <text class="title">{{ groupInfo.groupName }}</text>
               <text class="desc">家庭 ID: {{ groupInfo.groupId }}</text>
             </view>
           </view>
@@ -287,15 +287,7 @@ export default {
       applyList: [], // 申请列表数据
       healthData: [],
       showAlarmModal: false, // 控制弹窗显示隐藏
-      alarmList: [
-        // 你的接口数据
-        {
-          alarmId: 123,
-          memberName: "张三",
-          medicineName: "降压药A",
-          alarmTime: "2026-03-20 08:36:10",
-        },
-      ],
+      alarmList: [],
     };
   },
   onLoad() {
@@ -323,7 +315,6 @@ export default {
     },
     async initData() {
       await this.fetchData();
-      await this.getMessage();
       await this.getHealth();
       await this.getAlarms();
     },
@@ -340,6 +331,7 @@ export default {
 
     // 点击“审批中心”时触发
     openApplyCenter() {
+      this.getMessage();
       if (this.applyList.length === 0) {
         uni.showToast({ title: "暂无待处理申请", icon: "none" });
         return;
@@ -365,14 +357,12 @@ export default {
 
         if (res.code === 200) {
           uni.showToast({ title: "处理成功" });
-          console.log("申请处理结果: ", res);
-          // this.getMessage(); // 刷新列表
-          // this.fetchData(); // 刷新成员列表（如果同意了人的话）
+          this.getMessage(); // 刷新列表
+          this.fetchData(); // 刷新成员列表（如果同意了人的话）
           if (this.applyList.length <= 1) this.showApplyModal = false;
         }
       } catch (e) {
         console.error("报错显示:", e);
-        // uni.showToast({ title: '操作失败', icon: 'none' });
       } finally {
         uni.hideLoading();
       }
@@ -420,7 +410,7 @@ export default {
           }
         }
       } catch (e) {
-        // uni.showToast({ title: '加载失败', icon: 'none' });
+        console.log("获取失败: ",e);
       }
     },
 

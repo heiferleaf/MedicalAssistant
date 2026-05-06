@@ -8,7 +8,7 @@
       <view class="back-btn" @tap="goBack">
         <text class="material-symbols-outlined">arrow_back</text>
       </view>
-      <text class="nav-title">医疗助手注册</text>
+      <text class="nav-title">药无忧</text>
       <view class="spacer"></view>
     </view>
 
@@ -63,12 +63,15 @@
         </view>
 
         <!-- 调小协议区域 -->
-        <view class="agreement-row" @tap="agreed = !agreed">
-          <view class="checkbox-outer" :class="{ 'agreed': agreed }">
+        <view class="agreement-row">
+          <view class="checkbox-outer" :class="{ 'agreed': agreed }" @tap="agreed = !agreed">
             <text v-if="agreed" class="material-symbols-outlined check-mark">check</text>
           </view>
           <view class="agreement-text">
-            <text>我已阅读并同意 <text class="link-span">服务协议</text> 与 <text class="link-span">隐私权政策</text></text>
+            <text @tap="agreed = !agreed">我已阅读并同意 </text>
+            <text class="link-span" @tap="showPrivacyPopup = true">服务协议</text>
+            <text @tap="agreed = !agreed"> 与 </text>
+            <text class="link-span" @tap="showPrivacyPopup = true">隐私权政策</text>
           </view>
         </view>
 
@@ -86,6 +89,51 @@
       
       <view class="safe-area-spacer"></view>
     </scroll-view>
+
+    <!-- 隐私政策/服务协议弹窗 -->
+    <view class="modal-overlay" v-if="showPrivacyPopup">
+      <view class="modal-card">
+        <text class="modal-title">服务协议与隐私政策</text>
+        <scroll-view scroll-y class="modal-content">
+          <text class="modal-text">我们非常重视您的个人信息和隐私保护。在您首次使用我们的服务前，请仔细阅读我们的隐私权政策。</text>
+          
+          <view class="modal-section-spacing"></view>
+          
+          <text class="modal-text primary-text bold-text">为向您提供完整的服务，我们集成了以下第三方SDK：</text>
+          
+          <view class="modal-section-spacing"></view>
+          
+          <view class="flex-column">
+            <text class="modal-subtitle">第三方SDK名称：</text>
+            <text class="modal-text">OPPO健康服务SDK</text>
+            
+            <view class="modal-section-spacing"></view>
+
+            <text class="modal-subtitle">第三方公司名称：</text>
+            <text class="modal-text">广东欢太科技有限公司</text>
+            
+            <view class="modal-section-spacing"></view>
+
+            <text class="modal-subtitle">收集个人信息种类：</text>
+            <text class="modal-text">应用基本信息（健康APP包名、应用商店包名）</text>
+            
+            <view class="modal-section-spacing"></view>
+
+            <text class="modal-subtitle">使用目的：</text>
+            <text class="modal-text">用于判断应用安装状态，以支持APP端与第三方数据传输</text>
+            
+            <view class="modal-section-spacing"></view>
+
+            <text class="modal-subtitle">隐私政策链接：</text>
+            <text class="modal-link" @tap="openPrivacyLink">查看OPPO隐私政策</text>
+          </view>
+        </scroll-view>
+        <view class="modal-actions">
+          <button class="modal-btn-secondary" @tap="handlePrivacy(false)">不同意</button>
+          <button class="modal-btn-primary" @tap="handlePrivacy(true)">同意</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -95,12 +143,20 @@ export default {
   data() {
     return {
       formData: { username: "", password: "", confirmPassword: "", nickname: "", phoneNumber: "" },
-      showPwd: false, showConPwd: false, agreed: false
+      showPwd: false, showConPwd: false, agreed: false,
+      showPrivacyPopup: false
     };
   },
   methods: {
-    goBack() { uni.navigateBack(); },
-    goLogin() { uni.navigateTo({ url: '/pages/Login' }); },
+    goBack() { uni.redirectTo({ url: `/pages/Login?username=${this.formData.username}&password=${this.formData.password}` }); },
+    goLogin() { uni.redirectTo({ url: '/pages/Login' }); },
+    handlePrivacy(agreed) {
+        this.agreed = agreed;
+        this.showPrivacyPopup = false;
+    },
+    openPrivacyLink() {
+      this.showAuthDialog();
+    },
     async handleRegister() {
       if (!this.agreed) { uni.showToast({ title: "请先同意协议", icon: "none" }); return; }
       if (!this.formData.username) { uni.showToast({ title: "请输入账号", icon: "none" }); return; }
@@ -112,7 +168,28 @@ export default {
         uni.showToast({ title: "注册成功", icon: "success" });
         setTimeout(() => { uni.navigateBack(); }, 1000);
       } catch (e) { console.error(e); }
-    }
+    },
+    async showAuthDialog() {
+      uni.showModal({
+        title: '授权提示',
+        content: '为了记录您的健康数据，需要授权访问OPPO健康数据',
+        confirmText: '去授权',
+        success: async(res) => {
+          if (res.confirm) {
+            // 延迟一下确保弹窗关闭
+            setTimeout(async () => {
+              try {
+                await oppoHealthManager.init();
+                await oppoHealthManager.auth();
+              } catch (error) {
+                console.error('授权失败', error);
+              }
+            }, 100);
+          }
+        }
+      });
+      uni.hideModal();
+    },
   }
 };
 </script>
@@ -158,4 +235,113 @@ export default {
 .footer-gray { font-size: 26rpx; color: #595c5e; }
 .footer-blue { font-size: 26rpx; color: #0057bd; font-weight: 700; }
 .safe-area-spacer { height: 40rpx; }
+
+/* Modal Styles based on Frontend Design System Rules */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  width: 80%;
+  max-width: 320px; /* Maximum limit */
+  background: #ffffff;
+  border-radius: 8px; /* Following rules (6px or 8px) */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* Shadow level 2 */
+  padding: 24px;      /* Consistent 4px grid spacing */
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-title {
+  font-size: 20px;   /* Allowed font scale */
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;    /* Primary text */
+  margin-bottom: 16px; 
+  text-align: center;
+}
+
+.modal-content {
+  max-height: 480px; 
+  margin-bottom: 24px; 
+}
+
+.modal-section-spacing {
+  height: 16px;
+}
+
+.modal-subtitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+  display: block;
+}
+
+.modal-text {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #6b7280;   /* Secondary text */
+  display: block;
+  margin-top: 4px;
+}
+
+.primary-text {
+  color: #111827;
+}
+
+.bold-text {
+  font-weight: 600;
+}
+
+.modal-link {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #0ea5e9;  /* Using a brand color to replace blue-purple */
+  text-decoration: underline;
+  display: block;
+  margin-top: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-btn-secondary {
+  flex: 1;
+  background: transparent;
+  border: 1px solid #d1d5db; /* Primary border color */
+  border-radius: 6px;
+  height: 48px;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-btn-primary {
+  flex: 1;
+  background: #0ea5e9;
+  border: none;
+  border-radius: 6px;
+  height: 48px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 </style>

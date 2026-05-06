@@ -5,20 +5,27 @@
 
     <view class="header">
       <view class="icon-btn" @click="goBack">
-        <image class="icon" src="/static/Register/back.png" mode="aspectFit"></image>
+        <image
+          class="icon"
+          src="/static/Register/back.png"
+          mode="aspectFit"
+        ></image>
       </view>
-      <text class="header-title">{{ healthData.nickname ? healthData.nickname + '的' : '' }}健康看板</text>
+      <text class="header-title"
+        >{{
+          healthData.nickname ? healthData.nickname + "的" : ""
+        }}健康看板</text
+      >
       <view class="icon-btn" @click="goNotifications">
-        <image class="icon" src="/static/Home/warning.svg" mode="aspectFit"></image>
+        <image
+          class="icon"
+          src="/static/Home/warning.svg"
+          mode="aspectFit"
+        ></image>
       </view>
     </view>
 
     <scroll-view scroll-y class="main-content">
-      
-      <view class="update-time" v-if="healthData.healthUpdateTime">
-        <text>最后更新于: {{ healthData.healthUpdateTime }}</text>
-      </view>
-
       <view class="section">
         <text class="section-title">今日任务概览</text>
         <view class="task-card">
@@ -26,15 +33,19 @@
             <view>
               <text class="task-title">健康与用药打卡</text>
               <text class="task-desc">
-                已完成 {{ healthData.completedTasks || 0 }} / {{ healthData.totalTasks || 0 }} 项
+                已完成 {{ healthData.completedTasks || 0 }} /
+                {{ healthData.totalTasks || 0 }} 项
               </text>
             </view>
             <view class="task-percent">
-              {{ progressPercent }}%
+              任务进度{{ progressPercent || "--" }}%
             </view>
           </view>
           <view class="progress-track">
-            <view class="progress-fill" :style="{ width: progressPercent + '%' }"></view>
+            <view
+              class="progress-fill"
+              :style="{ width: progressPercent + '%' }"
+            ></view>
           </view>
         </view>
       </view>
@@ -42,18 +53,19 @@
       <view class="section">
         <text class="section-title">生理指标</text>
         <view class="grid-container">
-
-          <view class="indicator-card" @click="viewDetail('heart_rate')">
+          <view class="indicator-card">
             <view class="card-header">
               <view class="icon-box bg-red-light">
-                <image class="icon-sm" src="/static/Home/heart.svg" mode="aspectFit"></image>
+                <image
+                  class="icon-sm"
+                  src="/static/Home/heart.svg"
+                  mode="aspectFit"
+                ></image>
               </view>
-              <image class="icon-xs chevron" src="/static/Home/right-arrow.svg" mode="aspectFit"></image>
             </view>
             <text class="card-label">心率</text>
-            
-            <view class="card-value-box" v-if="healthData.lastHeartRate !== null">
-              <text class="value">{{ healthData.lastHeartRate }}</text>
+            <view class="card-value-box" v-if="healthData.heartRate">
+              <text class="value">{{ healthData.heartRate }}</text>
               <text class="unit">bpm</text>
             </view>
             <view class="card-value-box empty" v-else>
@@ -61,24 +73,113 @@
             </view>
           </view>
 
-          <view class="indicator-card" @click="viewDetail('blood_pressure')">
+          <view class="indicator-card">
             <view class="card-header">
               <view class="icon-box bg-blue-light">
-                <image class="icon-sm" src="/static/Prepare/blood pressure.svg" mode="aspectFit"></image>
+                <image
+                  class="icon-sm"
+                  src="/static/Health/relax.svg"
+                  mode="aspectFit"
+                ></image>
               </view>
-              <image class="icon-xs chevron" src="/static/Home/right-arrow.svg" mode="aspectFit"></image>
             </view>
-            <text class="card-label">血压</text>
-            
-            <view class="card-value-box" v-if="healthData.lastBloodPressure !== null">
-              <text class="value">{{ healthData.lastBloodPressure }}</text>
-              <text class="unit">mmHg</text>
+            <text class="card-label">放松</text>
+            <view class="card-value-box" v-if="healthData.relaxDuration">
+              <text class="value">{{ healthData.relaxDuration }}</text>
+              <text class="unit">分钟</text>
             </view>
             <view class="card-value-box empty" v-else>
               <text class="empty-text">暂无记录</text>
             </view>
           </view>
 
+          <view class="indicator-card">
+            <view class="card-header">
+              <view class="icon-box bg-cyan-light">
+                <image
+                  class="icon-sm"
+                  src="/static/Health/blood_oxygen.svg"
+                  mode="aspectFit"
+                ></image>
+              </view>
+            </view>
+            <text class="card-label">血氧</text>
+            <view class="card-value-box" v-if="healthData.bloodOxygen">
+              <text class="value">{{ healthData.bloodOxygen }}</text>
+              <text class="unit">%</text>
+            </view>
+            <view class="card-value-box empty" v-else>
+              <text class="empty-text">暂无记录</text>
+            </view>
+          </view>
+
+          <view class="indicator-card">
+            <view class="card-header">
+              <view class="icon-box bg-blue-light">
+                <image
+                  class="icon-sm"
+                  src="/static/Health/pressure.svg"
+                  mode="aspectFit"
+                ></image>
+              </view>
+            </view>
+            <text class="card-label">压力</text>
+            <view class="card-value-box" v-if="healthData.pressureAvgScore">
+              <text class="value">{{ healthData.pressureAvgScore }}</text>
+              <text class="unit">分</text>
+            </view>
+            <view class="card-value-box empty" v-else>
+              <text class="empty-text">暂无记录</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="section">
+        <text class="section-title">日常状态</text>
+        <view class="list-container">
+          <view class="list-card">
+            <view class="list-left">
+              <view class="icon-box bg-indigo-light">
+                <image
+                  class="icon-sm"
+                  src="/static/Prepare/sleep.svg"
+                  mode="aspectFit"
+                ></image>
+              </view>
+              <view class="list-text-group">
+                <text class="list-title">昨晚睡眠</text>
+                <text class="list-desc" v-if="healthData.sleepDuration">{{
+                  healthData.sleepDuration
+                }}</text>
+                <text class="list-desc empty" v-else>尚未同步</text>
+              </view>
+            </view>
+            <view class="list-right">
+              <text class="status-text" v-if="healthData.sleepScore"
+                >效率 {{ healthData.sleepScore }}%</text
+              >
+            </view>
+          </view>
+
+          <view class="list-card">
+            <view class="list-left">
+              <view class="icon-box bg-orange-light">
+                <image
+                  class="icon-sm"
+                  src="/static/Prepare/walk.svg"
+                  mode="aspectFit"
+                ></image>
+              </view>
+              <view class="list-text-group">
+                <text class="list-title">今日步数</text>
+                <text class="list-desc" v-if="healthData.stepCount"
+                  >{{ healthData.stepCount }} 步</text
+                >
+                <text class="list-desc empty" v-else>尚未同步</text>
+              </view>
+            </view>
+          </view>
         </view>
       </view>
 
@@ -91,42 +192,44 @@
 // 路由与交互方法
 export default {
   data() {
-    return{
+    return {
       healthData: null,
-    }
+    };
   },
   onLoad(options) {
     // 页面加载时的初始化逻辑
-    if(options.healthData){
-      this.healthData = JSON.parse(options.healthData);
-      console.log("接收到的健康数据: ", JSON.parse(JSON.stringify(this.healthData)));
+    if (options.healthData) {
+      const decodedStr = decodeURIComponent(options.healthData);
+      this.healthData = JSON.parse(decodedStr);
+      console.log(
+        "接收到的健康数据: ",
+        JSON.parse(JSON.stringify(this.healthData))
+      );
     }
   },
   methods: {
-    goBack () {
-      uni.navigateBack({ delta: 1, fail: () => uni.switchTab({ url: '/pages/index/index' }) });
+    goBack() {
+      uni.navigateBack({
+        delta: 1,
+        fail: () => uni.switchTab({ url: "/pages/index/index" }),
+      });
     },
 
     goNotifications() {
-      uni.showToast({ title: '消息通知', icon: 'none' });
+      uni.showToast({ title: "消息通知", icon: "none" });
     },
 
     addRecord() {
-      uni.showToast({ title: '添加药品记录', icon: 'none' });
-    },
-
-    viewDetail(type) {
-      console.log('查看详情:', type);
-      uni.showToast({ title: `查看${type === 'blood_pressure' ? '血压' : '血糖'}详情`, icon: 'none' });
+      uni.showToast({ title: "添加药品记录", icon: "none" });
     },
 
     // 底部导航切换
-    switchTab (tabName) {
-      console.log('切换到:', tabName);
+    switchTab(tabName) {
+      console.log("切换到:", tabName);
       // uni.switchTab({ url: `/pages/${tabName}/index` });
-    }
-  }
-}
+    },
+  },
+};
 </script>
 
 <style lang="scss" scoped>
@@ -155,7 +258,11 @@ $border-color: #f1f5f9;
   height: 36rpx;
   flex-shrink: 0;
 }
-.icon-xs { width: 24rpx; height: 24rpx; opacity: 0.5; }
+.icon-xs {
+  width: 24rpx;
+  height: 24rpx;
+  opacity: 0.5;
+}
 
 .icon-huge {
   width: 120rpx;
@@ -182,7 +289,7 @@ $border-color: #f1f5f9;
   flex-direction: column;
   height: 100vh;
   background-color: $bg-color;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 /* 顶部导航 */
@@ -295,10 +402,11 @@ $border-color: #f1f5f9;
   }
 }
 
-/* 生理指标网格 */
+/* 生理指标 2x2 网格 */
 .grid-container {
-  display: flex;
-  gap: 24rpx;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 定义两列，每列平分宽度 */
+  gap: 24rpx; /* 卡片之间的上下左右间距 */
 }
 
 .indicator-card {
@@ -334,6 +442,24 @@ $border-color: #f1f5f9;
 
     .bg-blue-light {
       background-color: #e0e7ff;
+    }
+    .bg-cyan-light {
+      background: #ecfeff;
+      @media (prefers-color-scheme: dark) {
+        background: rgba(6, 182, 212, 0.1);
+      }
+    }
+    .bg-indigo-light {
+      background: #0037eb;
+      @media (prefers-color-scheme: dark) {
+        background: rgba(9, 13, 225, 0.1);
+      }
+    }
+    .bg-orange-light {
+      background: #fff7ed;
+      @media (prefers-color-scheme: dark) {
+        background: rgba(249, 115, 22, 0.1);
+      }
     }
 
     .chevron {
@@ -435,5 +561,85 @@ $border-color: #f1f5f9;
       }
     }
   }
+}
+
+/* 日常状态列表容器 */
+.list-container {
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 10rpx 30rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.03);
+}
+
+/* 列表单行卡片 */
+.list-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx 0;
+  border-bottom: 2rpx solid #f5f5f5;
+}
+.list-card:last-child {
+  border-bottom: none;
+}
+
+/* 列表左侧图文 */
+.list-left {
+  display: flex;
+  align-items: center;
+
+  .icon-box {
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 16rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bg-indigo-light {
+    background: #0037eb;
+    @media (prefers-color-scheme: dark) {
+      background: rgba(9, 13, 225, 0.1);
+    }
+  }
+  .bg-orange-light {
+    background: #fff7ed;
+    @media (prefers-color-scheme: dark) {
+      background: rgba(249, 115, 22, 0.1);
+    }
+  }
+}
+.list-text-group {
+  display: flex;
+  flex-direction: column;
+  margin-left: 24rpx;
+}
+.list-title {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 8rpx;
+}
+.list-desc {
+  font-size: 32rpx;
+  color: #111;
+  font-weight: bold;
+}
+.list-desc.empty {
+  font-size: 24rpx;
+  color: #999;
+  font-weight: normal;
+}
+
+/* 列表右侧状态 */
+.list-right {
+  display: flex;
+  align-items: center;
+}
+.status-text {
+  font-size: 24rpx;
+  color: #666;
+  margin-right: 12rpx;
 }
 </style>

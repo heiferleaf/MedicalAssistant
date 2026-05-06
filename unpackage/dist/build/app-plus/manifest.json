@@ -7,8 +7,8 @@
   "id": "__UNI__4D03C3B",
   "name": "医药助手",
   "version": {
-    "name": "1.0.0",
-    "code": "100"
+    "name": "2.1.0",
+    "code": 3
   },
   "description": "医药健康小助手",
   "developer": {
@@ -130,7 +130,22 @@
         }
       }
     },
-    "nativePlugins": {},
+    "nativePlugins": {
+      "OppoHealthModule": {
+        "__plugin_info__": {
+          "name": "OppoHealthModule",
+          "description": "OPPO健康插件",
+          "platforms": "Android",
+          "url": "",
+          "android_package_name": "",
+          "ios_bundle_id": "",
+          "isCloud": false,
+          "bought": -1,
+          "pid": "",
+          "parameters": {}
+        }
+      }
+    },
     "statusbar": {
       "immersed": "supportedDevice",
       "style": "dark",

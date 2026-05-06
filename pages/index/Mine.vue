@@ -25,7 +25,16 @@
                 <text>Lv {{ getUserLevel() }}</text>
               </view>
               <view class="tag">
-                <text>成为用户第{{ createTime ? Math.floor((Date.now() - new Date(createTime).getTime()) / (1000 * 60 * 60 * 24)) : 0 }}天</text>
+                <text
+                  >成为用户第{{
+                    createTime
+                      ? Math.floor(
+                          (Date.now() - new Date(createTime).getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        )
+                      : 0
+                  }}天</text
+                >
               </view>
             </view>
           </view>
@@ -40,25 +49,23 @@
         <view class="health-data">
           <view class="data-item">
             <view class="data-value"
-              >120/80 <text class="data-unit">mmHg</text></view
+              >{{ computeBloodOxygen() }} <text class="data-unit">%</text></view
             >
-            <view class="data-label">血压</view>
+            <view class="data-label">血氧</view>
           </view>
           <view class="divider"></view>
           <view class="data-item">
             <view class="data-value"
-              >72 <text class="data-unit">bpm</text></view
+              >{{ heart_rate }} <text class="data-unit">bpm</text></view
             >
             <view class="data-label">心率</view>
           </view>
           <view class="divider"></view>
           <view class="data-item">
             <view class="data-value"
-              >5.2 <text class="data-unit">mmol/L</text></view
+              >{{ step_count }} <text class="data-unit">步</text></view
             >
-            <view class="data-label flex-center">
-              血糖
-            </view>
+            <view class="data-label flex-center"> 步数 </view>
           </view>
         </view>
       </view>
@@ -125,7 +132,7 @@
         </view>
       </view>
 
-            <!-- 退出登录 -->
+      <!-- 退出登录 -->
       <view class="logout-section">
         <button class="logout-btn" @click="logout">
           <text class="logout-text">退出登录</text>
@@ -136,12 +143,18 @@
 </template>
 
 <script>
-
 export default {
   data() {
     return {
       username: "小明",
       createTime: "",
+
+      fullstr: null,
+      full: null,
+      heart_rate: "--",
+      min_blood_oxygen: "--",
+      max_blood_oxygen: "--",
+      step_count: "--",
     };
   },
   mounted() {
@@ -161,6 +174,24 @@ export default {
       const username = uni.getStorageSync("username") || "小明";
       this.username = username;
       this.createTime = uni.getStorageSync("createTime") || "";
+
+      const fullstr = uni.getStorageSync("OPPO_HEALTH_FULL_DATA");
+      if (fullstr) {
+          try {
+              this.full = JSON.parse(fullstr);
+          } catch (e) {
+              console.error("解析健康数据失败:", e);
+              this.full = null;
+          }
+      } else {
+          this.full = null;
+      }
+      this.heart_rate = this.full?.HEART_RATE_COUNT[0]?.average || "--";
+      this.max_blood_oxygen =
+        this.full?.BLOOD_OXYGEN_COUNT[0]?.blood_oxygen_max || "--";
+      this.min_blood_oxygen =
+        this.full?.BLOOD_OXYGEN_COUNT[0]?.blood_oxygen_min || "--";
+      this.step_count = this.full?.STEP_COUNT[0]?.step || "--";
     },
     getAvatar() {
       const id = uni.getStorageSync("userId") || 1;
@@ -213,6 +244,9 @@ export default {
         cancelText: "取消",
         confirmText: "退出",
       });
+    },
+    computeBloodOxygen() {
+      return (this.min_blood_oxygen / this.max_blood_oxygen) * 100 || "--";
     },
   },
 };

@@ -3,7 +3,9 @@
     <view class="illustration-box">
       <image
         src="../static/Login/image.png"
-        mode="aspectFill" class="bg-image"></image>
+        mode="aspectFill"
+        class="bg-image"
+      ></image>
       <view class="mask-gradient"></view>
     </view>
 
@@ -18,24 +20,37 @@
           <view class="icon-box">
             <text class="iconfont icon-person"></text>
           </view>
-          <input class="input-field" type="text" placeholder="请输入账号" v-model="loginForm.username"
-            placeholder-class="placeholder-style" />
+          <input
+            class="input-field"
+            type="text"
+            placeholder="请输入账号"
+            v-model="loginForm.username"
+            placeholder-class="placeholder-style"
+          />
         </view>
 
         <view class="input-group">
           <view class="icon-box">
             <text class="iconfont icon-lock"></text>
           </view>
-          <input class="input-field" :password="!showLoginPassword" placeholder="请输入密码" v-model="loginForm.password"
-            placeholder-class="placeholder-style" />
+          <input
+            class="input-field"
+            :password="!showLoginPassword"
+            placeholder="请输入密码"
+            v-model="loginForm.password"
+            placeholder-class="placeholder-style"
+          />
           <view class="eye-box" @tap="toggleLoginPassword">
-            <text class="iconfont" :class="showLoginPassword ? 'icon-eye-open' : 'icon-eye-close'"></text>
+            <text
+              class="iconfont"
+              :class="showLoginPassword ? 'icon-eye-open' : 'icon-eye-close'"
+            ></text>
           </view>
         </view>
 
         <view class="action-bar">
           <view class="remember-me" @tap="toggleRemember">
-            <view class="checkbox" :class="{ 'checked': rememberMe }">
+            <view class="checkbox" :class="{ checked: rememberMe }">
               <text v-if="rememberMe" class="iconfont icon-check"></text>
             </view>
             <text class="remember-text">记住密码</text>
@@ -43,7 +58,12 @@
         </view>
 
         <view class="btn-section">
-          <button class="login-btn" :loading="loading" :disabled="loading" @tap="handleLogin">
+          <button
+            class="login-btn"
+            :loading="loading"
+            :disabled="loading"
+            @tap="handleLogin"
+          >
             登录
           </button>
         </view>
@@ -51,7 +71,9 @@
 
       <view class="footer-section">
         <text class="footer-text">还没有账号？</text>
-        <text class="register-link" @click="uni.navigateTo({ url: 'Register' })">立即注册</text>
+        <text class="register-link" @click="uni.navigateTo({ url: 'Register' })"
+          >立即注册</text
+        >
       </view>
     </view>
 
@@ -62,7 +84,8 @@
 <script>
 // 引入API模块
 import loginAPI from "../api/login.js";
-import { connect } from '../config/config';
+import { connect } from "../config/config";
+import oppoHealthManager from "../utils/oppoHealthManager.js";
 export default {
   data() {
     return {
@@ -84,7 +107,11 @@ export default {
       );
     },
   },
-  onLoad() {
+  onLoad(options) {
+    if(options.username && options.password){
+      this.loginForm.username = options.username;
+      this.loginForm.password = options.password;
+    }
     this.checkRememberedAccount();
   },
   methods: {
@@ -132,6 +159,7 @@ export default {
           icon: "success",
         });
         console.log("Login Result: ", result);
+        oppoHealthManager.consoleLog("Login Result: "+ JSON.stringify(result));
 
         uni.setStorageSync("userId", result.id);
         uni.setStorageSync("username", result.username);
@@ -142,15 +170,17 @@ export default {
         uni.setStorageSync("userName", this.loginForm.username.trim());
         uni.setStorageSync("createTime", result.createTime);
 
-        connect(); 
-
-        // console.log("保存的用户名:",this.loginForm.username.trim());
+        this.loading = false;
+        connect();
 
         setTimeout(() => {
-          uni.navigateTo({
+          uni.redirectTo({
             url: "/pages/index/index",
           });
         }, 1500);
+
+        oppoHealthManager.fetchAllAndCache(); // 登录成功后获取健康数据并缓存
+        oppoHealthManager.initBackgroundSync(); // 登录成功后启动后台同步
       } catch (error) {
         console.error("登录失败:", error);
       } finally {

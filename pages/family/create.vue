@@ -101,8 +101,8 @@ export default {
 
         // 创建成功后自动变成组长，并跳转至成员页面 [cite: 11, 15]
         setTimeout(() => {
-          uni.reLaunch({
-            url: "/pages/group/members",
+          uni.redirectTo({
+            url: "/pages/family/members",
           });
         }, 1500);
       } catch (e) {

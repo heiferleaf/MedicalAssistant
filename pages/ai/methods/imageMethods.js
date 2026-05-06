@@ -2,7 +2,7 @@
  * 图片处理方法模块
  * 封装所有图片处理相关的方法（OCR、Base64 转换等）
  */
-
+import { takeDrugPhoto } from "@/utils/camera.js";
 export default {
   methods: {
     /**
@@ -183,13 +183,24 @@ export default {
     /**
      * 处理相机按钮（拍照识别）
      */
-    handleCamera() {
-      console.log('点击相机按钮，跳转拍照识别');
-      uni.navigateTo({
-        url: '/pages/scan/DrugScan?from=chat',
-        animationType: 'fade-in',
-        animationDuration: 300
-      });
+    async handleCamera() {
+      console.log('点击相机按钮，触发拍照插件');
+      try {
+        // 直接调用封装好的工具函数
+        // 它会自动处理：拍照 -> 保存路径 -> 跳转到 AI 助手页
+        const path = await takeDrugPhoto({
+          text: "请正对药盒拍摄\n确保药品信息清晰可见"
+        });
+        
+        console.log('拍照成功，路径为:', path);
+        
+        // 如果你的 Mixin 所在的页面需要感知这个图片路径，可以赋值：
+        if (this.scanImage !== undefined) {
+          this.scanImage = path;
+        }
+      } catch (error) {
+        console.warn('用户取消拍照或插件异常', error);
+      }
     },
     
     /**

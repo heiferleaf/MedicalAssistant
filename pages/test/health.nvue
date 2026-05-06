@@ -34,7 +34,7 @@ export default {
       statusMsg: "等待操作...\n",
       heartRateData: "暂无数据",
       healthDataJson: null,
-      category: ["STEP_COUNT", "DAILY_ACTIVITY_DETAIL", "BLOOD_PRESSURE_COUNT", "BLOOD_PRESSURE_DETAIL"],
+      category: ["HEART_RATE_COUNT","STEP_COUNT","SLEEP_COUNT","SLEEP_DETAIL","BLOOD_OXYGEN_COUNT","RELAX_COUNT","RELAX_DETAIL","PRESSURE_COUNT","PRESSURE_DETAIL", "DAILY_ACTIVITY_DETAIL", "BLOOD_PRESSURE_COUNT", "BLOOD_PRESSURE_DETAIL"],
       index: 0
     };
   },
@@ -121,7 +121,7 @@ export default {
         // 调用你新写的万能 Java 接口
         let typeStr = this.category[this.index % this.category.length];
         let label = typeStr.replace(/_/g, " ");
-        let queryDays = 7; // 查询最近7天的数据
+        let queryDays = 15; // 查询最近7天的数据
         this.index += 1; // 每次调用切换数据类型，方便测试多个接口
 
         this.oppoHealth.readHealthData(typeStr, queryDays, (res) => {

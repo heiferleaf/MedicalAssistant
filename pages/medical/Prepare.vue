@@ -12,8 +12,7 @@
           <text class="page-title">就医准备单</text>
         </view>
         <view class="header-right">
-          <image class="icon" src="/static/Prepare/share.svg" />
-          <image class="icon" src="/static/Mine/export.svg" />
+          <image class="icon" src="/static/Mine/export.svg" @click="generatePDF" />
         </view>
       </view>
     </view>
@@ -40,7 +39,10 @@
         <view class="info-row">
           <image class="info-icon" src="/static/Login/user.png" mode="aspectFit" />
           <text class="info-label">患者：</text>
-          <text class="info-value">{{ documentInfo.patient }}</text>
+          <view class="info-value picker-value" @click="editPatientName">
+            <text>{{ documentInfo.patient }}</text>
+            <image class="picker-arrow" src="/static/Health/down.svg" mode="aspectFit" />
+          </view>
         </view>
         <view class="info-row">
           <image class="info-icon" src="/static/Health/calendar.svg" mode="aspectFit" />
@@ -61,20 +63,14 @@
             <image class="section-icon" src="/static/Home/medical-list.svg" mode="aspectFit" />
             <text class="section-title">近期用药清单</text>
           </view>
-          <button class="edit-section-btn" @click="editMedications">
-            <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
-          </button>
         </view>
 
         <view class="medication-list">
-          <view class="medication-item" v-for="med in documentInfo.medications" :key="med.id"
+          <view class="medication-item" v-for="(med, index) in uniqueMedications" :key="index"
             @click="toMedicationDetail(med.id)">
             <view class="medication-header">
               <image class="pill-icon" src="/static/Health/pill-active.svg" mode="aspectFit" />
               <text class="medication-name">{{ med.name }}</text>
-              <view class="medication-status" :class="med.statusClass">
-                <text>{{ med.status }}</text>
-              </view>
             </view>
             <view class="medication-details">
               <view class="detail-item">
@@ -84,52 +80,70 @@
               <view class="detail-item">
                 <image class="detail-icon" src="/static/Health/clock-history.svg" mode="aspectFit" />
                 <text class="detail-text">已服用{{ med.takenDays }}天</text>
-                <view class="missed-count" v-if="med.missedCount > 0">
-                  <text class="missed-text">⚠️漏服{{ med.missedCount }}次</text>
-                </view>
               </view>
             </view>
           </view>
         </view>
 
         <view class="section-footer">
-          <text class="footer-text">共 {{ documentInfo.medications.length }} 种药品</text>
+          <text class="footer-text">共 {{ uniqueMedications.length }} 种药品</text>
         </view>
       </view>
 
-      <!-- 异常健康数据 -->
+      <!-- 健康数据情况 -->
       <view class="section">
         <view class="section-header">
           <view class="section-title-container">
             <image class="section-icon" src="/static/Home/warning.svg" mode="aspectFit" />
-            <text class="section-title">异常健康数据</text>
+            <text class="section-title">健康数据情况</text>
           </view>
-          <button class="edit-section-btn" @click="editHealthData">
-            <image class="edit-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
-          </button>
         </view>
 
-        <view class="health-data-list">
-          <view class="health-data-item" v-for="data in documentInfo.healthData" :key="data.id">
-            <view class="data-header">
-              <text class="data-date">{{ data.date }}</text>
-              <view class="data-indicator">
-                <image class="indicator-icon" :src="getIndicatorIcon(data.type)" mode="aspectFit" />
-                <text class="indicator-name">{{ data.indicator }}</text>
+        <!-- 近期健康数据概览 -->
+        <view class="health-overview" v-if="healthOverview.length > 0">
+          <view class="overview-title">近期健康数据</view>
+          <view class="overview-grid">
+            <view class="overview-item" v-for="(item, index) in healthOverview" :key="index">
+              <view class="overview-icon" :class="item.statusClass">
+                <image class="icon-img" :src="getIndicatorIcon(item.type)" mode="aspectFit" />
               </view>
-            </view>
-            <view class="data-value">
-              <text class="value-number">{{ data.value }}</text>
-              <text class="value-unit">{{ data.unit }}</text>
-              <view class="data-status" :class="data.statusClass">
-                <text>{{ data.status }}</text>
+              <view class="overview-info">
+                <text class="overview-label">{{ item.indicator }}</text>
+                <text class="overview-value" :class="item.statusClass">{{ item.value }} <text class="overview-unit">{{ item.unit }}</text></text>
+              </view>
+              <view class="overview-status" :class="item.statusClass" v-if="item.isAbnormal">
+                <text>{{ item.status }}</text>
               </view>
             </view>
           </view>
+        </view>
+
+        <!-- 异常数据提示 -->
+        <view class="abnormal-tip" v-if="abnormalData.length > 0">
+          <view class="tip-header">
+            <image class="tip-icon" src="/static/Home/warning.svg" mode="aspectFit" />
+            <text class="tip-title">异常数据提醒</text>
+          </view>
+          <view class="abnormal-list">
+            <view class="abnormal-item" v-for="(item, index) in abnormalData" :key="index">
+              <view class="abnormal-left">
+                <text class="abnormal-date">{{ item.date }}</text>
+                <text class="abnormal-indicator">{{ item.indicator }}: {{ item.value }}{{ item.unit }}</text>
+              </view>
+              <view class="abnormal-status" :class="item.statusClass">
+                <text>{{ item.status }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 无数据提示 -->
+        <view class="no-data-tip" v-if="healthOverview.length === 0">
+          <text>暂无健康数据，请佩戴设备同步</text>
         </view>
 
         <view class="section-footer">
-          <text class="footer-text">最近7天异常数据</text>
+          <text class="footer-text">最近 7 天健康数据概览</text>
         </view>
       </view>
 
@@ -145,26 +159,45 @@
           </button>
         </view>
 
-        <view class="questions-list">
+        <!-- 已选问题列表 -->
+        <view class="questions-list" v-if="documentInfo.questions.length > 0">
           <view class="question-item" v-for="(question, index) in documentInfo.questions" :key="index">
             <text class="question-index">•</text>
             <text class="question-text">{{ question }}</text>
+            <text class="question-delete" @click="removeQuestion(index)">×</text>
           </view>
         </view>
 
+        <!-- 常用问题推荐 -->
+        <view class="common-questions" v-if="!showQuestionInput">
+          <view class="common-title">常见问题推荐</view>
+          <view class="common-list">
+            <view 
+              class="common-chip" 
+              :class="{ selected: isQuestionSelected(item) }"
+              v-for="(item, index) in commonQuestions" 
+              :key="index"
+              @click="toggleCommonQuestion(item)"
+            >
+              {{ item }}
+            </view>
+          </view>
+        </view>
+
+        <!-- 添加问题输入框 -->
         <view class="questions-input" v-if="showQuestionInput">
           <textarea class="question-textarea" placeholder="请输入您想问医生的问题..." placeholder-class="textarea-placeholder"
             v-model="newQuestion" maxlength="200" auto-height />
           <view class="textarea-actions">
             <text class="char-count">{{ newQuestion.length }}/200</text>
-            <button class="cancel-btn" @click="cancelAddQuestion">取消</button>
-            <button class="add-btn" @click="addQuestion" :disabled="!newQuestion.trim()">添加</button>
+            <button class="btn-cancel" @click="cancelAddQuestion">取消</button>
+            <button class="btn-save" @click="addQuestion" :disabled="!newQuestion.trim()">添加</button>
           </view>
         </view>
 
         <button class="add-question-btn" @click="showAddQuestion" v-if="!showQuestionInput">
           <image class="add-icon" src="/static/Health/plus-circle.svg" mode="aspectFit" />
-          <text class="add-text">添加问题</text>
+          <text class="add-text">自定义问题</text>
         </button>
       </view>
 
@@ -187,13 +220,9 @@
 
     <!-- 底部操作按钮 -->
     <view class="action-buttons">
-      <button class="action-btn edit-btn" @click="editContent">
-        <image class="btn-icon" src="/static/Prepare/edit.svg" mode="aspectFit" />
-        <text class="btn-text">编辑内容</text>
-      </button>
-      <button class="action-btn generate-btn" @click="generatePDF">
+      <button class="action-btn generate-btn-full" @click="generatePDF">
         <image class="btn-icon" src="/static/Prepare/pdf.svg" mode="aspectFit" />
-        <text class="btn-text">生成PDF</text>
+        <text class="btn-text">生成 PDF</text>
       </button>
     </view>
   </view>
@@ -201,93 +230,48 @@
 
 <script>
 import { BASE_URL } from '../../config/config';
+import oppoHealthManager from '../../utils/oppoHealthManager';
+import reminderApi from '../../api/reminder';
 
 export default {
   data() {
     return {
       refreshing: false,
       departmentIndex: 0,
-      visitDate: '2025-12-31',
+      visitDate: new Date().toISOString().split('T')[0],
       showQuestionInput: false,
       newQuestion: '',
       departments: ['心内科', '神经内科', '消化内科', '内分泌科', '普通内科', '其他'],
+      userId: null,
+      healthDataCache: null,
+      medicationTasks: [],
+      uniqueMedications: [],
+      healthOverview: [],
+      abnormalData: [],
+      commonQuestions: [
+        '这个药需要吃多久？',
+        '有什么副作用吗？',
+        '需要忌口吗？',
+        '可以和其他药一起吃吗？',
+        '什么时候复查？',
+        '症状没有改善怎么办？',
+        '这个药饭前还是饭后吃？',
+        '忘记吃药了需要补服吗？'
+      ],
       documentInfo: {
-        generatedTime: '2025/12/31 10:30',
+        generatedTime: '',
         department: '心内科',
-        patient: '张三',
-        visitDate: '2025/12/31',
-        medications: [
-          {
-            id: 1,
-            name: '阿司匹林肠溶片',
-            schedule: '每日1次',
-            takenDays: 7,
-            missedCount: 0,
-            status: '按时服用',
-            statusClass: 'status-normal'
-          },
-          {
-            id: 2,
-            name: '二甲双胍缓释片',
-            schedule: '每日2次',
-            takenDays: 3,
-            missedCount: 1,
-            status: '有漏服',
-            statusClass: 'status-warning'
-          },
-          {
-            id: 3,
-            name: '阿托伐他汀钙片',
-            schedule: '每晚1次',
-            takenDays: 15,
-            missedCount: 0,
-            status: '按时服用',
-            statusClass: 'status-normal'
-          }
-        ],
-        healthData: [
-          {
-            id: 1,
-            date: '12/30',
-            type: 'bloodPressure',
-            indicator: '血压',
-            value: '145/90',
-            unit: 'mmHg',
-            status: '偏高',
-            statusClass: 'status-danger'
-          },
-          {
-            id: 2,
-            date: '12/28',
-            type: 'heartRate',
-            indicator: '心率',
-            value: '95',
-            unit: 'bpm',
-            status: '偏快',
-            statusClass: 'status-warning'
-          },
-          {
-            id: 3,
-            date: '12/27',
-            type: 'bloodPressure',
-            indicator: '血压',
-            value: '142/88',
-            unit: 'mmHg',
-            status: '偏高',
-            statusClass: 'status-danger'
-          }
-        ],
-        questions: [
-          '血压持续偏高是否需要调整降压药剂量？',
-          '阿司匹林能和XX药一起吃吗？',
-          '最近头晕是药物副作用吗？',
-          '是否需要调整阿司匹林的服用时间？'
-        ],
+        patient: '加载中...',
+        visitDate: '',
+        medications: [],
+        healthData: [],
+        questions: [],
         otherInfo: ''
       }
     }
   },
   onLoad(options) {
+    this.getUserId();
     if (options.dept) {
       const index = this.departments.findIndex(dept => dept === options.dept)
       if (index !== -1) {
@@ -295,21 +279,318 @@ export default {
         this.documentInfo.department = this.departments[index]
       }
     }
+    this.fetchAllData();
   },
   methods: {
+    getUserId() {
+      this.userId = uni.getStorageSync('userId') || 1;
+      const userInfo = uni.getStorageSync('userInfo');
+      if (userInfo) {
+        try {
+          const user = JSON.parse(userInfo);
+          this.documentInfo.patient = user.nickname || user.username || '用户';
+        } catch (e) {
+          console.error('解析用户信息失败', e);
+          this.documentInfo.patient = '用户';
+        }
+      } else {
+        this.documentInfo.patient = '用户';
+      }
+    },
+
+    async fetchAllData() {
+      uni.showLoading({ title: '加载中...' });
+      try {
+        // 并行获取数据，健康数据可能失败但不影响整体流程
+        await Promise.allSettled([
+          this.fetchHealthData(),
+          this.fetchMedicationTasks()
+        ]);
+        this.updateDocumentInfo();
+      } catch (e) {
+        console.error('加载数据异常', e);
+      } finally {
+        uni.hideLoading();
+      }
+    },
+
+    async fetchHealthData() {
+      try {
+        await oppoHealthManager.fetchAllAndCache();
+        const fullStr = uni.getStorageSync('OPPO_HEALTH_FULL_DATA');
+        if (fullStr) {
+          this.healthDataCache = JSON.parse(fullStr);
+          console.log('[Prepare] 健康数据加载成功', this.healthDataCache);
+        }
+      } catch (e) {
+        console.warn('[Prepare] 健康数据获取失败（可能是模拟器环境）:', e.message);
+        this.healthDataCache = null;
+      }
+    },
+
+    async fetchMedicationTasks() {
+      try {
+        const res = await reminderApi.getTodayTasks(this.userId);
+        const list = res.data || res || [];
+        this.medicationTasks = list.sort((a, b) =>
+          a.timePoint.localeCompare(b.timePoint)
+        );
+        console.log('[Prepare] 用药任务加载成功', this.medicationTasks.length, '条');
+      } catch (e) {
+        console.error('[Prepare] 获取用药任务失败', e);
+        this.medicationTasks = [];
+      }
+    },
+
+    updateDocumentInfo() {
+      const now = new Date();
+      this.documentInfo.generatedTime = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      this.documentInfo.visitDate = this.visitDate.replace(/-/g, '/');
+
+      // 转换用药任务数据并去重
+      const medications = (this.medicationTasks || []).map(task => {
+        return {
+          id: task.id,
+          name: task.medicineName || '未知药品',
+          schedule: `每次${task.dosage || '1 粒'}`,
+          takenDays: 7,
+          timePoint: task.timePoint
+        };
+      });
+
+      // 按药品名称去重
+      const seen = new Map();
+      medications.forEach(med => {
+        if (!seen.has(med.name)) {
+          seen.set(med.name, med);
+        }
+      });
+      this.uniqueMedications = Array.from(seen.values());
+
+      // 获取健康数据概览
+      this.healthOverview = this.getHealthOverview();
+      
+      // 获取异常数据详情
+      this.abnormalData = this.getAbnormalDataDetail();
+      
+      this.documentInfo.healthData = []; // 保留字段但不再使用
+      
+      console.log('[Prepare] 文档信息更新完成', {
+        uniqueMedications: this.uniqueMedications.length,
+        healthOverview: this.healthOverview.length,
+        abnormalData: this.abnormalData.length
+      });
+    },
+
+    getHealthOverview() {
+      const data = this.healthDataCache;
+      if (!data) {
+        console.log('[Prepare] 无健康数据，返回空概览');
+        return [];
+      }
+
+      const overview = [];
+      
+      // 获取最近一天的心率数据
+      const hrData = data.HEART_RATE_COUNT || [];
+      if (hrData.length > 0) {
+        const latestHr = hrData[0]; // 取最新的一条数据
+        if (latestHr.average) {
+          const hr = parseFloat(latestHr.average);
+          const isAbnormal = hr < 60 || hr > 100;
+          overview.push({
+            type: 'heartRate',
+            indicator: '心率',
+            value: hr.toFixed(0),
+            unit: 'bpm',
+            status: isAbnormal ? (hr < 60 ? '偏慢' : '偏快') : '正常',
+            statusClass: isAbnormal ? (hr < 60 ? 'status-warning' : 'status-danger') : 'status-normal',
+            isAbnormal
+          });
+        }
+      }
+
+      // 获取最近一天的血压数据
+      const bpData = data.BLOOD_PRESSURE_COUNT || [];
+      if (bpData.length > 0) {
+        const latestBp = bpData[0]; // 取最新的一条数据
+        if (latestBp.blood_pressure_systolic_max) {
+          const sys = parseInt(latestBp.blood_pressure_systolic_max);
+          const dia = parseInt(latestBp.blood_pressure_diastolic_min || 0);
+          const isAbnormal = sys > 130 || dia > 85;
+          overview.push({
+            type: 'bloodPressure',
+            indicator: '血压',
+            value: `${sys.toFixed(0)}/${dia.toFixed(0)}`,
+            unit: 'mmHg',
+            status: isAbnormal ? '偏高' : '正常',
+            statusClass: isAbnormal ? 'status-danger' : 'status-normal',
+            isAbnormal
+          });
+        }
+      }
+
+      // 获取最近一天的血氧数据
+      const oxyData = data.BLOOD_OXYGEN_COUNT || [];
+      if (oxyData.length > 0) {
+        const latestOxy = oxyData[0]; // 取最新的一条数据
+        if (latestOxy.blood_oxygen_min) {
+          const oxy = parseFloat(latestOxy.blood_oxygen_min);
+          const isAbnormal = oxy < 95;
+          overview.push({
+            type: 'bloodOxygen',
+            indicator: '血氧',
+            value: oxy.toFixed(1),
+            unit: '%',
+            status: isAbnormal ? (oxy >= 90 ? '偏低' : '极低') : '正常',
+            statusClass: isAbnormal ? (oxy >= 90 ? 'status-warning' : 'status-danger') : 'status-normal',
+            isAbnormal
+          });
+        }
+      }
+
+      // 获取最近一天的睡眠数据
+      const sleepData = data.SLEEP_COUNT || [];
+      if (sleepData.length > 0 && sleepData[0].total) {
+        const duration = (sleepData[0].total / 3600).toFixed(1);
+        const score = sleepData[0].sleep_score || 0;
+        const isAbnormal = duration < 6 || duration > 9 || score < 60;
+        overview.push({
+          type: 'sleep',
+          indicator: '睡眠',
+          value: duration,
+          unit: '小时',
+          status: isAbnormal ? '不足' : '充足',
+          statusClass: isAbnormal ? 'status-warning' : 'status-normal',
+          isAbnormal
+        });
+      }
+
+      console.log('[Prepare] 近期健康数据:', overview);
+      return overview;
+    },
+
+    getAbnormalDataDetail() {
+      const data = this.healthDataCache;
+      if (!data) {
+        console.log('[Prepare] 无健康数据，返回空异常数据');
+        return [];
+      }
+
+      const abnormalData = [];
+      const d = new Date();
+      const formatDate = (date) => `${date.getMonth() + 1}/${date.getDate()}`;
+
+      for (let i = 0; i < 7; i++) {
+        const dateStr = d.toISOString().split('T')[0];
+        
+        // 检查心率数据
+        const hrData = data.HEART_RATE_COUNT?.find(item => 
+          item.day?.startsWith(dateStr)
+        );
+        if (hrData && hrData.average) {
+          const hr = parseFloat(hrData.average);
+          if (hr < 60 || hr > 100) {
+            abnormalData.push({
+              id: `hr-${i}`,
+              date: formatDate(d),
+              type: 'heartRate',
+              indicator: '心率',
+              value: hr.toFixed(0),
+              unit: 'bpm',
+              status: hr < 60 ? '偏慢' : '偏快',
+              statusClass: hr < 60 ? 'status-warning' : 'status-danger'
+            });
+          }
+        }
+
+        // 检查血压数据
+        const bpData = data.BLOOD_PRESSURE_COUNT?.find(item => 
+          item.day?.startsWith(dateStr)
+        );
+        if (bpData && bpData.blood_pressure_systolic_max) {
+          const sys = parseInt(bpData.blood_pressure_systolic_max);
+          const dia = parseInt(bpData.blood_pressure_diastolic_min || 0);
+          if (sys > 130 || dia > 85) {
+            abnormalData.push({
+              id: `bp-${i}`,
+              date: formatDate(d),
+              type: 'bloodPressure',
+              indicator: '血压',
+              value: `${sys}/${dia}`,
+              unit: 'mmHg',
+              status: '偏高',
+              statusClass: 'status-danger'
+            });
+          }
+        }
+
+        // 检查血氧数据
+        const oxyData = data.BLOOD_OXYGEN_COUNT?.find(item => 
+          item.day?.startsWith(dateStr)
+        );
+        if (oxyData && oxyData.blood_oxygen_min) {
+          const oxy = parseFloat(oxyData.blood_oxygen_min);
+          if (oxy < 95 && oxy > 0) {
+            abnormalData.push({
+              id: `oxy-${i}`,
+              date: formatDate(d),
+              type: 'bloodOxygen',
+              indicator: '血氧',
+              value: oxy.toFixed(1),
+              unit: '%',
+              status: oxy >= 90 ? '偏低' : '极低',
+              statusClass: oxy >= 90 ? 'status-warning' : 'status-danger'
+            });
+          }
+        }
+
+        d.setDate(d.getDate() - 1);
+      }
+
+      console.log('[Prepare] 异常健康数据:', abnormalData.length, '条');
+      return abnormalData;
+    },
     onRefresh() {
       this.refreshing = true
-      // 模拟刷新数据
-      setTimeout(() => {
+      this.fetchAllData().finally(() => {
         this.refreshing = false
         uni.showToast({
           title: '已更新',
           icon: 'success'
         })
-      }, 1000)
+      })
     },
     goBack() {
       uni.navigateBack()
+    },
+    editPatientName() {
+      uni.showModal({
+        title: '填写患者姓名',
+        editable: true,
+        placeholderText: '请输入您的真实姓名',
+        defaultText: this.documentInfo.patient === '用户' ? '' : this.documentInfo.patient,
+        success: (res) => {
+          if (res.confirm && res.content) {
+            this.documentInfo.patient = res.content.trim();
+            const userInfo = uni.getStorageSync('userInfo');
+            let user = {};
+            if (userInfo) {
+              try {
+                user = JSON.parse(userInfo);
+              } catch (e) {
+                console.error('解析用户信息失败', e);
+              }
+            }
+            user.nickname = res.content.trim();
+            uni.setStorageSync('userInfo', JSON.stringify(user));
+            uni.showToast({
+              title: '保存成功',
+              icon: 'success'
+            });
+          }
+        }
+      });
     },
     onDepartmentChange(e) {
       this.departmentIndex = e.detail.value
@@ -357,6 +638,33 @@ export default {
           icon: 'success'
         })
       }
+    },
+
+    toggleCommonQuestion(question) {
+      const index = this.documentInfo.questions.indexOf(question);
+      if (index > -1) {
+        // 已选中则取消
+        this.documentInfo.questions.splice(index, 1);
+      } else {
+        // 未选中则添加
+        this.documentInfo.questions.push(question);
+      }
+      uni.showToast({
+        title: index > -1 ? '已取消' : '已添加',
+        icon: 'none'
+      });
+    },
+
+    isQuestionSelected(question) {
+      return this.documentInfo.questions.includes(question);
+    },
+
+    removeQuestion(index) {
+      this.documentInfo.questions.splice(index, 1);
+      uni.showToast({
+        title: '已删除',
+        icon: 'success'
+      });
     },
     cancelAddQuestion() {
       this.showQuestionInput = false
@@ -451,91 +759,105 @@ export default {
     exportDocument() {
       this.generatePDF()
     },
-    // async generatePDF() {
-    //   uni.showLoading({ title: '生成中...' })
-    //   try {
-    //     const accessToken = uni.getStorageSync('accessToken') || ''
-    //     const payload = {
-    //       generatedTime: this.documentInfo.generatedTime || '',
-    //       department: this.documentInfo.department || '',
-    //       patient: this.documentInfo.patient || '',
-    //       visitDate: this.documentInfo.visitDate || '',
-    //       medications: this.documentInfo.medications || [],
-    //       healthData: this.documentInfo.healthData || [],
-    //       questions: this.documentInfo.questions || [],
-    //       otherInfo: this.documentInfo.otherInfo || ''
-    //     }
-
-    //     const res = await uni.request({
-    //       url: `${BASE_URL}/medical/prepare/pdf`,
-    //       method: 'POST',
-    //       data: payload,
-    //       timeout: 15000,
-    //       header: {
-    //         'Content-Type': 'application/json',
-    //         'Authorization': `Bearer ${accessToken}`
-    //       }
-    //     })
-
-    //     const body = res?.data || {}
-    //     const success = body.success === true || body.code === 0
-    //     const fileUrl = body.fileUrl || body?.data?.fileUrl
-
-    //     console.log('[PDF] resp=', body)
-    //     console.log('[PDF] fileUrl=', fileUrl)
-
-    //     if (!success || !fileUrl) {
-    //       uni.showModal({
-    //         title: '生成失败',
-    //         content: body.message || '未返回文件地址',
-    //         showCancel: false
-    //       })
-    //       return
-    //     }
-
-    //     // H5 直接跳转，避免 window.open 被拦截
-    //     // #ifdef H5
-    //     window.location.href = fileUrl
-    //     return
-    //     // #endif
-
-    //     // #ifndef H5
-    //     uni.downloadFile({
-    //       url: fileUrl,
-    //       header: { Authorization: `Bearer ${accessToken}` },
-    //       timeout: 20000,
-    //       success: (d) => {
-    //         console.log('[PDF] download success', d.statusCode, d.tempFilePath)
-    //         if (d.statusCode === 200) {
-    //           uni.openDocument({ filePath: d.tempFilePath, showMenu: true })
-    //         } else {
-    //           uni.showModal({ title: '下载失败', content: `HTTP ${d.statusCode}`, showCancel: false })
-    //         }
-    //       },
-    //       fail: (e) => {
-    //         console.log('[PDF] download fail', e)
-    //         uni.showModal({ title: '下载失败', content: e.errMsg || 'download fail', showCancel: false })
-    //       }
-    //     })
-    //     // #endif
-    //   } catch (e) {
-    //     console.log('[PDF] generate error=', e)
-    //     uni.showModal({
-    //       title: '生成失败',
-    //       content: e?.message || e?.errMsg || '请求异常',
-    //       showCancel: false
-    //     })
-    //   } finally {
-    //     uni.hideLoading()
-    //   }
-    // }
     async generatePDF() {
-      uni.showModal({
-        title: '功能维护中',
-        content: 'PDF生成功能正在维护中，将在下个版本开放。',
-        showCancel: false
-      })
+      uni.showLoading({ title: '生成 PDF 中...' })
+      try {
+        const accessToken = uni.getStorageSync('accessToken') || ''
+        
+        // 使用正确的数据源
+        const payload = {
+          generatedTime: this.documentInfo.generatedTime || '',
+          department: this.documentInfo.department || '',
+          patient: this.documentInfo.patient || '',
+          visitDate: this.documentInfo.visitDate || '',
+          // 使用 uniqueMedications 而不是 documentInfo.medications
+          medications: (this.uniqueMedications || []).map(med => ({
+            id: med.id,
+            name: med.name || '未知药品',
+            schedule: med.schedule || '',
+            takenDays: med.takenDays || 0,
+            missedCount: 0,
+            status: '正常'
+          })),
+          // 使用 healthOverview（近期所有健康数据）而不是 abnormalData
+          healthData: (this.healthOverview || []).map(data => ({
+            id: data.id || '',
+            date: data.date || '',
+            indicator: data.indicator || '',
+            value: data.value || '',
+            unit: data.unit || '',
+            status: data.status || '',
+            isAbnormal: data.isAbnormal || false
+          })),
+          questions: this.documentInfo.questions || [],
+          otherInfo: this.documentInfo.otherInfo || ''
+        }
+        
+        console.log('[PDF] payload=', payload)
+
+        const res = await uni.request({
+          url: `${BASE_URL}/medical/prepare/pdf`,
+          method: 'POST',
+          data: payload,
+          timeout: 15000,
+          header: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        })
+
+        const body = res?.data || {}
+        const success = body.success === true || body.code === 0
+        const fileUrl = body.fileUrl || body?.data?.fileUrl
+
+        console.log('[PDF] resp=', body)
+        console.log('[PDF] fileUrl=', fileUrl)
+
+        if (!success || !fileUrl) {
+          uni.showModal({
+            title: '生成失败',
+            content: body.message || '未返回文件地址',
+            showCancel: false
+          })
+          return
+        }
+
+        // 统一处理：显示成功提示和下载链接
+        console.log('[PDF] 生成成功，fileUrl:', fileUrl)
+        
+        uni.showModal({
+          title: 'PDF 生成成功',
+          content: '点击下方按钮复制链接，然后在浏览器中打开下载',
+          showCancel: false,
+          confirmText: '复制链接并打开',
+          success: (modalRes) => {
+            if (modalRes.confirm) {
+              // 复制链接
+              uni.setClipboardData({
+                data: fileUrl,
+                success: () => {
+                  uni.showToast({ 
+                    title: '已复制，请打开浏览器粘贴链接', 
+                    icon: 'success',
+                    duration: 3000
+                  })
+                }
+              })
+            }
+          }
+        })
+      } catch (e) {
+        console.error('[PDF] generate error=', e)
+        uni.showModal({
+          title: '生成失败',
+          content: e?.message || e?.errMsg || '请求异常',
+          showCancel: false
+        })
+      } finally {
+        uni.hideLoading()
+      }
     }
+
   }
 }
 </script>
@@ -684,6 +1006,8 @@ export default {
 }
 
 .picker-value {
+  flex: 1;
+  max-width: 200rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -701,6 +1025,7 @@ export default {
   width: 20rpx;
   height: 20rpx;
   margin-left: 8rpx;
+  flex-shrink: 0;
 }
 
 /* 分区样式 */
@@ -808,28 +1133,6 @@ export default {
   flex: 1;
 }
 
-.medication-status {
-  padding: 6rpx 16rpx;
-  border-radius: 16rpx;
-  font-size: 22rpx;
-  font-weight: 500;
-
-  &.status-normal {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-  }
-
-  &.status-warning {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-  }
-
-  &.status-danger {
-    background: rgba(255, 107, 107, 0.1);
-    color: #ff6b6b;
-  }
-}
-
 .medication-details {
   padding-left: 48rpx;
 }
@@ -867,6 +1170,209 @@ export default {
 }
 
 /* 健康数据 */
+/* 健康数据 */
+.health-overview {
+  margin-bottom: 24rpx;
+  padding: 24rpx;
+  background: rgba(77, 142, 255, 0.05);
+  border-radius: 20rpx;
+  border: 2rpx solid rgba(77, 142, 255, 0.1);
+}
+
+.overview-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2d3b4e;
+  margin-bottom: 20rpx;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+}
+
+.overview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.overview-icon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+
+  &.status-normal {
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  &.status-warning {
+    background: rgba(245, 158, 11, 0.1);
+  }
+
+  &.status-danger {
+    background: rgba(255, 107, 107, 0.1);
+  }
+
+  .icon-img {
+    width: 32rpx;
+    height: 32rpx;
+  }
+}
+
+.overview-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.overview-label {
+  font-size: 24rpx;
+  color: #87909c;
+  margin-bottom: 4rpx;
+}
+
+.overview-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #2d3b4e;
+
+  &.status-normal {
+    color: #10b981;
+  }
+
+  &.status-warning {
+    color: #f59e0b;
+  }
+
+  &.status-danger {
+    color: #ff6b6b;
+  }
+
+  .overview-unit {
+    font-size: 20rpx;
+    font-weight: 400;
+    color: #87909c;
+  }
+}
+
+.overview-status {
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+
+  &.status-normal {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+
+  &.status-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+  }
+
+  &.status-danger {
+    background: rgba(255, 107, 107, 0.1);
+    color: #ff6b6b;
+  }
+}
+
+/* 异常数据提醒 */
+.abnormal-tip {
+  padding: 24rpx;
+  background: rgba(255, 107, 107, 0.05);
+  border-radius: 20rpx;
+  border: 2rpx solid rgba(255, 107, 107, 0.1);
+  margin-bottom: 24rpx;
+}
+
+.tip-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.tip-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 12rpx;
+}
+
+.tip-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #ff6b6b;
+}
+
+.abnormal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.abnormal-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx;
+  background: #fff;
+  border-radius: 12rpx;
+}
+
+.abnormal-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.abnormal-date {
+  font-size: 22rpx;
+  color: #87909c;
+  font-weight: 500;
+}
+
+.abnormal-indicator {
+  font-size: 26rpx;
+  color: #2d3b4e;
+  font-weight: 600;
+}
+
+.abnormal-status {
+  padding: 6rpx 16rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+
+  &.status-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+  }
+
+  &.status-danger {
+    background: rgba(255, 107, 107, 0.1);
+    color: #ff6b6b;
+  }
+}
+
+/* 无数据提示 */
+.no-data-tip {
+  padding: 40rpx;
+  text-align: center;
+  color: #87909c;
+  font-size: 26rpx;
+}
+
 .health-data-list {
   display: flex;
   flex-direction: column;
@@ -955,10 +1461,13 @@ export default {
 
 .question-item {
   display: flex;
+  align-items: flex-start;
   padding: 24rpx;
   background: rgba(77, 142, 255, 0.05);
   border-radius: 20rpx;
   border: 2rpx solid rgba(77, 142, 255, 0.1);
+  margin-bottom: 16rpx;
+  position: relative;
 }
 
 .question-index {
@@ -966,7 +1475,7 @@ export default {
   color: #4d8eff;
   margin-right: 20rpx;
   line-height: 1;
-  align-self: flex-start;
+  flex-shrink: 0;
 }
 
 .question-text {
@@ -974,6 +1483,63 @@ export default {
   color: #2d3b4e;
   line-height: 1.4;
   flex: 1;
+}
+
+.question-delete {
+  font-size: 40rpx;
+  color: #ff6b6b;
+  line-height: 1;
+  padding: 0 8rpx;
+  flex-shrink: 0;
+  transition: all 0.2s;
+
+  &:active {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+}
+
+/* 常见问题推荐 */
+.common-questions {
+  margin-bottom: 24rpx;
+  padding: 24rpx;
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 20rpx;
+  border: 2rpx solid rgba(16, 185, 129, 0.1);
+}
+
+.common-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #10b981;
+  margin-bottom: 16rpx;
+}
+
+.common-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.common-chip {
+  padding: 12rpx 24rpx;
+  background: rgba(77, 142, 255, 0.1);
+  border: 2rpx solid rgba(77, 142, 255, 0.2);
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  color: #4d8eff;
+  transition: all 0.3s;
+
+  &.selected {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+  }
+
+  &:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
 }
 
 .questions-input {
@@ -1013,7 +1579,9 @@ export default {
 }
 
 .cancel-btn,
-.add-btn {
+.btn-cancel,
+.add-btn,
+.btn-save {
   padding: 12rpx 24rpx;
   border-radius: 16rpx;
   border: none;
@@ -1023,7 +1591,8 @@ export default {
   transition: all 0.3s ease;
 }
 
-.cancel-btn {
+.cancel-btn,
+.btn-cancel {
   background: rgba(180, 191, 211, 0.1);
   color: #87909c;
 
@@ -1032,7 +1601,8 @@ export default {
   }
 }
 
-.add-btn {
+.add-btn,
+.btn-save {
   background: rgba(77, 142, 255, 0.1);
   color: #4d8eff;
 
@@ -1131,6 +1701,26 @@ export default {
 
   &:active {
     transform: scale(0.98);
+  }
+}
+
+.generate-btn-full {
+  flex: 1;
+  max-width: 600rpx;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #4d8eff 0%, #2d6bff 100%);
+  border-radius: 48rpx;
+  box-shadow: 0 8rpx 24rpx rgba(77, 142, 255, 0.3);
+
+  .btn-icon {
+    width: 40rpx;
+    height: 40rpx;
+    margin-right: 16rpx;
+  }
+
+  .btn-text {
+    color: #ffffff;
+    font-size: 32rpx;
   }
 }
 

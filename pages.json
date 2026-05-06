@@ -131,6 +131,12 @@
 			"style": {
 				"navigationBarTitleText": "健康数据测试"
 			}
+		},
+		{
+			"path": "pages/test/camera",
+			"style": {
+				"navigationBarTitleText": "相机测试"
+			}
 		}
 	],
 	"globalStyle": {
