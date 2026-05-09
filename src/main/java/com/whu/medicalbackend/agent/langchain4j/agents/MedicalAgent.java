@@ -10,6 +10,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.whu.medicalbackend.agent.langchain4j.tools.ocr.OcrDrugRecognitionTool;
@@ -43,6 +45,8 @@ import dev.langchain4j.service.V;
  * 医疗助手 Agent - 支持 Human-in-the-loop
  */
 @Component
+@ConditionalOnProperty(prefix = "agent.llm", name = "enabled", havingValue = "true")
+@ConditionalOnExpression("!'${dashscope.api-key:}'.isBlank()")
 public class MedicalAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(MedicalAgent.class);

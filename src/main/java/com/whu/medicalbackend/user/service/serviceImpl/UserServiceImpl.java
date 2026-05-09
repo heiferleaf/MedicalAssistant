@@ -1,12 +1,10 @@
 package com.whu.medicalbackend.user.service.serviceImpl;
 
 import com.whu.medicalbackend.common.exception.*;
-import com.whu.medicalbackend.family.service.FamilyCacheService;
 import com.whu.medicalbackend.user.dto.UserInfoDTO;
 import com.whu.medicalbackend.user.dto.UserLoginDto;
 import com.whu.medicalbackend.user.dto.UserRegisterDto;
 import com.whu.medicalbackend.user.entity.User;
-import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
 import com.whu.medicalbackend.user.repository.UserRepository;
 import com.whu.medicalbackend.user.service.UserService;
 import com.whu.medicalbackend.common.util.PasswordUtil;
@@ -21,10 +19,6 @@ import java.time.LocalDateTime;
 public class UserServiceImpl implements UserService{
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private FamilyMemberMapper familyMemberMapper;
-    @Autowired
-    private FamilyCacheService familyCacheService;
 
     @Override
     public User register(UserRegisterDto dto) {

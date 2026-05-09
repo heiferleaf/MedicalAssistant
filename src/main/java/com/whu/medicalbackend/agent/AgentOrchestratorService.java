@@ -11,6 +11,7 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import org.springframework.beans.factory.ObjectProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,8 +41,8 @@ public class AgentOrchestratorService {
     public AgentOrchestratorService(
             AgentMemoryRepository memoryRepository,
             FlaskRagProxyService flaskRagProxyService,
-            ChatModel chatModel,
-            MedicalAgent medicalAgent,
+            ObjectProvider<ChatModel> chatModelProvider,
+            ObjectProvider<MedicalAgent> medicalAgentProvider,
             ToolExecutionBroadcaster toolExecutionBroadcaster,
             OcrService ocrService,
             ToolExecutionPendingService toolExecutionPendingService,
@@ -49,15 +50,17 @@ public class AgentOrchestratorService {
             @Value("${agent.llm.enabled:false}") boolean llmEnabled) {
         this.memoryRepository = memoryRepository;
         this.flaskRagProxyService = flaskRagProxyService;
-        this.chatModel = chatModel;
-        this.medicalAgent = medicalAgent;
+        // DashScope key 缺失时不创建 LLM Bean，Agent 服务仍保持健康，只在聊天入口返回配置提示。
+        this.chatModel = chatModelProvider.getIfAvailable();
+        this.medicalAgent = medicalAgentProvider.getIfAvailable();
         this.toolExecutionPendingService = toolExecutionPendingService;
         this.toolExecutionBroadcaster = toolExecutionBroadcaster;
         this.ocrService = ocrService;
         this.flaskBaseUrl = flaskBaseUrl;
-        this.llmEnabled = llmEnabled;
+        this.llmEnabled = llmEnabled && this.chatModel != null;
 
-        logger.info("AgentOrchestratorService initialized, LLM enabled: {}", llmEnabled);
+        logger.info("AgentOrchestratorService initialized, LLM enabled: {}, chatModelConfigured: {}, medicalAgentConfigured: {}",
+                this.llmEnabled, this.chatModel != null, this.medicalAgent != null);
     }
 
     public Map<String, Object> chat(Map<String, Object> payload) {
@@ -82,11 +85,15 @@ public class AgentOrchestratorService {
         memoryRepository.appendMessage(sessionId, userId, "user", message);
 
         // 优先使用 Medical Agent（如果启用）
-        if (llmEnabled) {
+        if (llmEnabled && medicalAgent != null) {
             Map<String, Object> agentResult = handleMedicalAgentChat(userId, sessionId, message, withTrace, withTiming);
             if (agentResult != null) {
                 return agentResult;
             }
+        }
+
+        if (chatModel == null) {
+            return llmUnavailableResult(withTrace);
         }
 
         // 回退到简单 LLM 调用
@@ -236,7 +243,7 @@ public class AgentOrchestratorService {
         out.put("module", "agent");
         out.put("agent_version", AGENT_VERSION);
         out.put("control_mode", llmEnabled ? "llm" : "rule");
-        out.put("llm_configured", true);
+        out.put("llm_configured", chatModel != null);
         out.put("memory", Map.of("backend", "spring.jdbc.mysql", "tables",
                 List.of("agent_sessions", "agent_messages", "agent_pending_actions")));
         out.put("rag", Map.of("target", flaskBaseUrl + "/rag/query"));
@@ -260,7 +267,7 @@ public class AgentOrchestratorService {
             StringBuilder fullResponse = new StringBuilder();
             
             // 优先使用 Medical Agent（如果启用）
-            if (llmEnabled) {
+            if (llmEnabled && medicalAgent != null) {
                 try {
                     logger.info("使用 Medical Agent 进行流式处理");
                     
@@ -341,6 +348,14 @@ public class AgentOrchestratorService {
                     logger.error("Medical Agent 流式处理失败，回退到简单 LLM 流式调用", e);
                 }
             }
+
+            if (chatModel == null) {
+                emitter.send(SseEmitter.event()
+                        .name("message")
+                        .data("LLM 未配置，当前无法进行智能问答。请配置 DASHSCOPE_API_KEY 后重试。"));
+                emitter.send(SseEmitter.event().name("end").data(""));
+                return;
+            }
             
             // 回退到简单 LLM 流式调用
             try {
@@ -416,6 +431,21 @@ public class AgentOrchestratorService {
         return s.equals("true") || s.equals("1") || s.equals("yes");
     }
 
+    private Map<String, Object> llmUnavailableResult(boolean withTrace) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", false);
+        result.put("message", "LLM 未配置，请配置 DASHSCOPE_API_KEY 后重试");
+        result.put("need_confirm", false);
+        result.put("actions", List.of());
+        if (withTrace) {
+            Map<String, Object> trace = new LinkedHashMap<>();
+            trace.put("agent_version", AGENT_VERSION);
+            trace.put("control", "llm_unavailable");
+            result.put("trace", trace);
+        }
+        return result;
+    }
+
     /**
      * 直接调用 Flask OCR 服务
      */
@@ -445,4 +475,3 @@ public class AgentOrchestratorService {
         }
     }
 }
-

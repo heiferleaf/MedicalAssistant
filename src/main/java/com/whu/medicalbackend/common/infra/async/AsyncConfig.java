@@ -12,6 +12,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
@@ -35,6 +36,9 @@ public class AsyncConfig implements AsyncConfigurer {
     @Value("${infra.async.ai.max-size:20}")
     private int aiMaxSize;
 
+    @Value("${infra.async.ai.queue-capacity:100}")
+    private int aiQueueCapacity;
+
     @Value("${infra.async.pdf.core-size:2}")
     private int pdfCoreSize;
 
@@ -46,22 +50,27 @@ public class AsyncConfig implements AsyncConfigurer {
 
     @Bean("domainEventExecutor")
     public ThreadPoolTaskExecutor domainEventExecutor() {
-        return buildExecutor("domain-event-", domainCoreSize, domainMaxSize, queueCapacity);
+        return buildExecutor("domain-event-", domainCoreSize, domainMaxSize, queueCapacity,
+                new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     @Bean("wsPushExecutor")
     public ThreadPoolTaskExecutor wsPushExecutor() {
-        return buildExecutor("ws-push-", wsPushCoreSize, wsPushMaxSize, queueCapacity);
+        return buildExecutor("ws-push-", wsPushCoreSize, wsPushMaxSize, queueCapacity,
+                new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     @Bean("aiExecutor")
     public ThreadPoolTaskExecutor aiExecutor() {
-        return buildExecutor("ai-", aiCoreSize, aiMaxSize, queueCapacity);
+        // AI 任务耗时长，队列过大会放大延迟；满载时快速拒绝，由调用方返回忙碌提示更可控。
+        return buildExecutor("ai-", aiCoreSize, aiMaxSize, aiQueueCapacity,
+                new ThreadPoolExecutor.AbortPolicy());
     }
 
     @Bean("pdfExecutor")
     public ThreadPoolTaskExecutor pdfExecutor() {
-        return buildExecutor("pdf-", pdfCoreSize, pdfMaxSize, queueCapacity / 2);
+        return buildExecutor("pdf-", pdfCoreSize, pdfMaxSize, queueCapacity / 2,
+                new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     @Override
@@ -76,14 +85,20 @@ public class AsyncConfig implements AsyncConfigurer {
                         .error("异步方法执行失败: {}", method.getName(), ex);
     }
 
-    private ThreadPoolTaskExecutor buildExecutor(String threadNamePrefix, int coreSize, int maxSize, int capacity) {
+    private ThreadPoolTaskExecutor buildExecutor(
+            String threadNamePrefix,
+            int coreSize,
+            int maxSize,
+            int capacity,
+            RejectedExecutionHandler rejectedExecutionHandler
+    ) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(coreSize);
         executor.setMaxPoolSize(maxSize);
         executor.setQueueCapacity(capacity);
         executor.setThreadNamePrefix(threadNamePrefix);
         executor.setTaskDecorator(mdcTaskDecorator());
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.setRejectedExecutionHandler(rejectedExecutionHandler);
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();

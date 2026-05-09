@@ -90,6 +90,7 @@ infra:
     ai:
       core-size: 8
       max-size: 20
+      queue-capacity: 100
     pdf:
       core-size: 2
       max-size: 8
@@ -133,6 +134,10 @@ dashscope:
 # Redis Pub/Sub 判断的实例依据
 app:
   instance-id: ${INSTANCE_ID:local}
+
+service:
+  websocket:
+    enabled: true
 
 # Agent 配置
 agent:

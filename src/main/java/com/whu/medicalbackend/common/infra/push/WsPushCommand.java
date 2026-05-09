@@ -10,7 +10,6 @@ public class WsPushCommand {
     private String commandId;
     private Long userId;
     private Long groupId;
-    private String jsonPayload;
     private Map<String, Object> payload = new HashMap<>();
     private Instant createdAt;
 
@@ -60,14 +59,6 @@ public class WsPushCommand {
 
     public void setGroupId(Long groupId) {
         this.groupId = groupId;
-    }
-
-    public String getJsonPayload() {
-        return jsonPayload;
-    }
-
-    public void setJsonPayload(String jsonPayload) {
-        this.jsonPayload = jsonPayload;
     }
 
     public Map<String, Object> getPayload() {

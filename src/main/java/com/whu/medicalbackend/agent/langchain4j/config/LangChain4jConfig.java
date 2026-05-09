@@ -11,8 +11,9 @@ import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryTodayTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskUpdateStatusTool;
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.service.AiServices;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,8 @@ public class LangChain4jConfig implements WebMvcConfigurer {
     private PredictTool predictTool;
 
     @Bean
+    @ConditionalOnProperty(prefix = "agent.llm", name = "enabled", havingValue = "true")
+    @ConditionalOnExpression("!'${dashscope.api-key:}'.isBlank()")
     public ChatModel chatModel() {
         return QwenChatModel.builder()
                 .apiKey(dashscopeApiKey)

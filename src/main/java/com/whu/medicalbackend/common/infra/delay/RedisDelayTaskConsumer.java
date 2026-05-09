@@ -5,20 +5,31 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @Slf4j
 @Component
 @ConditionalOnProperty(prefix = "infra.delay.redis", name = "enabled", havingValue = "true")
 public class RedisDelayTaskConsumer {
+
+    // 用 Lua 在 Redis 单线程内完成取出和删除，避免多实例 poll 时 range/remove 之间出现竞态窗口。
+    private static final RedisScript<List> POP_READY_TASKS_SCRIPT = new DefaultRedisScript<>("""
+            local items = redis.call('ZRANGEBYSCORE', KEYS[1], 0, ARGV[1], 'LIMIT', 0, ARGV[2])
+            for _, item in ipairs(items) do
+                redis.call('ZREM', KEYS[1], item)
+            end
+            return items
+            """, List.class);
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -40,20 +51,25 @@ public class RedisDelayTaskConsumer {
     @Scheduled(fixedDelayString = "${infra.delay.redis.poll-interval-ms:1000}")
     public void pollReadyTasks() {
         long now = Instant.now().toEpochMilli();
-        Set<String> readyTasks = redisTemplate.opsForZSet()
-                .rangeByScore(RedisDelayTaskPublisher.DELAY_TASK_ZSET_KEY, 0, now, 0, batchSize);
+        List<String> readyTasks = popReadyTasks(now);
 
-        if (readyTasks == null || readyTasks.isEmpty()) {
+        if (readyTasks.isEmpty()) {
             return;
         }
 
         for (String raw : readyTasks) {
-            Long removed = redisTemplate.opsForZSet().remove(RedisDelayTaskPublisher.DELAY_TASK_ZSET_KEY, raw);
-            if (removed == null || removed == 0) {
-                continue;
-            }
             handleRawTask(raw);
         }
+    }
+
+    private List<String> popReadyTasks(long now) {
+        List<String> tasks = redisTemplate.execute(
+                POP_READY_TASKS_SCRIPT,
+                Collections.singletonList(RedisDelayTaskPublisher.DELAY_TASK_ZSET_KEY),
+                String.valueOf(now),
+                String.valueOf(batchSize)
+        );
+        return tasks == null ? List.of() : tasks;
     }
 
     private void handleRawTask(String raw) {
