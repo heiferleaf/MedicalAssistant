@@ -16,12 +16,12 @@ import com.whu.medicalbackend.common.schedule.DynamicTaskScheduler;
 import com.whu.medicalbackend.medical.service.TaskService;
 import com.whu.medicalbackend.user.mapper.UserMapper;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
-import com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent;
-import com.whu.medicalbackend.ws.event.FamilyMedicineUpdateEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
 import io.jsonwebtoken.lang.Assert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,7 +66,7 @@ public class TaskServiceImpl implements TaskService {
     private UserMapper userMapper;
 
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    private DomainEventPublisher domainEventPublisher;
     @Autowired
     private FamilyEventLogMapper familyEventLogMapper;
 
@@ -178,8 +178,11 @@ public class TaskServiceImpl implements TaskService {
             pushData.put("medicineName", medicine.getName());
             pushData.put("alarmTime", LocalDateTime.now().format(formatter));
 
-            eventPublisher.publishEvent(new FamilyMedicineAlarmEvent(
-                    this, groupId, pushData));
+            DomainEvent alarmEvent = DomainEvent.of("medication.alarm", "MedicationTask", String.valueOf(taskId));
+            alarmEvent.setUserId(userId);
+            alarmEvent.setGroupId(groupId);
+            alarmEvent.setPayload(pushData);
+            domainEventPublisher.publish(alarmEvent);
         }
 
         // 6. 重新查询并返回
@@ -242,9 +245,11 @@ public class TaskServiceImpl implements TaskService {
         pushData.put("timePoint", task.getTimePoint().toString());
         pushData.put("status", newStatus);
 
-        eventPublisher.publishEvent(new FamilyMedicineUpdateEvent(
-                this, groupId, pushData
-        ));
+        DomainEvent updateEvent = DomainEvent.of("medication.updated", "MedicationTask", String.valueOf(task.getId()));
+        updateEvent.setUserId(userId);
+        updateEvent.setGroupId(groupId);
+        updateEvent.setPayload(pushData);
+        domainEventPublisher.publish(updateEvent);
     }
 
     private String getMedicineName(Long medicineId) {

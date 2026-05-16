@@ -1,6 +1,7 @@
 package com.whu.medicalbackend.common.infra.mq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@Slf4j
 @Configuration
 public class RabbitMqConfig {
 
@@ -163,6 +165,19 @@ public class RabbitMqConfig {
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory, ObjectMapper objectMapper) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(new Jackson2JsonMessageConverter(objectMapper));
+        rabbitTemplate.setMandatory(true);
+
+        rabbitTemplate.setConfirmCallback((correlationData, ack, cause) -> {
+            if (!ack) {
+                log.error("消息未到达 Broker: correlationData={}, cause={}", correlationData, cause);
+            }
+        });
+
+        rabbitTemplate.setReturnsCallback(returned -> {
+            log.warn("消息路由失败: exchange={}, routingKey={}, replyText={}",
+                    returned.getExchange(), returned.getRoutingKey(), returned.getReplyText());
+        });
+
         return rabbitTemplate;
     }
 

@@ -24,12 +24,13 @@ import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.user.entity.User;
 import com.whu.medicalbackend.user.mapper.UserMapper;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil; // 引入工具类
-import com.whu.medicalbackend.ws.event.FamilyMemberUpdateEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,7 +76,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    private DomainEventPublisher domainEventPublisher;
 
     private static final Logger logger = LoggerFactory.getLogger(FamilyGroupServiceImpl.class);
     @Autowired
@@ -529,11 +530,11 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
         pushData.put("groupId", groupId);
         pushData.put("targetNickname", newUser.getNickname());
 
-        eventPublisher.publishEvent(new FamilyMemberUpdateEvent(
-                this,
-                groupId,
-                pushData
-        ));
+        DomainEvent memberEvent = DomainEvent.of("family.member.changed", "FamilyGroup", String.valueOf(groupId));
+        memberEvent.setUserId(userId);
+        memberEvent.setGroupId(groupId);
+        memberEvent.setPayload(pushData);
+        domainEventPublisher.publish(memberEvent);
     }
 
     public void publishQuitEvent(Long groupId, Long userId) {
@@ -545,10 +546,10 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
         pushData.put("groupId", groupId);
         pushData.put("targetNickname", newUser.getNickname());
 
-        eventPublisher.publishEvent(new FamilyMemberUpdateEvent(
-                this,
-                groupId,
-                pushData
-        ));
+        DomainEvent memberEvent = DomainEvent.of("family.member.changed", "FamilyGroup", String.valueOf(groupId));
+        memberEvent.setUserId(userId);
+        memberEvent.setGroupId(groupId);
+        memberEvent.setPayload(pushData);
+        domainEventPublisher.publish(memberEvent);
     }
 }
