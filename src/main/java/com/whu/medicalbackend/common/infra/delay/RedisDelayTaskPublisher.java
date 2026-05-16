@@ -19,6 +19,8 @@ public class RedisDelayTaskPublisher implements DelayTaskPublisher {
         this.objectMapper = objectMapper;
     }
 
+    private static final String CANCELED_SET_KEY = "infra:delay:canceled";
+
     @Override
     public void publish(DelayTask task) {
         Assert.notNull(task, "delay task must not be null");
@@ -32,5 +34,18 @@ public class RedisDelayTaskPublisher implements DelayTaskPublisher {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("serialize delay task failed", e);
         }
+    }
+
+    @Override
+    public void cancel(String taskType, String bizId) {
+        redisTemplate.opsForSet().add(CANCELED_SET_KEY, taskType + ":" + bizId);
+    }
+
+    public boolean isCanceled(String taskType, String bizId) {
+        return Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(CANCELED_SET_KEY, taskType + ":" + bizId));
+    }
+
+    public void removeCanceledFlag(String taskType, String bizId) {
+        redisTemplate.opsForSet().remove(CANCELED_SET_KEY, taskType + ":" + bizId);
     }
 }

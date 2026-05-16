@@ -19,4 +19,4 @@ infra:
     enabled: false
   delay:
     redis:
-      enabled: false
+      enabled: true
