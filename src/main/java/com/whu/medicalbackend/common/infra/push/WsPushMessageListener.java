@@ -4,12 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.whu.medicalbackend.common.infra.idempotency.MessageIdempotencyService;
 import com.whu.medicalbackend.common.infra.mq.MqNames;
 import com.whu.medicalbackend.ws.WsPubSubBroadcaster;
+import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.time.Duration;
 
 @Slf4j
@@ -35,24 +37,26 @@ public class WsPushMessageListener {
     }
 
     @RabbitListener(queues = MqNames.QUEUE_WS_PUSH)
-    public void onWsPush(Message message) throws Exception {
-        WsPushCommand command = objectMapper.readValue(message.getBody(), WsPushCommand.class);
-        command.ensureMetadata();
-
-        String idempotencyKey = "ws-push:" + command.getCommandId();
-        if (!idempotencyService.tryStart(idempotencyKey, RUNNING_TTL)) {
-            return;
-        }
-
+    public void onWsPush(Message message, Channel channel) throws IOException {
+        long deliveryTag = message.getMessageProperties().getDeliveryTag();
         try {
+            WsPushCommand command = objectMapper.readValue(message.getBody(), WsPushCommand.class);
+            command.ensureMetadata();
+
+            String idempotencyKey = "ws-push:" + command.getCommandId();
+            if (!idempotencyService.tryStart(idempotencyKey, RUNNING_TTL)) {
+                channel.basicAck(deliveryTag, false);
+                return;
+            }
+
             String payload = objectMapper.writeValueAsString(command.getPayload());
             broadcaster.pushToUser(command.getUserId(), payload, command.getGroupId() == null ? 0L : command.getGroupId());
             idempotencyService.markDone(idempotencyKey, DONE_TTL);
+            channel.basicAck(deliveryTag, false);
         } catch (Exception ex) {
-            idempotencyService.clearRunning(idempotencyKey);
-            log.error("WebSocket 推送命令执行失败: commandId={}, userId={}",
-                    command.getCommandId(), command.getUserId(), ex);
-            throw ex;
+            idempotencyService.clearRunning(message.getMessageProperties().getMessageId());
+            log.error("WebSocket 推送命令执行失败, deliveryTag={}", deliveryTag, ex);
+            channel.basicNack(deliveryTag, false, false);
         }
     }
 }

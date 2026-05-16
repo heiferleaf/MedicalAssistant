@@ -10,9 +10,10 @@ import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
 import com.whu.medicalbackend.health.entity.HealthData;
 import com.whu.medicalbackend.health.mapper.HealthDataMapper;
 import com.whu.medicalbackend.health.service.HealthDataService;
-import com.whu.medicalbackend.ws.event.FamilyHealthDataUpdateEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -34,7 +35,7 @@ public class HealthDataServiceImpl implements HealthDataService {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private ApplicationEventPublisher publisher;
+    private DomainEventPublisher domainEventPublisher;
     @Autowired
     private FamilyMemberMapper familyMemberMapper;
 
@@ -85,7 +86,11 @@ public class HealthDataServiceImpl implements HealthDataService {
             putIfNotNull(pushData, "measureTime", inputData.getMeasureTime());
 
             pushData.put("alarmTime", LocalDateTime.now().format(formatter));
-            publisher.publishEvent(new FamilyHealthDataUpdateEvent(this, groupId, pushData));
+            DomainEvent healthEvent = DomainEvent.of("health.data.updated", "HealthData", String.valueOf(inputData.getUserId()));
+            healthEvent.setUserId(inputData.getUserId());
+            healthEvent.setGroupId(groupId);
+            healthEvent.setPayload(pushData);
+            domainEventPublisher.publish(healthEvent);
         }
     }
 

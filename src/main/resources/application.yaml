@@ -65,8 +65,11 @@ spring:
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    publisher-confirm-type: correlated
+    publisher-returns: true
     listener:
       simple:
+        acknowledge-mode: MANUAL
         # 消费者并发数（多线程消费）
         concurrency: 2
         max-concurrency: 5

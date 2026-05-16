@@ -7,18 +7,22 @@ import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.common.enumField.EventLogEnum;
 import com.whu.medicalbackend.common.mq.entity.CanalMessage;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
+import com.whu.medicalbackend.common.infra.mq.MqNames;
 import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
 import com.whu.medicalbackend.family.service.FamilyCacheService;
 import com.whu.medicalbackend.family.service.FamilyGroupServiceImpl;
+import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -41,58 +45,52 @@ public class CanalCacheConsumer {
     private RedisService redisService;
 
     @Autowired
-    private FamilyMemberMapper memberMapper; // 需要用到它来反查 user_id 对应的 group_id
+    private FamilyMemberMapper memberMapper;
     @Autowired
     private FamilyGroupServiceImpl familyGroupServiceImpl;
 
-    /**
-     * 监听 Topic/Queue: redis_data_change
-     * 接收 String 避免泛型擦除问题，然后手动精准反序列化
-     */
     @RabbitListener(bindings = @QueueBinding(
             value = @Queue(value = "canal_cache_queue", durable = "true"),
             exchange = @Exchange(value = "canal.exchange", type = "direct"),
             key = "redis_data_change"
     ))
-    public void handleCanalMessage(String messagePayload) {
+    public void handleCanalMessage(Message message, Channel channel) throws IOException {
+        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+        String messagePayload = new String(message.getBody());
         try {
-            // 1. 精准反序列化为 CanalMessage<Map<String, String>>
             JavaType type = objectMapper.getTypeFactory().constructParametricType(CanalMessage.class, Map.class);
             CanalMessage<Map<String, String>> canalMsg = objectMapper.readValue(messagePayload, type);
 
-            // 2. 数据库名过滤 (只处理 medicalassistant)
             if (!"medicalassistant".equals(canalMsg.getDatabase())) {
-                return; // 非目标数据库，直接丢弃
-            }
-
-            log.info("🛠️ 准备处理缓存 -> 表: {}, 操作: {}", canalMsg.getTable(), canalMsg.getType());
-
-            String table = canalMsg.getTable();
-            String opType = canalMsg.getType(); // INSERT, UPDATE, DELETE
-            List<Map<String, String>> dataList = canalMsg.getData();
-
-            if (dataList == null || dataList.isEmpty()) {
+                channel.basicAck(deliveryTag, false);
                 return;
             }
 
-            // 3. 根据表名路由到不同的缓存处理逻辑
+            log.info("准备处理 Canal 缓存更新 -> 表: {}, 操作: {}", canalMsg.getTable(), canalMsg.getType());
+
+            String table = canalMsg.getTable();
+            String opType = canalMsg.getType();
+            List<Map<String, String>> dataList = canalMsg.getData();
+
+            if (dataList == null || dataList.isEmpty()) {
+                channel.basicAck(deliveryTag, false);
+                return;
+            }
+
             switch (table) {
                 case "family_member" -> handleFamilyMemberChange(opType, dataList);
                 case "family_event_log" -> handleEventLogChange(opType, dataList);
-                case "medication_task" ->
-                    // 健康数据和服药任务的变化，都会直接影响当天的健康快照
-                    handleTaskChange(opType, dataList);
+                case "medication_task" -> handleTaskChange(opType, dataList);
                 case "health_data" -> handleHealthDataChange(opType, dataList);
                 case "user" -> handleUserChange(opType, dataList);
                 case "medicine" -> handleUserMedicineChange(opType, dataList);
-                default -> {
-                    // 其他无关表，直接忽略
-                }
+                default -> { }
             }
 
+            channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
-            // 捕获所有异常，防止 MQ 消息无限重试阻塞队列 (根据实际业务配置决定是否抛出)
-            log.error("处理 Canal 缓存更新消息失败! payload: {}", messagePayload, e);
+            log.error("处理 Canal 缓存更新消息失败, deliveryTag={}, payload: {}", deliveryTag, messagePayload, e);
+            channel.basicNack(deliveryTag, false, false);
         }
     }
 

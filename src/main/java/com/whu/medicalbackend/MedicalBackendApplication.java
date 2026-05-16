@@ -9,6 +9,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableAsync
 @EnableScheduling
+@MapperScan({
+        "com.whu.medicalbackend.medical.mapper",
+        "com.whu.medicalbackend.family.mapper",
+        "com.whu.medicalbackend.user.mapper",
+        "com.whu.medicalbackend.health.mapper",
+        "com.whu.medicalbackend.common.infra.event.audit"
+})
 public class MedicalBackendApplication{
 
     public static void main(String[] args) {

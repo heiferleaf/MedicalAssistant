@@ -14,8 +14,8 @@ import com.whu.medicalbackend.common.enumField.InviteStatus;
 import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.user.mapper.UserMapper;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
-import com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent;
-import com.whu.medicalbackend.ws.event.UserTaskMedicineRemindEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
 import io.jsonwebtoken.lang.Assert;
 import jakarta.annotation.PostConstruct;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation. Scheduled;
 import org.springframework. stereotype.Component;
@@ -74,7 +74,7 @@ public class DynamicTaskScheduler {
     private RedisService redisService;
 
     @Autowired
-    private ApplicationEventPublisher applicationEventPublisher;
+    private DomainEventPublisher domainEventPublisher;
 
     public static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -302,8 +302,11 @@ public class DynamicTaskScheduler {
                     pushData.put("medicineName", medicine.getName());
                     pushData.put("alarmTime", LocalDateTime.now().format(formatter));
 
-                    applicationEventPublisher.publishEvent(new FamilyMedicineAlarmEvent(
-                            this, groupId, pushData));
+                    DomainEvent alarmEvent = DomainEvent.of("medication.alarm", "MedicationTask", String.valueOf(task.getId()));
+                    alarmEvent.setUserId(task.getUserId());
+                    alarmEvent.setGroupId(groupId);
+                    alarmEvent.setPayload(pushData);
+                    domainEventPublisher.publish(alarmEvent);
                 }
             }
 
@@ -477,7 +480,10 @@ public class DynamicTaskScheduler {
         pushData.put("medicineName", medicineName);
         pushData.put("remindTime", LocalDateTime.now().format(formatter));
 
-        applicationEventPublisher.publishEvent(new UserTaskMedicineRemindEvent(this, userId, pushData));
+        DomainEvent remindEvent = DomainEvent.of("medication.remind", "MedicationTask", String.valueOf(userId));
+        remindEvent.setUserId(userId);
+        remindEvent.setPayload(pushData);
+        domainEventPublisher.publish(remindEvent);
     }
 
     /**
