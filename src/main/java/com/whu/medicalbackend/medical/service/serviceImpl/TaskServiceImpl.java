@@ -15,6 +15,7 @@ import com.whu.medicalbackend.common.exception.BusinessException;
 import com.whu.medicalbackend.common.schedule.DynamicTaskScheduler;
 import com.whu.medicalbackend.medical.service.TaskService;
 import com.whu.medicalbackend.user.mapper.UserMapper;
+import com.whu.medicalbackend.common.lock.DistributedLock;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
 import com.whu.medicalbackend.common.infra.event.DomainEvent;
 import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
@@ -108,6 +109,7 @@ public class TaskServiceImpl implements TaskService {
      * 不同状态对应不同的operate_time处理策略
      */
     @Override
+    @DistributedLock(prefix = RedisKeyBuilderUtil.LOCK_TASK_UPDATE_PREFIX, key = "#taskId", waitTime = 0, message = "任务处理中，请勿重复操作")
     public TaskVO updateTaskStatus(Long userId, Long taskId, Integer status) {
         // 1. 查询任务
         MedicationTask task = taskMapper.findById(taskId);

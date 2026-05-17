@@ -21,6 +21,7 @@ public class RedisKeyBuilderUtil {
     public static final String LOCK_MEDICINE_UPD_PREFIX    = "lock:user:medicine:update:";
     public static final String LOCK_MEDICINE_PLAN_PREFIX   = "lock:user:medicine:plan:";
     public static final String LOCK_HEALTH_DATA_PREFIX     = "lock:health:data:";
+    public static final String LOCK_TASK_UPDATE_PREFIX    = "lock:task:update:";
 
     public static final String FAMILY_APPLY_LIMIT_PREFIX   = "family:apply:limit:";
     public static final String FAMILY_INVITE_LIMIT_PREFIX  = "family:invite:limit:";
@@ -100,6 +101,11 @@ public class RedisKeyBuilderUtil {
     /** 完整 Key: lock:health:data:{userId} **/
     public static String getHealthDataLockKey(Long userId) {
         return LOCK_HEALTH_DATA_PREFIX + userId;
+    }
+
+    /** 完整 Key: lock:task:update:{taskId} */
+    public static String getTaskUpdateLockKey(Long taskId) {
+        return LOCK_TASK_UPDATE_PREFIX + taskId;
     }
 
     /** 完整 Key: family:apply:limit:{userId}:{groupId} */
