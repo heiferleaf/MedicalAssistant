@@ -1,6 +1,5 @@
 package com.whu.medicalbackend.common.config;
 
-import com.alibaba.csp.sentinel.adapter.servlet.callback.UrlBlockHandler;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.authority.AuthorityException;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
@@ -10,21 +9,19 @@ import com.alibaba.csp.sentinel.slots.system.SystemBlockException;
 import com.whu.medicalbackend.common.response.Result;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-@Component
-public class SentinelBlockHandler implements UrlBlockHandler {
+/**
+ * Sentinel 限流/降级统一处理，兼容 Jakarta Servlet API。
+ */
+public class SentinelBlockHandler {
 
-    @Override
-    public void blocked(HttpServletRequest request, HttpServletResponse response, BlockException ex) throws IOException {
+    public static void handle(HttpServletRequest request, HttpServletResponse response, BlockException ex) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
         response.setStatus(429);
 
-        Result<?> result;
         String message;
-
         if (ex instanceof FlowException) {
             message = "AI 服务繁忙，请稍后重试";
         } else if (ex instanceof ParamFlowException) {
@@ -39,13 +36,8 @@ public class SentinelBlockHandler implements UrlBlockHandler {
             message = "请求被限流，请稍后重试";
         }
 
-        result = Result.error(429, message);
-
-        response.getWriter().write(toJson(result));
-    }
-
-    private String toJson(Result<?> result) {
-        return String.format("{\"code\":%d,\"message\":\"%s\",\"data\":null}",
-                result.getCode(), result.getMessage());
+        Result<?> result = Result.error(429, message);
+        response.getWriter().write(String.format("{\"code\":%d,\"message\":\"%s\",\"data\":null}",
+                result.getCode(), result.getMessage()));
     }
 }

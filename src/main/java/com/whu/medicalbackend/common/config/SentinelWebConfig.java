@@ -1,28 +1,19 @@
 package com.whu.medicalbackend.common.config;
 
-import com.alibaba.csp.sentinel.adapter.servlet.CommonFilter;
-import com.alibaba.csp.sentinel.adapter.servlet.callback.WebCallbackManager;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import jakarta.annotation.PostConstruct;
+import org.springframework.core.Ordered;
 
 @Configuration
 public class SentinelWebConfig {
 
-    @PostConstruct
-    public void init() {
-        WebCallbackManager.setUrlBlockHandler(new SentinelBlockHandler());
-    }
-
     @Bean
-    public FilterRegistrationBean<CommonFilter> sentinelFilterRegistration() {
-        FilterRegistrationBean<CommonFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new CommonFilter());
+    public FilterRegistrationBean<SentinelFilter> sentinelFilterRegistration() {
+        FilterRegistrationBean<SentinelFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new SentinelFilter());
         registration.addUrlPatterns("/*");
-        registration.setName("sentinelFilter");
-        registration.setOrder(1);
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return registration;
     }
 }
