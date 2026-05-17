@@ -182,17 +182,21 @@
         <dependency>
             <groupId>com.alibaba.csp</groupId>
             <artifactId>sentinel-core</artifactId>
-            <version>1.8.6</version>
+            <version>1.8.9</version>
         </dependency>
         <dependency>
             <groupId>com.alibaba.csp</groupId>
             <artifactId>sentinel-transport-simple-http</artifactId>
+<<<<<<< HEAD
             <version>1.8.6</version>
+=======
+            <version>1.8.9</version>
+>>>>>>> ec91bf9 (修改Sentinel兼容bug)
         </dependency>
         <dependency>
             <groupId>com.alibaba.csp</groupId>
             <artifactId>sentinel-parameter-flow-control</artifactId>
-            <version>1.8.6</version>
+            <version>1.8.9</version>
         </dependency>
 
         <!-- Test -->
