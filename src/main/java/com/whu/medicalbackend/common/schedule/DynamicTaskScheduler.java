@@ -7,13 +7,15 @@ import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
 import com.whu.medicalbackend.medical.entity.MedicationTask;
 import com.whu.medicalbackend.medical.entity.Medicine;
 import com.whu.medicalbackend.family.mapper.FamilyEventLogMapper;
-import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
+import com.whu.medicalbackend.family.mapper.FamilyInviteApplyMapper;
+import com.whu.medicalbackend.common.client.FamilyServiceClient;
+import com.whu.medicalbackend.common.client.UserServiceClient;
+import com.whu.medicalbackend.common.client.dto.UserDTO;
 import com.whu.medicalbackend.medical.mapper.MedicationTaskMapper;
 import com.whu.medicalbackend.medical.mapper.MedicineMapper;
-import com.whu.medicalbackend.user.entity.User;
+import com.whu.medicalbackend.user.mapper.UserMapper;
 import com.whu.medicalbackend.common.enumField.EventLogEnum;
 import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
-import com.whu.medicalbackend.user.mapper.UserMapper;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
 import io.jsonwebtoken.lang.Assert;
 import jakarta.annotation.PostConstruct;
@@ -48,9 +50,6 @@ public class DynamicTaskScheduler {
     private FamilyEventLogMapper familyEventLogMapper;
 
     @Autowired
-    private FamilyMemberMapper familyMemberMapper;
-
-    @Autowired
     private MedicineMapper medicineMapper;
 
     @Autowired
@@ -66,6 +65,13 @@ public class DynamicTaskScheduler {
     private DelayTaskPublisher delayTaskPublisher;
 
     public static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    @Autowired
+    private FamilyServiceClient familyServiceClient;
+
+    @Autowired
+    private UserServiceClient userServiceClient;
+
 
     @PostConstruct
     public void init() {
@@ -165,14 +171,14 @@ public class DynamicTaskScheduler {
             MedicationTask task = taskMapper.findById(taskId);
             if (task != null) {
                 Long userId = task.getUserId();
-                Long groupId = familyMemberMapper.getGroupIdByUserId(userId);
+                Long groupId = familyServiceClient.getGroupIdByUserId(userId);
                 Medicine medicine = medicineMapper.findById(task.getMedicineId());
                 if (userId != null && groupId != null && medicine != null) {
                     familyEventLogMapper.insertLog(groupId, userId, EventLogEnum.ALARM_MISSED.name(), medicine.getName());
                     String alarmKey = RedisKeyBuilderUtil.getFamilyAlarmKey(groupId, LocalDate.now().toString());
                     redisService.delete(alarmKey);
 
-                    User user = userMapper.findByUserId(userId);
+                    UserDTO user = userServiceClient.getUserById(userId);
                     Assert.notNull(user, "任务所属用户Id为空");
 
                     Map<String, Object> pushData = new HashMap<>();

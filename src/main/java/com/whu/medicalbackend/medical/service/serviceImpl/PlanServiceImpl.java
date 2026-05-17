@@ -7,7 +7,7 @@ import com.whu.medicalbackend.medical.entity.Medicine;
 import com.whu.medicalbackend.medical.entity.MedicationPlan;
 import com.whu.medicalbackend.medical.entity.MedicationTask;
 import com.whu.medicalbackend.common.exception.BusinessException;
-import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
+import com.whu.medicalbackend.common.client.FamilyServiceClient;
 import com.whu.medicalbackend.medical.mapper.MedicationPlanMapper;
 import com.whu.medicalbackend.medical.mapper.MedicationTaskMapper;
 import com.whu.medicalbackend.medical.mapper.MedicineMapper;
@@ -65,8 +65,6 @@ public class PlanServiceImpl implements PlanService {
     private MedicineMapper medicineMapper;
 
     @Autowired
-    private FamilyMemberMapper memberMapper;
-
     private static final Logger logger = LoggerFactory.getLogger(PlanServiceImpl.class);
 
     @Autowired

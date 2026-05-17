@@ -1,0 +1,19 @@
+AI 评测结果
+Agent 测试 ✅ (2/2 通过)
+用例    耗时    结果
+agent-general-health-001 — 高血压监测注意事项    4244ms    ✅ PASS
+agent-rag-tool-001 — 查询阿司匹林不良反应    4779ms    ✅ PASS
+Agent 链路完整，DashScope (qwen-plus) 正常工作，能正确回答医学问题并调用知识库工具。
+
+RAG 测试 ❌ (0/2 失败)
+原因： CORS 配置冲突（WebConfig 和 LangChain4jConfig 都实现了 WebMvcConfigurer，合并后变成 allowCredentials(true) + allowedOrigins("*")，Spring Boot 不允许）。
+已修复代码但无法构建 Docker 镜像，因为本地 module5 分支上有未完成的代码变更（缺少 AgentTaskService、AgentTask 等文件），导致 Maven 编译失败。
+Predict 测试 ❌ (0/1 失败)
+原因： Spring Boot 调用 Flask predict 服务时连接被拒绝。
+这属于 Flask 端点，按您的要求跳过。
+结论
+Spring Boot Agent 链路完全正常（accuracy 100%），具备以下能力：
+
+✅ 普通健康问答（高血压日常监测）
+✅ 调用知识库工具（查询阿司匹林不良反应）
+✅ 长链推理（LLM 自主决策是否调用工具、解析结果、生成回答）

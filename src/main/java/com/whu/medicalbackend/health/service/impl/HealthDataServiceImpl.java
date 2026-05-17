@@ -5,8 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.common.exception.BusinessException;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
-import com.whu.medicalbackend.family.mapper.FamilyGroupMapper;
-import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
+import com.whu.medicalbackend.common.client.FamilyServiceClient;
 import com.whu.medicalbackend.health.entity.HealthData;
 import com.whu.medicalbackend.health.mapper.HealthDataMapper;
 import com.whu.medicalbackend.health.service.HealthDataService;
@@ -37,7 +36,7 @@ public class HealthDataServiceImpl implements HealthDataService {
     @Autowired
     private DomainEventPublisher domainEventPublisher;
     @Autowired
-    private FamilyMemberMapper familyMemberMapper;
+    private FamilyServiceClient familyServiceClient;
 
     @Override
     public void saveOrUpdateDailyHealthData(HealthData inputData) {
@@ -65,7 +64,7 @@ public class HealthDataServiceImpl implements HealthDataService {
         }
 
         // 如果用户在家庭组中，发布一个事件通知家庭组成员健康数据更新了
-        Long groupId = familyMemberMapper.getGroupIdByUserId(inputData.getUserId());
+        Long groupId = familyServiceClient.getGroupIdByUserId(inputData.getUserId());
         if(groupId != null) {
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("type", "health_data_update");

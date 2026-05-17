@@ -56,7 +56,7 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
-      FLASK_URL: http://8.148.94.242:8001         #  Flask
+      FLASK_URL: http://host.docker.internal:8001 # Flask on host machine
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
       INSTANCE_ID: instance-a
       TZ: Asia/Shanghai
@@ -87,7 +87,7 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
-      FLASK_URL: http://8.148.94.242:8001         #  Flask
+      FLASK_URL: http://host.docker.internal:8001 # Flask on host machine
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
       INSTANCE_ID: instance-b
       TZ: Asia/Shanghai

@@ -4,16 +4,38 @@ server:
   # 最大 HTTP 请求大小（支持 Base64 图片）
   max-http-form-post-size: 50MB
 
-# Flask AI service (云端服务)
+# Flask AI service
 flask:
-  base-url: ${FLASK_URL:http://8.148.94.242:8001}
+  base-url: ${FLASK_URL:http://127.0.0.1:8001}
   timeout-ms: 120000
 
 # Compatibility: some components expect ai.rag.*
 ai:
+  http:
+    connect-timeout-ms: 1000
+    read-timeout-ms: ${flask.timeout-ms}
+    connection-request-timeout-ms: 1000
+    max-connections: 200
+    max-connections-per-route: 50
   rag:
     base-url: ${flask.base-url}
     timeout-ms: ${flask.timeout-ms}
+    request:
+      max-question-length: 1000
+      default-top-k: 5
+      max-top-k: 10
+      default-strategy: hybrid
+      knowledge-base-version: default
+    cache:
+      enabled: true
+      ttl-seconds: 1800
+      ttl-jitter-seconds: 300
+      null-ttl-seconds: 300
+      lock-wait-seconds: 1
+      lock-lease-seconds: 10
+    bulkhead:
+      max-concurrent: 20
+      max-wait-ms: 100
 
 # RAG服务配置
 rag:
@@ -128,9 +150,9 @@ mybatis:
     # 打印SQL日志（开发环境）
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
-# 阿里云 DashScope 配置
+# 阿里云 DashScope 配置 — 生产环境通过 DASHSCOPE_API_KEY 环境变量覆盖
 dashscope:
-  api-key: ${DASHSCOPE_API_KEY:}
+  api-key: ${DASHSCOPE_API_KEY:sk-e7051a4ddaa049e9bd25c8264dfb3b15}
   model: qwen-turbo  # 使用支持联网搜索的模型
 
 # Redis Pub/Sub 判断的实例依据

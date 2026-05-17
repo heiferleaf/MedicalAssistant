@@ -127,6 +127,13 @@ def answer_text(endpoint: str, unwrapped: Json) -> str:
     return ""
 
 
+def first_present(data: Json, *keys: str) -> Any:
+    for key in keys:
+        if key in data:
+            return data.get(key)
+    return None
+
+
 def contains_all(text: str, keywords: Iterable[str]) -> Tuple[bool, List[str]]:
     missing = [kw for kw in keywords if kw and kw.lower() not in text.lower()]
     return not missing, missing
@@ -150,18 +157,33 @@ def score_case(case: Json, status_code: int, response_json: Json, raw: str) -> J
     unwrapped = unwrap_result(endpoint, response_json)
     text = answer_text(endpoint, unwrapped)
 
-    ok_status = 200 <= status_code < 300
-    app_code = response_json.get("code")
-    if app_code is not None:
-        ok_status = ok_status and int(app_code) == int(case.get("expected_code", 200))
+    # Support expected_http_status for input-validation / error-path tests
+    expected_http_status = case.get("expected_http_status")
+    if expected_http_status is not None:
+        ok_status = (status_code == int(expected_http_status))
+    else:
+        ok_status = 200 <= status_code < 300
+        app_code = response_json.get("code")
+        if app_code is not None:
+            ok_status = ok_status and int(app_code) == int(case.get("expected_code", 200))
 
+    # For error-path tests (expected_http_status is 4xx/5xx), skip service_success check
+    is_error_path = expected_http_status is not None and int(expected_http_status) >= 400
     service_success = True
-    if endpoint == "rag" and "success" in unwrapped:
-        service_success = bool(unwrapped.get("success"))
-    if endpoint == "predict" and "status" in unwrapped:
-        service_success = str(unwrapped.get("status")).lower() == str(case.get("expected_status", "success")).lower()
-    if endpoint == "agent" and "success" in unwrapped:
-        service_success = bool(unwrapped.get("success"))
+    if not is_error_path:
+        if endpoint == "rag" and "success" in unwrapped:
+            service_success = bool(unwrapped.get("success"))
+        if endpoint == "predict" and "status" in unwrapped:
+            service_success = str(unwrapped.get("status")).lower() == str(case.get("expected_status", "success")).lower()
+        if endpoint == "agent" and "success" in unwrapped:
+            service_success = bool(unwrapped.get("success"))
+
+    # Optional: validate error_code field for error-path tests
+    expected_error_code = case.get("expected_error_code")
+    error_code_ok = True
+    if expected_error_code is not None:
+        actual_error_code = first_present(unwrapped, "error_code", "errorCode")
+        error_code_ok = (actual_error_code == expected_error_code)
 
     expected_keywords = list(case.get("expected_keywords") or [])
     keyword_ok, missing_keywords = contains_all(text, expected_keywords)
@@ -187,7 +209,9 @@ def score_case(case: Json, status_code: int, response_json: Json, raw: str) -> J
             top_probability = predictions[0].get("probability")
         min_probability_ok = top_probability is not None and float(top_probability) >= float(case["min_top_probability"])
 
-    passed = ok_status and service_success and keyword_ok and forbidden_ok and reaction_ok and min_probability_ok
+    passed = ok_status and service_success and keyword_ok and forbidden_ok and reaction_ok and min_probability_ok and error_code_ok
+    cache_hit = first_present(unwrapped, "cache_hit", "cacheHit")
+    service_elapsed_ms = first_present(unwrapped, "elapsed_ms", "elapsedMs")
     return {
         "passed": passed,
         "ok_status": ok_status,
@@ -196,8 +220,13 @@ def score_case(case: Json, status_code: int, response_json: Json, raw: str) -> J
         "forbidden_ok": forbidden_ok,
         "reaction_ok": reaction_ok,
         "min_probability_ok": min_probability_ok,
+        "error_code_ok": error_code_ok,
         "missing_keywords": missing_keywords,
         "missing_reactions": missing_reactions,
+        "cache_hit": cache_hit,
+        "service_elapsed_ms": service_elapsed_ms,
+        "error_code": first_present(unwrapped, "error_code", "errorCode"),
+        "provider_status": first_present(unwrapped, "provider_status", "providerStatus"),
         "answer_chars": len(text),
         "answer_preview": text[:240].replace("\n", " "),
         "raw_preview": raw[:240].replace("\n", " "),
@@ -227,8 +256,13 @@ def run_one(args: argparse.Namespace, case: Json, repeat_index: int) -> Json:
         "forbidden_ok": False,
         "reaction_ok": False,
         "min_probability_ok": False,
+        "error_code_ok": True,
         "missing_keywords": case.get("expected_keywords") or [],
         "missing_reactions": case.get("expected_reactions") or [],
+        "cache_hit": None,
+        "service_elapsed_ms": None,
+        "error_code": "",
+        "provider_status": "",
         "answer_chars": 0,
         "answer_preview": "",
         "raw_preview": "",
@@ -261,24 +295,39 @@ def percentile(values: List[float], pct: float) -> Optional[float]:
 
 def summarize(results: List[Json], started_at: float, finished_at: float) -> Json:
     elapsed_values = [float(r["elapsed_ms"]) for r in results if not r.get("error")]
+    service_elapsed_values = [
+        float(r["service_elapsed_ms"]) for r in results
+        if r.get("service_elapsed_ms") is not None and not r.get("error")
+    ]
     total = len(results)
     passed = sum(1 for r in results if r.get("passed"))
     errors = sum(1 for r in results if r.get("error") or not r.get("ok_status"))
+    cache_known = [r for r in results if r.get("cache_hit") is not None]
+    cache_hits = sum(1 for r in cache_known if bool(r.get("cache_hit")))
     by_endpoint: Dict[str, Json] = {}
 
     for endpoint in sorted({r["endpoint"] for r in results}):
         subset = [r for r in results if r["endpoint"] == endpoint]
         vals = [float(r["elapsed_ms"]) for r in subset if not r.get("error")]
+        service_vals = [
+            float(r["service_elapsed_ms"]) for r in subset
+            if r.get("service_elapsed_ms") is not None and not r.get("error")
+        ]
+        endpoint_cache_known = [r for r in subset if r.get("cache_hit") is not None]
+        endpoint_cache_hits = sum(1 for r in endpoint_cache_known if bool(r.get("cache_hit")))
         by_endpoint[endpoint] = {
             "total": len(subset),
             "passed": sum(1 for r in subset if r.get("passed")),
             "accuracy": round(sum(1 for r in subset if r.get("passed")) / len(subset), 4) if subset else 0,
             "error_rate": round(sum(1 for r in subset if r.get("error") or not r.get("ok_status")) / len(subset), 4) if subset else 0,
+            "cache_hit_rate": round(endpoint_cache_hits / len(endpoint_cache_known), 4) if endpoint_cache_known else None,
             "avg_ms": round(statistics.mean(vals), 3) if vals else None,
             "p50_ms": round(percentile(vals, 0.50), 3) if vals else None,
             "p90_ms": round(percentile(vals, 0.90), 3) if vals else None,
             "p95_ms": round(percentile(vals, 0.95), 3) if vals else None,
             "p99_ms": round(percentile(vals, 0.99), 3) if vals else None,
+            "service_avg_ms": round(statistics.mean(service_vals), 3) if service_vals else None,
+            "service_p95_ms": round(percentile(service_vals, 0.95), 3) if service_vals else None,
         }
 
     duration = max(finished_at - started_at, 0.001)
@@ -287,6 +336,7 @@ def summarize(results: List[Json], started_at: float, finished_at: float) -> Jso
         "passed": passed,
         "accuracy": round(passed / total, 4) if total else 0,
         "error_rate": round(errors / total, 4) if total else 0,
+        "cache_hit_rate": round(cache_hits / len(cache_known), 4) if cache_known else None,
         "duration_sec": round(duration, 3),
         "throughput_rps": round(total / duration, 3),
         "avg_ms": round(statistics.mean(elapsed_values), 3) if elapsed_values else None,
@@ -294,6 +344,8 @@ def summarize(results: List[Json], started_at: float, finished_at: float) -> Jso
         "p90_ms": round(percentile(elapsed_values, 0.90), 3) if elapsed_values else None,
         "p95_ms": round(percentile(elapsed_values, 0.95), 3) if elapsed_values else None,
         "p99_ms": round(percentile(elapsed_values, 0.99), 3) if elapsed_values else None,
+        "service_avg_ms": round(statistics.mean(service_elapsed_values), 3) if service_elapsed_values else None,
+        "service_p95_ms": round(percentile(service_elapsed_values, 0.95), 3) if service_elapsed_values else None,
         "by_endpoint": by_endpoint,
     }
 
@@ -309,8 +361,9 @@ def write_outputs(output_dir: str, results: List[Json], summary: Json) -> Tuple[
 
     fieldnames = [
         "case_id", "endpoint", "repeat_index", "passed", "status_code", "elapsed_ms",
-        "error", "service_success", "keyword_ok", "reaction_ok", "missing_keywords",
-        "missing_reactions", "answer_chars", "answer_preview",
+        "service_elapsed_ms", "cache_hit", "provider_status", "error_code",
+        "error", "service_success", "keyword_ok", "reaction_ok", "error_code_ok",
+        "missing_keywords", "missing_reactions", "answer_chars", "answer_preview",
     ]
     with open(csv_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

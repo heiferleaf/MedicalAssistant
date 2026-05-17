@@ -44,3 +44,7 @@ uploads/printpdf/*.pdf
 .claude/
 CLAUDE.md
 docs/design/
+
+draft*
+modern-framework-coursework/
+docs/现代编程思想复习资料.md

@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: medical-family-service
+  profiles:
+    include: interservice
 
 service:
   role: family

@@ -11,6 +11,17 @@ public class RagRequest {
     
     @JsonProperty("with_timing")
     private boolean withTiming = false;
+
+    @JsonProperty("top_k")
+    private Integer topK;
+
+    private String strategy;
+
+    @JsonProperty("knowledge_base_version")
+    private String knowledgeBaseVersion;
+
+    @JsonProperty("trace_id")
+    private String traceId;
     
     // 构造函数
     public RagRequest() {}
@@ -42,5 +53,37 @@ public class RagRequest {
     
     public void setWithTiming(boolean withTiming) {
         this.withTiming = withTiming;
+    }
+
+    public Integer getTopK() {
+        return topK;
+    }
+
+    public void setTopK(Integer topK) {
+        this.topK = topK;
+    }
+
+    public String getStrategy() {
+        return strategy;
+    }
+
+    public void setStrategy(String strategy) {
+        this.strategy = strategy;
+    }
+
+    public String getKnowledgeBaseVersion() {
+        return knowledgeBaseVersion;
+    }
+
+    public void setKnowledgeBaseVersion(String knowledgeBaseVersion) {
+        this.knowledgeBaseVersion = knowledgeBaseVersion;
+    }
+
+    public String getTraceId() {
+        return traceId;
+    }
+
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
     }
 }

@@ -8,7 +8,7 @@ import com.whu.medicalbackend.common.enumField.EventLogEnum;
 import com.whu.medicalbackend.common.mq.entity.CanalMessage;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
 import com.whu.medicalbackend.common.infra.mq.MqNames;
-import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
+import com.whu.medicalbackend.common.client.FamilyServiceClient;
 import com.whu.medicalbackend.family.service.FamilyCacheService;
 import com.whu.medicalbackend.family.service.FamilyGroupServiceImpl;
 import com.rabbitmq.client.Channel;
@@ -45,7 +45,7 @@ public class CanalCacheConsumer {
     private RedisService redisService;
 
     @Autowired
-    private FamilyMemberMapper memberMapper;
+    private FamilyServiceClient familyServiceClient;
     @Autowired
     private FamilyGroupServiceImpl familyGroupServiceImpl;
 
@@ -156,7 +156,7 @@ public class CanalCacheConsumer {
             Long userId = parseLong(data.get("user_id"));
             if (userId != null) {
                 // 注意：这两张表通常只有 user_id，没有 group_id，需要反查
-                Long groupId = memberMapper.getGroupIdByUserId(userId);
+                Long groupId = familyServiceClient.getGroupIdByUserId(userId);
                 if (groupId != null) {
                     // 只要有健康数据或任务状态变更，删除所在家庭组的今日快照，让其重查 DB
                     redisService.delete(RedisKeyBuilderUtil.getFamilySnapshotKey(groupId, today));
@@ -175,7 +175,7 @@ public class CanalCacheConsumer {
         for (Map<String, String> data : dataList) {
             Long userId = parseLong(data.get("id")); // 假设 user 表主键叫 id
             if (userId != null) {
-                Long groupId = memberMapper.getGroupIdByUserId(userId);
+                Long groupId = familyServiceClient.getGroupIdByUserId(userId);
                 if (groupId != null) {
                     try {
                         // 1. 用户昵称改了，重新同步他在家庭组里的 Hash 详情
@@ -209,7 +209,7 @@ public class CanalCacheConsumer {
         for (Map<String, String> data : dataList) {
             Long userId = parseLong(data.get("user_id"));
             if (userId != null) {
-                Long groupId = memberMapper.getGroupIdByUserId(userId);
+                Long groupId = familyServiceClient.getGroupIdByUserId(userId);
                 if (groupId != null) {
                     // 只要有健康数据变更，删除所在家庭组的今日快照，让其重查 DB
                     redisService.delete(RedisKeyBuilderUtil.getFamilySnapshotKey(groupId, today));

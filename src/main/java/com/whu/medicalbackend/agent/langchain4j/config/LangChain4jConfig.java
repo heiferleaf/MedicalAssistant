@@ -1,6 +1,5 @@
 package com.whu.medicalbackend.agent.langchain4j.config;
 
-import com.whu.medicalbackend.agent.langchain4j.agents.MedicalAgent;
 import com.whu.medicalbackend.agent.langchain4j.tools.predict.PredictTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.plan.PlanCreateTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.plan.PlanDeleteTool;
@@ -10,18 +9,18 @@ import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryHistoryTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryTodayTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskUpdateStatusTool;
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
+import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class LangChain4jConfig implements WebMvcConfigurer {
+public class LangChain4jConfig {
 
     @Value("${dashscope.api-key:}")
     private String dashscopeApiKey;
@@ -61,18 +60,18 @@ public class LangChain4jConfig implements WebMvcConfigurer {
         return QwenChatModel.builder()
                 .apiKey(dashscopeApiKey)
                 .modelName(dashscopeModel)
-                .enableSearch(true)  // 启用联网搜索功能
+                .enableSearch(true)
                 .build();
     }
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true)
-                .maxAge(3600);
+    @Bean
+    @ConditionalOnProperty(prefix = "agent.llm", name = "enabled", havingValue = "true")
+    @ConditionalOnExpression("!'${dashscope.api-key:}'.isBlank()")
+    public StreamingChatModel streamingChatModel() {
+        return QwenStreamingChatModel.builder()
+                .apiKey(dashscopeApiKey)
+                .modelName(dashscopeModel)
+                .build();
     }
 
     // 删除这个方法，因为 MedicalAgent 已经自己处理了 AiServices 的构建

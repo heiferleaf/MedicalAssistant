@@ -1,5 +1,6 @@
 package com.whu.medicalbackend.agent.service;
 
+import com.whu.medicalbackend.common.infra.http.AiHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,7 +9,6 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
@@ -17,11 +17,12 @@ public class OcrService {
 
     private static final Logger logger = LoggerFactory.getLogger(OcrService.class);
 
-    private final RestTemplate restTemplate;
+    private final AiHttpClient aiHttpClient;
     private final String flaskBaseUrl;
 
-    public OcrService(@Value("${flask.base-url:http://127.0.0.1:8001}") String flaskBaseUrl) {
-        this.restTemplate = new RestTemplate();
+    public OcrService(AiHttpClient aiHttpClient,
+                      @Value("${flask.base-url:http://127.0.0.1:8001}") String flaskBaseUrl) {
+        this.aiHttpClient = aiHttpClient;
         this.flaskBaseUrl = flaskBaseUrl;
         logger.info("OcrService initialized, Flask base URL: {}", flaskBaseUrl);
     }
@@ -51,27 +52,12 @@ public class OcrService {
             body.add("file", resource);
             logger.info("请求体构建完成");
 
-            // 构建请求头
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            logger.info("请求头设置完成");
-
-            // 构建完整请求
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-            String requestUrl = flaskBaseUrl + "/ocr/predict";
-            logger.info("开始发送 POST 请求到：{}", requestUrl);
+            logger.info("开始发送 POST 请求到：{}/ocr/predict", flaskBaseUrl);
             
-            // 发送请求
-            ResponseEntity<Map> response = restTemplate.postForEntity(
-                requestUrl,
-                requestEntity,
-                Map.class
-            );
+            Map<String, Object> responseBody = aiHttpClient.postMultipart("/ocr/predict", body, Map.class);
+            logger.info("收到 OCR 响应");
             
-            logger.info("收到响应，状态码：{}", response.getStatusCode());
-            
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null) {
                 String status = (String) responseBody.get("status");
                 
                 if ("success".equals(status)) {
@@ -100,7 +86,7 @@ public class OcrService {
                     throw new RuntimeException("OCR 识别失败：" + message);
                 }
             } else {
-                throw new RuntimeException("OCR 请求失败，状态码：" + response.getStatusCode());
+                throw new RuntimeException("OCR 请求失败，响应为空");
             }
 
         } catch (Exception e) {
@@ -116,10 +102,7 @@ public class OcrService {
         try {
             // 直接检查 /ocr/predict 接口是否可访问（使用 GET 方法）
             // 即使返回 405 Method Not Allowed，也说明服务是活的
-            restTemplate.getForObject(
-                flaskBaseUrl + "/ocr/predict",
-                String.class
-            );
+            aiHttpClient.get("/ocr/predict", String.class);
             // 如果 GET 请求成功（虽然不太可能），返回 true
             return true;
         } catch (org.springframework.web.client.HttpStatusCodeException e) {
