@@ -13,11 +13,11 @@ import com.whu.medicalbackend.medical.mapper.MedicationTaskMapper;
 import com.whu.medicalbackend.medical.mapper.MedicineMapper;
 import com.whu.medicalbackend.user.entity.User;
 import com.whu.medicalbackend.user.mapper.UserMapper;
-import com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
 import io.jsonwebtoken.lang.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,7 +39,7 @@ public class MedicationMissedHandler implements DelayTaskHandler {
     private final FamilyEventLogMapper eventLogMapper;
     private final UserMapper userMapper;
     private final RedisService redisService;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher domainEventPublisher;
 
     public MedicationMissedHandler(MedicationTaskMapper taskMapper,
                                   FamilyMemberMapper memberMapper,
@@ -47,14 +47,14 @@ public class MedicationMissedHandler implements DelayTaskHandler {
                                   FamilyEventLogMapper eventLogMapper,
                                   UserMapper userMapper,
                                   RedisService redisService,
-                                  ApplicationEventPublisher eventPublisher) {
+                                  DomainEventPublisher domainEventPublisher) {
         this.taskMapper = taskMapper;
         this.memberMapper = memberMapper;
         this.medicineMapper = medicineMapper;
         this.eventLogMapper = eventLogMapper;
         this.userMapper = userMapper;
         this.redisService = redisService;
-        this.eventPublisher = eventPublisher;
+        this.domainEventPublisher = domainEventPublisher;
     }
 
     @Override
@@ -94,7 +94,11 @@ public class MedicationMissedHandler implements DelayTaskHandler {
                 pushData.put("medicineName", medicine.getName());
                 pushData.put("alarmTime", LocalDateTime.now().format(formatter));
 
-                eventPublisher.publishEvent(new FamilyMedicineAlarmEvent(this, groupId, pushData));
+                DomainEvent alarmEvent = DomainEvent.of("medication.alarm", "MedicationTask", String.valueOf(taskId));
+                alarmEvent.setUserId(userId);
+                alarmEvent.setGroupId(groupId);
+                alarmEvent.setPayload(pushData);
+                domainEventPublisher.publish(alarmEvent);
             }
         }
 

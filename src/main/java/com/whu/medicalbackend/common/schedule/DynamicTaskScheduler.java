@@ -2,6 +2,8 @@ package com.whu.medicalbackend.common.schedule;
 
 import com.whu.medicalbackend.common.infra.delay.DelayTask;
 import com.whu.medicalbackend.common.infra.delay.DelayTaskPublisher;
+import com.whu.medicalbackend.common.infra.event.DomainEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
 import com.whu.medicalbackend.medical.entity.MedicationTask;
 import com.whu.medicalbackend.medical.entity.Medicine;
 import com.whu.medicalbackend.family.mapper.FamilyEventLogMapper;
@@ -19,7 +21,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,7 +60,7 @@ public class DynamicTaskScheduler {
     private RedisService redisService;
 
     @Autowired
-    private ApplicationEventPublisher applicationEventPublisher;
+    private DomainEventPublisher domainEventPublisher;
 
     @Autowired
     private DelayTaskPublisher delayTaskPublisher;
@@ -139,7 +140,7 @@ public class DynamicTaskScheduler {
         if (Boolean.TRUE.equals(redisService.setIfAbsent(remindKey, "1", 24, java.util.concurrent.TimeUnit.HOURS))) {
             LocalDateTime remindTime = taskTime.minusMinutes(5);
             if (remindTime.isBefore(now) || remindTime.isEqual(now)) {
-                handleRemindBroadcast(task.getUserId(), medName);
+                handleRemindBroadcast(task.getId(), task.getUserId(), medName);
             } else {
                 Instant remindAt = remindTime.atZone(ZoneId.systemDefault()).toInstant();
                 DelayTask remindTask = DelayTask.of("medication.remind", String.valueOf(task.getId()), remindAt);
@@ -181,8 +182,11 @@ public class DynamicTaskScheduler {
                     pushData.put("medicineName", medicine.getName());
                     pushData.put("alarmTime", LocalDateTime.now().format(formatter));
 
-                    applicationEventPublisher.publishEvent(new com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent(
-                            this, groupId, pushData));
+                    DomainEvent alarmEvent = DomainEvent.of("medication.alarm", "MedicationTask", String.valueOf(taskId));
+                    alarmEvent.setUserId(userId);
+                    alarmEvent.setGroupId(groupId);
+                    alarmEvent.setPayload(pushData);
+                    domainEventPublisher.publish(alarmEvent);
                 }
             }
 
@@ -223,12 +227,15 @@ public class DynamicTaskScheduler {
         logger.debug("【动态调度】邀请 {} 过期延迟任务已发布，将在 {} 执行", applyId, expireTime);
     }
 
-    private void handleRemindBroadcast(Long userId, String medicineName) {
+    private void handleRemindBroadcast(Long taskId, Long userId, String medicineName) {
         Map<String, Object> pushData = new HashMap<>();
         pushData.put("type", "medicine_remind");
         pushData.put("medicineName", medicineName);
         pushData.put("remindTime", LocalDateTime.now().format(formatter));
 
-        applicationEventPublisher.publishEvent(new com.whu.medicalbackend.ws.event.UserTaskMedicineRemindEvent(this, userId, pushData));
+        DomainEvent remindEvent = DomainEvent.of("medication.remind", "MedicationTask", String.valueOf(taskId));
+        remindEvent.setUserId(userId);
+        remindEvent.setPayload(pushData);
+        domainEventPublisher.publish(remindEvent);
     }
 }

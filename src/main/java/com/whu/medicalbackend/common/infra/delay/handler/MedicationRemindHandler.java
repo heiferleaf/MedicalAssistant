@@ -2,8 +2,8 @@ package com.whu.medicalbackend.common.infra.delay.handler;
 
 import com.whu.medicalbackend.common.infra.delay.DelayTask;
 import com.whu.medicalbackend.common.infra.delay.DelayTaskHandler;
-import com.whu.medicalbackend.ws.event.UserTaskMedicineRemindEvent;
-import org.springframework.context.ApplicationEventPublisher;
+import com.whu.medicalbackend.common.infra.event.DomainEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -16,10 +16,10 @@ public class MedicationRemindHandler implements DelayTaskHandler {
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private final ApplicationEventPublisher eventPublisher;
+    private final DomainEventPublisher domainEventPublisher;
 
-    public MedicationRemindHandler(ApplicationEventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
+    public MedicationRemindHandler(DomainEventPublisher domainEventPublisher) {
+        this.domainEventPublisher = domainEventPublisher;
     }
 
     @Override
@@ -37,7 +37,10 @@ public class MedicationRemindHandler implements DelayTaskHandler {
         pushData.put("medicineName", medicineName);
         pushData.put("remindTime", LocalDateTime.now().format(formatter));
 
-        eventPublisher.publishEvent(new UserTaskMedicineRemindEvent(this, userId, pushData));
+        DomainEvent remindEvent = DomainEvent.of("medication.remind", "MedicationTask", task.getBizId());
+        remindEvent.setUserId(userId);
+        remindEvent.setPayload(pushData);
+        domainEventPublisher.publish(remindEvent);
     }
 
     private Long toLong(Object value) {
