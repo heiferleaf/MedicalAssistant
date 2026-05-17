@@ -145,6 +145,17 @@ services:
     expose:
       - "8087"
 
+  sentinel-dashboard:
+    image: bladex/sentinel-dashboard:1.8.6
+    container_name: medical-ms-sentinel-dashboard
+    restart: always
+    ports:
+      - "8858:8858"
+    environment:
+      - JAVA_OPTS=-Dserver.port=8858 -Dcsp.sentinel.dashboard.server=localhost:8858 -Dproject.name=sentinel-dashboard
+    networks:
+      - app-net
+
   nginx:
     image: nginx:alpine
     container_name: medical-ms-nginx

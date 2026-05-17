@@ -1,5 +1,7 @@
 package com.whu.medicalbackend.agent.controller;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.whu.medicalbackend.common.response.Result;
 import com.whu.medicalbackend.common.response.ResultCode;
 import com.whu.medicalbackend.agent.AgentOrchestratorService;
@@ -24,6 +26,7 @@ public class AgentProxyController {
     private AgentOrchestratorService agentOrchestratorService;
 
     @PostMapping("/chat")
+    @SentinelResource(value = "/api/agent/chat", blockHandler = "handleChatBlock")
     public Result<Map<String, Object>> chat(@RequestBody Map<String, Object> payload) {
         logger.info("收到 chat 请求，payload: {}", payload);
         try {
@@ -42,6 +45,11 @@ public class AgentProxyController {
         }
     }
 
+    public Result<Map<String, Object>> handleChatBlock(Map<String, Object> payload, BlockException ex) {
+        logger.warn("chat 请求被限流：userId={}", payload.get("user_id"));
+        return Result.error(429, "AI 服务繁忙，请稍后重试");
+    }
+
     @GetMapping({ "/health", "/health/" })
     public Result<Map<String, Object>> health() {
         try {
@@ -57,6 +65,7 @@ public class AgentProxyController {
      * 支持 GET 和 POST 请求：GET 用于普通文本，POST 用于图片 Base64 数据
      */
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
+    @SentinelResource(value = "/api/agent/chat/stream", blockHandler = "handleChatStreamBlock")
     public SseEmitter chatStreamGet(
             @RequestParam("user_id") String userId,
             @RequestParam("session_id") String sessionId,
@@ -73,6 +82,7 @@ public class AgentProxyController {
      * 用于处理长消息（如图片 Base64 数据）
      */
     @PostMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8", consumes = "application/x-www-form-urlencoded")
+    @SentinelResource(value = "/api/agent/chat/stream", blockHandler = "handleChatStreamBlock")
     public SseEmitter chatStreamPost(
             @RequestParam("user_id") String userId,
             @RequestParam("session_id") String sessionId,
@@ -93,6 +103,20 @@ public class AgentProxyController {
         }
         
         return handleChatStream(userId, sessionId, message);
+    }
+    
+    public SseEmitter handleChatStreamBlock(String userId, String sessionId, String message, BlockException ex) {
+        logger.warn("chatStream 请求被限流：userId={}", userId);
+        SseEmitter emitter = new SseEmitter();
+        try {
+            emitter.send(SseEmitter.event()
+                .name("error")
+                .data("AI 服务繁忙，请稍后重试"));
+            emitter.complete();
+        } catch (IOException e) {
+            logger.error("发送限流消息失败", e);
+        }
+        return emitter;
     }
     
     /**
