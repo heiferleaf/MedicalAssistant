@@ -11,17 +11,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication(scanBasePackages = {
         "com.whu.medicalbackend.common",
         "com.whu.medicalbackend.agent",
-        "com.whu.medicalbackend.medical.service",
-        "com.whu.medicalbackend.family.service",
-        "com.whu.medicalbackend.health.service",
-        "com.whu.medicalbackend.user.service",
-        "com.whu.medicalbackend.user.repository"
+        "com.whu.medicalbackend.family",
+        "com.whu.medicalbackend.medical",
+        "com.whu.medicalbackend.user"
 })
 @MapperScan({
         "com.whu.medicalbackend.agent.mapper",
-        "com.whu.medicalbackend.medical.mapper",
         "com.whu.medicalbackend.family.mapper",
-        "com.whu.medicalbackend.health.mapper",
+        "com.whu.medicalbackend.medical.mapper",
         "com.whu.medicalbackend.user.mapper"
 })
 public class AgentServiceApplication {

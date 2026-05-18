@@ -15,10 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.whu.medicalbackend.common",
         "com.whu.medicalbackend.ws"
 })
-@MapperScan({
-        "com.whu.medicalbackend.family.mapper",
-        "com.whu.medicalbackend.user.mapper"
-})
+@MapperScan({})
 @Import({RedisService.class, FamilyCacheService.class})
 public class NotificationServiceApplication {
 

@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: medical-medication-service
+  profiles:
+    include: interservice
 
 service:
   role: medication

@@ -5,14 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.common.exception.BusinessException;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
-import com.whu.medicalbackend.family.mapper.FamilyGroupMapper;
-import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
+import com.whu.medicalbackend.common.client.FamilyServiceClient;
 import com.whu.medicalbackend.health.entity.HealthData;
 import com.whu.medicalbackend.health.mapper.HealthDataMapper;
 import com.whu.medicalbackend.health.service.HealthDataService;
-import com.whu.medicalbackend.ws.event.FamilyHealthDataUpdateEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -34,9 +34,9 @@ public class HealthDataServiceImpl implements HealthDataService {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private ApplicationEventPublisher publisher;
+    private DomainEventPublisher domainEventPublisher;
     @Autowired
-    private FamilyMemberMapper familyMemberMapper;
+    private FamilyServiceClient familyServiceClient;
 
     @Override
     public void saveOrUpdateDailyHealthData(HealthData inputData) {
@@ -64,7 +64,7 @@ public class HealthDataServiceImpl implements HealthDataService {
         }
 
         // 如果用户在家庭组中，发布一个事件通知家庭组成员健康数据更新了
-        Long groupId = familyMemberMapper.getGroupIdByUserId(inputData.getUserId());
+        Long groupId = familyServiceClient.getGroupIdByUserId(inputData.getUserId());
         if(groupId != null) {
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("type", "health_data_update");
@@ -85,7 +85,11 @@ public class HealthDataServiceImpl implements HealthDataService {
             putIfNotNull(pushData, "measureTime", inputData.getMeasureTime());
 
             pushData.put("alarmTime", LocalDateTime.now().format(formatter));
-            publisher.publishEvent(new FamilyHealthDataUpdateEvent(this, groupId, pushData));
+            DomainEvent healthEvent = DomainEvent.of("health.data.updated", "HealthData", String.valueOf(inputData.getUserId()));
+            healthEvent.setUserId(inputData.getUserId());
+            healthEvent.setGroupId(groupId);
+            healthEvent.setPayload(pushData);
+            domainEventPublisher.publish(healthEvent);
         }
     }
 

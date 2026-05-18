@@ -15,8 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 })
 @MapperScan({
         "com.whu.medicalbackend.medical.mapper",
-        "com.whu.medicalbackend.family.mapper",
-        "com.whu.medicalbackend.user.mapper"
+        "com.whu.medicalbackend.family.mapper"
 })
 @Import(RedisService.class)
 public class SchedulerServiceApplication {

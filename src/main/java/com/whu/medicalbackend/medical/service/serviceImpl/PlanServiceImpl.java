@@ -7,7 +7,7 @@ import com.whu.medicalbackend.medical.entity.Medicine;
 import com.whu.medicalbackend.medical.entity.MedicationPlan;
 import com.whu.medicalbackend.medical.entity.MedicationTask;
 import com.whu.medicalbackend.common.exception.BusinessException;
-import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
+import com.whu.medicalbackend.common.client.FamilyServiceClient;
 import com.whu.medicalbackend.medical.mapper.MedicationPlanMapper;
 import com.whu.medicalbackend.medical.mapper.MedicationTaskMapper;
 import com.whu.medicalbackend.medical.mapper.MedicineMapper;
@@ -22,13 +22,16 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream. Collectors;
+import java.util.stream.Collectors;
 
 /**
  * 用药计划服务实现类
@@ -62,7 +65,7 @@ public class PlanServiceImpl implements PlanService {
     private MedicineMapper medicineMapper;
 
     @Autowired
-    private FamilyMemberMapper memberMapper;
+    private static final Logger logger = LoggerFactory.getLogger(PlanServiceImpl.class);
 
     @Autowired
     private ObjectProvider<DynamicTaskScheduler> dynamicTaskSchedulerProvider;
@@ -153,7 +156,10 @@ public class PlanServiceImpl implements PlanService {
 
         DynamicTaskScheduler dynamicTaskScheduler = dynamicTaskSchedulerProvider.getIfAvailable();
         if (dynamicTaskScheduler != null) {
+            logger.info("【调度诊断】DynamicTaskScheduler 可用，正在为 {} 个今日任务发布延迟任务", todayTasks.size());
             todayTasks.forEach(dynamicTaskScheduler::addTaskSchedule);
+        } else {
+            logger.error("【调度诊断】DynamicTaskScheduler 为 null！延迟任务未发布！请检查 infra.legacy-scheduler.enabled 配置");
         }
 
         // 5. 返回VO

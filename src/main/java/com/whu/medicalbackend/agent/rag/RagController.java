@@ -1,12 +1,12 @@
 package com.whu.medicalbackend.agent.rag;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/rag")
-@CrossOrigin(origins = "*")
 public class RagController {
     
     @Autowired
@@ -17,11 +17,17 @@ public class RagController {
         try {
             RagResponse response = ragService.queryRag(request);
             return ResponseEntity.ok(response);
+        } catch (RagServiceException e) {
+            RagResponse errorResponse = new RagResponse();
+            errorResponse.setSuccess(false);
+            errorResponse.setError(e.getMessage());
+            errorResponse.setErrorCode(e.getErrorCode());
+            return ResponseEntity.status(e.getStatus()).body(errorResponse);
         } catch (Exception e) {
             RagResponse errorResponse = new RagResponse();
             errorResponse.setSuccess(false);
             errorResponse.setError("RAG服务调用失败: " + e.getMessage());
-            return ResponseEntity.ok(errorResponse);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 }

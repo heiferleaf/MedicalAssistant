@@ -1,13 +1,26 @@
 package com.whu.medicalbackend.agent.langchain4j.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.whu.medicalbackend.agent.langchain4j.tools.predict.PredictTool;
+import com.whu.medicalbackend.agent.langchain4j.tools.plan.PlanCreateTool;
+import com.whu.medicalbackend.agent.langchain4j.tools.plan.PlanDeleteTool;
+import com.whu.medicalbackend.agent.langchain4j.tools.plan.PlanQueryTool;
+import com.whu.medicalbackend.agent.langchain4j.tools.plan.PlanUpdateTool;
+import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryHistoryTool;
+import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryTodayTool;
+import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskUpdateStatusTool;
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
+import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 @Configuration
 public class LangChain4jConfig {
 
@@ -28,4 +41,19 @@ public class LangChain4jConfig {
                 .build();
     }
 
+    @Bean
+    @ConditionalOnProperty(prefix = "agent.llm", name = "enabled", havingValue = "true")
+    @ConditionalOnExpression("!'${dashscope.api-key:}'.isBlank()")
+    public StreamingChatModel streamingChatModel() {
+        return QwenStreamingChatModel.builder()
+                .apiKey(dashscopeApiKey)
+                .modelName(dashscopeModel)
+                .build();
+    }
+
+    // 删除这个方法，因为 MedicalAgent 已经自己处理了 AiServices 的构建
+    // @Bean
+    // public MedicalAgent medicalAgent() {
+    //     ...
+    // }
 }

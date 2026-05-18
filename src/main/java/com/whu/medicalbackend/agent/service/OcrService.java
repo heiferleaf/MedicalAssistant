@@ -1,9 +1,11 @@
 package com.whu.medicalbackend.agent.service;
 
-import com.whu.medicalbackend.agent.flask.UnifiedFlaskClient;
+import com.whu.medicalbackend.common.infra.http.AiHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.util.Map;
 
@@ -12,25 +14,98 @@ public class OcrService {
 
     private static final Logger logger = LoggerFactory.getLogger(OcrService.class);
 
-    private final UnifiedFlaskClient unifiedFlaskClient;
+    private final AiHttpClient aiHttpClient;
+    private final String flaskBaseUrl;
 
-    public OcrService(UnifiedFlaskClient unifiedFlaskClient) {
-        this.unifiedFlaskClient = unifiedFlaskClient;
-        logger.info("OcrService initialized with UnifiedFlaskClient");
+    public OcrService(AiHttpClient aiHttpClient,
+                      @Value("${flask.base-url:http://127.0.0.1:8001}") String flaskBaseUrl) {
+        this.aiHttpClient = aiHttpClient;
+        this.flaskBaseUrl = flaskBaseUrl;
+        logger.info("OcrService initialized, Flask base URL: {}", flaskBaseUrl);
     }
 
     /**
      * 调用 Flask OCR 接口识别药物图片
      */
     public Map<String, Object> recognizeDrugImage(byte[] imageBytes) {
-        logger.info("OcrService.recognizeDrugImage, size: {} bytes", imageBytes.length);
-        return unifiedFlaskClient.recognizeDrug(imageBytes);
+        logger.info("=== 开始调用 Flask OCR 接口 ===");
+        logger.info("Flask 地址：{}", flaskBaseUrl);
+        logger.info("图片大小：{} bytes", imageBytes.length);
+
+        try {
+            // 创建 ByteArrayResource
+            ByteArrayResource resource = new ByteArrayResource(imageBytes) {
+                @Override
+                public String getFilename() {
+                    return "drug_image.jpg";
+                }
+            };
+
+            // 构建 multipart 请求体
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", resource);
+            logger.info("请求体构建完成");
+
+            logger.info("开始发送 POST 请求到：{}/ocr/predict", flaskBaseUrl);
+
+            Map<String, Object> responseBody = aiHttpClient.postMultipart("/ocr/predict", body, Map.class);
+            logger.info("收到 OCR 响应");
+
+            if (responseBody != null) {
+                String status = (String) responseBody.get("status");
+
+                if ("success".equals(status)) {
+                    logger.info("OCR 识别成功");
+
+                    // 确保返回的 Map 中的字符串是标准 JSON 格式
+                    Map<String, Object> cleanResponse = new java.util.LinkedHashMap<>();
+                    for (Map.Entry<String, Object> entry : responseBody.entrySet()) {
+                        Object value = entry.getValue();
+                        if (value instanceof String) {
+                            String strValue = (String) value;
+                            // 将 Python 字典字符串转换为标准 JSON 字符串
+                            if (strValue.startsWith("{") || strValue.startsWith("{'")) {
+                                // 替换单引号为双引号
+                                strValue = strValue.replace("'", "\"");
+                                value = strValue;
+                            }
+                        }
+                        cleanResponse.put(entry.getKey(), value);
+                    }
+
+                    return cleanResponse;
+                } else {
+                    String message = (String) responseBody.get("message");
+                    logger.error("OCR 识别失败：{}", message);
+                    throw new RuntimeException("OCR 识别失败：" + message);
+                }
+            } else {
+                throw new RuntimeException("OCR 请求失败，响应为空");
+            }
+
+        } catch (Exception e) {
+            logger.error("OCR 识别失败", e);
+            throw new RuntimeException("OCR 识别失败：" + e.getMessage(), e);
+        }
     }
 
     /**
      * 检查 Flask OCR 服务是否可用
      */
     public boolean isOcrServiceAvailable() {
-        return unifiedFlaskClient.isFlaskAvailable();
+        try {
+            // 直接检查 /ocr/predict 接口是否可访问（使用 GET 方法）
+            // 即使返回 405 Method Not Allowed，也说明服务是活的
+            aiHttpClient.get("/ocr/predict", String.class);
+            // 如果 GET 请求成功（虽然不太可能），返回 true
+            return true;
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            // 4xx/5xx 错误（如 405 Method Not Allowed）说明服务存在，只是方法不对
+            logger.info("OCR 服务可访问（返回 HTTP {}），认为服务可用", e.getStatusCode());
+            return true;
+        } catch (Exception e) {
+            logger.error("检查 OCR 服务状态失败", e);
+            return false;
+        }
     }
 }

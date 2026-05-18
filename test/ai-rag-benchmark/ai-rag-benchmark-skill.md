@@ -93,7 +93,7 @@ cp test/ai-rag-benchmark/ai_rag_benchmark_cases.sample.jsonl test/ai-rag-benchma
 RAG 用例：
 
 ```json
-{"id":"rag-001","endpoint":"rag","question":"布洛芬有哪些常见不良反应？","expected_keywords":["布洛芬","胃肠道"],"forbidden_keywords":["无法回答"]}
+{"id":"rag-001","endpoint":"rag","payload":{"question":"布洛芬有哪些常见不良反应？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["布洛芬","胃肠道"],"forbidden_keywords":["无法回答"]}
 ```
 
 Agent 用例：
@@ -114,6 +114,8 @@ Predict 用例：
 - `endpoint`：`rag`、`agent`、`predict`。
 - `question` / `message` / `text`：分别用于 RAG、Agent、Predict。
 - `payload`：可选，直接覆盖请求体，适合特殊字段测试。
+- `top_k`：RAG 召回条数，建议正式评测固定为同一值。
+- `strategy`：RAG 检索策略，例如 `hybrid`；评测时需要固定，避免准确率不可比。
 - `expected_keywords`：答案中必须包含的关键词，用于粗粒度准确率。
 - `forbidden_keywords`：答案中不能出现的关键词。
 - `expected_reactions`：Predict 前 `top_k` 个预测中必须出现的反应名称。

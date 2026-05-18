@@ -12,7 +12,9 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import org.springframework.beans.factory.ObjectProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 @Service
 public class AgentOrchestratorService {
@@ -33,6 +36,7 @@ public class AgentOrchestratorService {
     private final AgentMemoryRepository memoryRepository;
     private final FlaskRagProxyService flaskRagProxyService;
     private final ChatModel chatModel;
+    private final StreamingChatModel streamingChatModel;
     private final MedicalAgent medicalAgent;
     private final ToolExecutionBroadcaster toolExecutionBroadcaster;
     private final OcrService ocrService;
@@ -45,17 +49,19 @@ public class AgentOrchestratorService {
             AgentMemoryRepository memoryRepository,
             FlaskRagProxyService flaskRagProxyService,
             ObjectProvider<ChatModel> chatModelProvider,
+            ObjectProvider<StreamingChatModel> streamingChatModelProvider,
             ObjectProvider<MedicalAgent> medicalAgentProvider,
             ToolExecutionBroadcaster toolExecutionBroadcaster,
             OcrService ocrService,
             ToolExecutionPendingService toolExecutionPendingService,
             AgentTaskService agentTaskService,
-            @Value("${flask.base-url:http://localhost:8001}") String flaskBaseUrl,
+            @Value("${flask.base-url:http://127.0.0.1:8001}") String flaskBaseUrl,
             @Value("${agent.llm.enabled:false}") boolean llmEnabled) {
         this.memoryRepository = memoryRepository;
         this.flaskRagProxyService = flaskRagProxyService;
         // DashScope key 缺失时不创建 LLM Bean，Agent 服务仍保持健康，只在聊天入口返回配置提示。
         this.chatModel = chatModelProvider.getIfAvailable();
+        this.streamingChatModel = streamingChatModelProvider.getIfAvailable();
         this.medicalAgent = medicalAgentProvider.getIfAvailable();
         this.toolExecutionPendingService = toolExecutionPendingService;
         this.toolExecutionBroadcaster = toolExecutionBroadcaster;
@@ -282,162 +288,121 @@ public class AgentOrchestratorService {
      */
     public void chatStream(String userId, String sessionId, String message, SseEmitter emitter) throws IOException {
         logger.info("开始流式聊天，userId={}, sessionId={}, message 长度={}", userId, sessionId, message.length());
-        
-        // 注册 SSE 发射器
+
         toolExecutionBroadcaster.registerEmitter(sessionId, emitter);
-        
+
         try {
-            // 保存用户消息
             memoryRepository.appendMessage(sessionId, userId, "user", message);
-            
-            StringBuilder fullResponse = new StringBuilder();
-            
-            // 优先使用 Medical Agent（如果启用）
+
+            // ── MedicalAgent 路径 ──────────────────────────────────────────────
+            // Agent 通过 ToolExecutionBroadcaster 实时推送工具调用进度；
+            // 文本回复拿到后直接整段发送，无需人造 sleep。
             if (llmEnabled && medicalAgent != null) {
                 try {
                     logger.info("使用 Medical Agent 进行流式处理");
-                    
-                    // 直接调用 chat 方法，这样工具执行状态会实时发送
                     String assistantMessage = medicalAgent.chat(sessionId, userId, message);
-                    logger.info("Agent 文本回复：{}", assistantMessage);
-                    
-                    // 检查是否有待确认的请求（通过数据库查询）
-                    List<?> pendingRequests = toolExecutionPendingService.getUserPendingRequests(Long.parseLong(userId));
+                    logger.info("Agent 文本回复，长度={}", assistantMessage == null ? 0 : assistantMessage.length());
+
                     String actionType = null;
                     String actionData = null;
-                    
+                    List<?> pendingRequests = toolExecutionPendingService.getUserPendingRequests(Long.parseLong(userId));
                     if (pendingRequests != null && !pendingRequests.isEmpty()) {
-                        // 有待确认的请求
                         Object pending = pendingRequests.get(0);
-                        logger.info("检测到待确认请求：{}", pending);
-                        
-                        // 从待确认请求中提取 action 信息
-                        if (pending instanceof Map) {
-                            Map<?, ?> pendingMap = (Map<?, ?>) pending;
+                        if (pending instanceof Map<?, ?> pendingMap) {
                             actionType = (String) pendingMap.get("action_type");
                             actionData = (String) pendingMap.get("tool_args_json");
-                            
-                            if (actionType != null && actionData != null) {
-                                logger.info("返回 action 信息：actionType={}, actionData={}", actionType, actionData);
-                            }
                         }
                     }
-                    
+
                     if (assistantMessage != null && !assistantMessage.isBlank()) {
-                        logger.info("开始流式发送消息，长度：{}", assistantMessage.length());
-                        
-                        // 将完整消息按批次流式发送（每批 10 个字符）
-                        int batchSize = 10;
-                        for (int i = 0; i < assistantMessage.length(); i += batchSize) {
-                            int end = Math.min(i + batchSize, assistantMessage.length());
-                            String batch = assistantMessage.substring(i, end);
-                            emitter.send(SseEmitter.event()
-                                .name("message")
-                                .data(batch));
-                            
-                            // 每 50ms 发送一批，模拟流式效果
-                            try {
-                                Thread.sleep(50);
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                                break;
-                            }
-                        }
-                        
-                        logger.info("流式发送完成");
-                        fullResponse.append(assistantMessage);
-                        
-                        // 保存 AI 回复到数据库
+                        emitter.send(SseEmitter.event().name("message").data(assistantMessage));
                         if (actionType != null && !actionType.isBlank() && actionData != null) {
                             memoryRepository.appendMessageWithAction(
-                                sessionId, userId, "assistant", assistantMessage, actionType, actionData
-                            );
-                            // 发送 action 数据
-                            emitter.send(SseEmitter.event()
-                                .name("action")
-                                .data(Map.of(
-                                    "action_type", actionType,
-                                    "action_data", actionData
-                                )));
+                                    sessionId, userId, "assistant", assistantMessage, actionType, actionData);
+                            emitter.send(SseEmitter.event().name("action")
+                                    .data(Map.of("action_type", actionType, "action_data", actionData)));
                         } else {
                             memoryRepository.appendMessage(sessionId, userId, "assistant", assistantMessage);
                         }
                     }
-                    
-                    // 发送结束事件
-                    emitter.send(SseEmitter.event()
-                        .name("end")
-                        .data(""));
-                    logger.info("SSE 流式输出完成，userId={}, sessionId={}", userId, sessionId);
+                    emitter.send(SseEmitter.event().name("end").data(""));
                     return;
                 } catch (Exception e) {
                     logger.error("Medical Agent 流式处理失败，回退到简单 LLM 流式调用", e);
                 }
             }
 
-            if (chatModel == null) {
-                emitter.send(SseEmitter.event()
-                        .name("message")
+            if (streamingChatModel == null && chatModel == null) {
+                emitter.send(SseEmitter.event().name("message")
                         .data("LLM 未配置，当前无法进行智能问答。请配置 DASHSCOPE_API_KEY 后重试。"));
                 emitter.send(SseEmitter.event().name("end").data(""));
                 return;
             }
-            
-            // 回退到简单 LLM 流式调用
-            try {
-                logger.info("使用简单 LLM 进行流式处理");
-                
-                // 从数据库获取对话历史
-                List<Map<String, Object>> messages = memoryRepository.getRecentMessages(sessionId, 5);
-                List<Map<String, String>> history = new ArrayList<>();
-                for (Map<String, Object> msg : messages) {
-                    history.add(Map.of(
-                            "role", str(msg.get("role")),
-                            "content", str(msg.get("content"))));
+
+            // ── 真正的流式 LLM 路径 ───────────────────────────────────────────
+            if (streamingChatModel != null) {
+                logger.info("使用 StreamingChatModel 进行流式处理");
+                CountDownLatch latch = new CountDownLatch(1);
+                StringBuilder fullResponse = new StringBuilder();
+
+                streamingChatModel.chat(
+                        List.of(
+                                SystemMessage.from("你是一个医疗健康助手，负责帮助用户解答健康问题和管理用药计划。"),
+                                UserMessage.from(message)),
+                        new StreamingChatResponseHandler() {
+                            @Override
+                            public void onPartialResponse(String token) {
+                                try {
+                                    fullResponse.append(token);
+                                    emitter.send(SseEmitter.event().name("message").data(token));
+                                } catch (IOException ex) {
+                                    throw new RuntimeException(ex);
+                                }
+                            }
+
+                            @Override
+                            public void onCompleteResponse(ChatResponse response) {
+                                latch.countDown();
+                            }
+
+                            @Override
+                            public void onError(Throwable error) {
+                                logger.error("StreamingChatModel 错误", error);
+                                latch.countDown();
+                            }
+                        });
+
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                 }
-                
-                // 调用 LLM
-                SystemMessage systemMessage = SystemMessage.from("你是一个医疗健康助手，负责帮助用户解答健康问题和管理用药计划。");
-                UserMessage userMessage = UserMessage.from(message);
-                ChatResponse chatResponse = chatModel.chat(systemMessage, userMessage);
-                AiMessage aiMessage = chatResponse.aiMessage();
-                String response = aiMessage.text();
-                
-                // 将完整消息按批次流式发送（每批 10 个字符）
-                int batchSize = 10;
-                for (int i = 0; i < response.length(); i += batchSize) {
-                    int end = Math.min(i + batchSize, response.length());
-                    String batch = response.substring(i, end);
-                    emitter.send(SseEmitter.event()
-                        .name("message")
-                        .data(batch));
-                    
-                    // 每 50ms 发送一批，模拟流式效果
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
+
+                String response = fullResponse.toString();
+                if (!response.isBlank()) {
+                    memoryRepository.appendMessage(sessionId, userId, "assistant", response);
                 }
-                
-                fullResponse.append(response);
-                memoryRepository.appendMessage(sessionId, userId, "assistant", response);
-                
-                // 发送结束事件
-                emitter.send(SseEmitter.event()
-                    .name("end")
-                    .data(""));
+                emitter.send(SseEmitter.event().name("end").data(""));
                 logger.info("SSE 流式输出完成，userId={}, sessionId={}", userId, sessionId);
-                
+                return;
+            }
+
+            // ── 非流式兜底（StreamingChatModel 不可用时）──────────────────────
+            logger.info("StreamingChatModel 不可用，回退到阻塞 ChatModel");
+            try {
+                ChatResponse chatResponse = chatModel.chat(
+                        SystemMessage.from("你是一个医疗健康助手，负责帮助用户解答健康问题和管理用药计划。"),
+                        UserMessage.from(message));
+                String response = chatResponse.aiMessage().text();
+                emitter.send(SseEmitter.event().name("message").data(response));
+                memoryRepository.appendMessage(sessionId, userId, "assistant", response);
+                emitter.send(SseEmitter.event().name("end").data(""));
             } catch (Exception e) {
-                logger.error("简单 LLM 流式调用失败", e);
-                emitter.send(SseEmitter.event()
-                    .name("error")
-                    .data(Map.of("error", "LLM 流式调用失败：" + e.getMessage())));
+                logger.error("阻塞 LLM 调用失败", e);
+                emitter.send(SseEmitter.event().name("error")
+                        .data(Map.of("error", "LLM 调用失败：" + e.getMessage())));
             }
         } finally {
-            // 注销 SSE 发射器
             toolExecutionBroadcaster.unregisterEmitter(sessionId);
         }
     }

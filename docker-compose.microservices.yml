@@ -9,7 +9,7 @@ x-backend-env: &backend-env
   SPRING_RABBITMQ_PORT: 5672
   SPRING_RABBITMQ_USERNAME: guest
   SPRING_RABBITMQ_PASSWORD: guest
-  FLASK_URL: http://8.148.94.242:8001
+  FLASK_URL: ${FLASK_URL:-http://host.docker.internal:8001}
   DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
   TZ: Asia/Shanghai
 
@@ -144,6 +144,17 @@ services:
       INSTANCE_ID: scheduler-service
     expose:
       - "8087"
+
+  sentinel-dashboard:
+    image: bladex/sentinel-dashboard:1.8.6
+    container_name: medical-ms-sentinel-dashboard
+    restart: always
+    ports:
+      - "8858:8858"
+    environment:
+      - JAVA_OPTS=-Dserver.port=8858 -Dcsp.sentinel.dashboard.server=localhost:8858 -Dproject.name=sentinel-dashboard
+    networks:
+      - app-net
 
   nginx:
     image: nginx:alpine

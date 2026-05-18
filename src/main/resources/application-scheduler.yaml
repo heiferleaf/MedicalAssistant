@@ -16,7 +16,7 @@ infra:
   canal-cache-consumer:
     enabled: false
   domain-event-consumer:
-    enabled: false
+    enabled: true
   delay:
     redis:
-      enabled: false
+      enabled: true

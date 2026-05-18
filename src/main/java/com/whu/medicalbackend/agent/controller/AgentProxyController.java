@@ -1,5 +1,7 @@
 package com.whu.medicalbackend.agent.controller;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.whu.medicalbackend.common.response.Result;
 import com.whu.medicalbackend.common.response.ResultCode;
 import com.whu.medicalbackend.agent.AgentOrchestratorService;
@@ -7,13 +9,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @RestController
 @RequestMapping("/api/agent")
@@ -28,22 +36,44 @@ public class AgentProxyController {
     @Qualifier("aiExecutor")
     private ThreadPoolTaskExecutor aiExecutor;
 
+    @Value("${agent.multi-turn.timeout-ms:30000}")
+    private long agentTimeoutMs;
+
+
     @PostMapping("/chat")
+    @SentinelResource(value = "/api/agent/chat", blockHandler = "handleChatBlock")
     public Result<Map<String, Object>> chat(@RequestBody Map<String, Object> payload) {
         logger.info("收到 chat 请求，payload: {}", payload);
+        Future<Map<String, Object>> future = null;
         try {
             String userId = String.valueOf(payload.get("user_id"));
             String sessionId = String.valueOf(payload.get("session_id"));
             String message = String.valueOf(payload.get("message"));
             logger.info("chat 请求详情：userId={}, sessionId={}, message 长度={}", userId, sessionId, message != null ? message.length() : 0);
 
-            Map<String, Object> resp = agentOrchestratorService.chat(payload);
+
+            future = aiExecutor.submit(() -> agentOrchestratorService.chat(payload));
+            Map<String, Object> resp = future.get(agentTimeoutMs, TimeUnit.MILLISECONDS);
             logger.info("chat 响应：success={}", resp.get("success"));
             return Result.success(resp);
+        } catch (RejectedExecutionException e) {
+            logger.warn("Agent chat 进入限流保护，AI 线程池队列已满", e);
+            return Result.error(429, "Agent 服务繁忙，请稍后重试");
+        } catch (TimeoutException e) {
+            if (future != null) {
+                future.cancel(true);
+            }
+            logger.warn("Agent chat 超时，timeoutMs={}", agentTimeoutMs, e);
+            return Result.error(504, "Agent 处理超时，请稍后重试");
         } catch (Exception e) {
             logger.error("chat 处理失败", e);
             return Result.error(ResultCode.SYSTEM_ERROR, "Agent chat 处理失败：" + e.getMessage());
         }
+    }
+
+    public Result<Map<String, Object>> handleChatBlock(Map<String, Object> payload, BlockException ex) {
+        logger.warn("chat 请求被限流：userId={}", payload.get("user_id"));
+        return Result.error(429, "AI 服务繁忙，请稍后重试");
     }
 
     @GetMapping({ "/health", "/health/" })
@@ -60,6 +90,7 @@ public class AgentProxyController {
      * SSE 流式聊天接口
      */
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
+    @SentinelResource(value = "/api/agent/chat/stream", blockHandler = "handleChatStreamBlock")
     public SseEmitter chatStreamGet(
             @RequestParam("user_id") String userId,
             @RequestParam("session_id") String sessionId,
@@ -75,6 +106,7 @@ public class AgentProxyController {
      * SSE 流式聊天接口 - POST 方式（处理 Base64 图片等大消息）
      */
     @PostMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8", consumes = "application/x-www-form-urlencoded")
+    @SentinelResource(value = "/api/agent/chat/stream", blockHandler = "handleChatStreamBlock")
     public SseEmitter chatStreamPost(
             @RequestParam("user_id") String userId,
             @RequestParam("session_id") String sessionId,
@@ -96,6 +128,20 @@ public class AgentProxyController {
         return handleChatStream(userId, sessionId, message);
     }
 
+    public SseEmitter handleChatStreamBlock(String userId, String sessionId, String message, BlockException ex) {
+        logger.warn("chatStream 请求被限流：userId={}", userId);
+        SseEmitter emitter = new SseEmitter();
+        try {
+            emitter.send(SseEmitter.event()
+                .name("error")
+                .data("AI 服务繁忙，请稍后重试"));
+            emitter.complete();
+        } catch (IOException e) {
+            logger.error("发送限流消息失败", e);
+        }
+        return emitter;
+    }
+
     /**
      * 处理流式聊天的通用方法
      * 使用 aiExecutor 线程池替代 ForkJoinPool.commonPool()
@@ -107,15 +153,10 @@ public class AgentProxyController {
         // 使用 aiExecutor 异步执行（避免占用 Tomcat 线程池和 ForkJoinPool）
         CompletableFuture.runAsync(() -> {
             try {
+                // chatStream 内部负责发送所有 SSE 事件（含 end），此处只需关闭连接
                 agentOrchestratorService.chatStream(userId, sessionId, message, emitter);
-
-                // 完成时发送结束标记
-                emitter.send(SseEmitter.event()
-                    .name("end")
-                    .data("[DONE]"));
                 emitter.complete();
                 logger.info("chatStream 完成");
-
             } catch (Exception e) {
                 logger.error("chatStream 处理失败", e);
                 try {
@@ -129,6 +170,8 @@ public class AgentProxyController {
             }
         }, aiExecutor);
 
+
+        // 设置完成回调，关闭连接
         emitter.onCompletion(() -> {
             logger.info("SSE 连接正常关闭");
         });

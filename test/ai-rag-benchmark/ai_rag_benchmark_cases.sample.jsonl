@@ -1,5 +1,38 @@
-{"id":"rag-medication-safety-001","endpoint":"rag","question":"布洛芬有哪些常见不良反应？","expected_keywords":["布洛芬"],"forbidden_keywords":["无法回答"]}
-{"id":"rag-dosage-warning-001","endpoint":"rag","question":"对乙酰氨基酚用药时需要注意什么？","expected_keywords":["对乙酰氨基酚"],"forbidden_keywords":["无法回答"]}
-{"id":"agent-general-health-001","endpoint":"agent","user_id":"10001","session_id":"bench-agent-general","message":"请用三句话说明高血压患者日常监测血压要注意什么。","expected_keywords":["血压"],"forbidden_keywords":["LLM 未配置"]}
-{"id":"agent-rag-tool-001","endpoint":"agent","user_id":"10001","session_id":"bench-agent-rag","message":"请查询医学知识库：阿司匹林有哪些常见不良反应？","expected_keywords":["阿司匹林"],"forbidden_keywords":["LLM 未配置"]}
-{"id":"predict-adr-001","endpoint":"predict","text":"Clinical Summary: 68-year-old patient with hypertension and chronic gastritis. Current medication includes ibuprofen for joint pain.","expected_status":"success","top_k":5}
+# ─── RAG: 药物不良反应 ───────────────────────────────────────────────────────
+{"id":"rag-adr-ibuprofen","endpoint":"rag","payload":{"question":"布洛芬有哪些常见不良反应？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["布洛芬"],"forbidden_keywords":["无法回答"]}
+{"id":"rag-adr-acetaminophen","endpoint":"rag","payload":{"question":"对乙酰氨基酚用药时需要注意什么？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["对乙酰氨基酚"],"forbidden_keywords":["无法回答"]}
+{"id":"rag-adr-aspirin","endpoint":"rag","payload":{"question":"阿司匹林有哪些常见不良反应？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["阿司匹林"],"forbidden_keywords":["无法回答"]}
+{"id":"rag-adr-metformin","endpoint":"rag","payload":{"question":"二甲双胍常见副作用有哪些？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["二甲双胍"],"forbidden_keywords":["无法回答"]}
+{"id":"rag-adr-simvastatin","endpoint":"rag","payload":{"question":"辛伐他汀服用期间有哪些注意事项？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["辛伐他汀"],"forbidden_keywords":["无法回答"]}
+
+# ─── RAG: 用药禁忌 ───────────────────────────────────────────────────────────
+{"id":"rag-contra-aspirin-pregnancy","endpoint":"rag","payload":{"question":"孕妇能服用阿司匹林吗？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["阿司匹林"],"forbidden_keywords":["无法回答"]}
+{"id":"rag-contra-ibuprofen-kidney","endpoint":"rag","payload":{"question":"肾功能不全患者能用布洛芬吗？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["布洛芬"],"forbidden_keywords":["无法回答"]}
+{"id":"rag-contra-warfarin-foods","endpoint":"rag","payload":{"question":"服用华法林期间需要避开哪些食物？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["华法林"],"forbidden_keywords":["无法回答"]}
+
+# ─── RAG: 药物相互作用 ────────────────────────────────────────────────────────
+{"id":"rag-interaction-aspirin-warfarin","endpoint":"rag","payload":{"question":"阿司匹林和华法林联用有什么风险？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["阿司匹林","华法林"],"forbidden_keywords":["无法回答"]}
+{"id":"rag-interaction-metformin-alcohol","endpoint":"rag","payload":{"question":"服用二甲双胍期间可以饮酒吗？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["二甲双胍"],"forbidden_keywords":["无法回答"]}
+
+# ─── RAG: 慢病管理 ───────────────────────────────────────────────────────────
+{"id":"rag-chronic-hypertension","endpoint":"rag","payload":{"question":"高血压患者日常用药管理要注意什么？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["高血压"],"forbidden_keywords":["无法回答"]}
+{"id":"rag-chronic-diabetes-monitoring","endpoint":"rag","payload":{"question":"糖尿病患者如何监测血糖？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["糖尿病"],"forbidden_keywords":["无法回答"]}
+{"id":"rag-chronic-chf-sodium","endpoint":"rag","payload":{"question":"心力衰竭患者饮食中应如何控制钠摄入？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":["心力衰竭"],"forbidden_keywords":["无法回答"]}
+
+# ─── RAG: 无答案边界（knowledge base 不应包含这类内容）────────────────────────
+{"id":"rag-boundary-unknown","endpoint":"rag","payload":{"question":"量子计算机的工作原理是什么？","top_k":5,"strategy":"hybrid","with_trace":true,"with_timing":true},"expected_keywords":[],"forbidden_keywords":[]}
+
+# ─── RAG: 输入校验边界 ────────────────────────────────────────────────────────
+{"id":"rag-validation-empty-question","endpoint":"rag","payload":{"question":"","top_k":5,"strategy":"hybrid"},"expected_http_status":400,"expected_error_code":"RAG_EMPTY_QUESTION"}
+{"id":"rag-validation-whitespace-question","endpoint":"rag","payload":{"question":"   ","top_k":5,"strategy":"hybrid"},"expected_http_status":400,"expected_error_code":"RAG_EMPTY_QUESTION"}
+{"id":"rag-validation-top-k-exceeded","endpoint":"rag","payload":{"question":"布洛芬的作用机制？","top_k":99,"strategy":"hybrid"},"expected_http_status":400,"expected_error_code":"RAG_TOP_K_TOO_LARGE"}
+
+# ─── Agent: 通用健康咨询 ──────────────────────────────────────────────────────
+{"id":"agent-hypertension-monitoring","endpoint":"agent","user_id":"10001","session_id":"bench-agent-hypertension","message":"请用三句话说明高血压患者日常监测血压要注意什么。","expected_keywords":["血压"],"forbidden_keywords":["LLM 未配置"]}
+{"id":"agent-rag-tool-aspirin","endpoint":"agent","user_id":"10001","session_id":"bench-agent-aspirin","message":"请查询医学知识库：阿司匹林有哪些常见不良反应？","expected_keywords":["阿司匹林"],"forbidden_keywords":["LLM 未配置"]}
+{"id":"agent-medication-reminder","endpoint":"agent","user_id":"10001","session_id":"bench-agent-reminder","message":"我每天需要吃两次二甲双胍，请帮我简单说明用药注意事项。","expected_keywords":["二甲双胍"],"forbidden_keywords":["LLM 未配置"]}
+
+# ─── Predict: 药物不良反应预测 ────────────────────────────────────────────────
+{"id":"predict-adr-ibuprofen-gastritis","endpoint":"predict","text":"Clinical Summary: 68-year-old patient with hypertension and chronic gastritis. Current medication includes ibuprofen for joint pain.","expected_status":"success","top_k":5}
+{"id":"predict-adr-warfarin-bleeding","endpoint":"predict","text":"Patient: 72-year-old female on warfarin for atrial fibrillation. Recently started taking aspirin 100mg daily.","expected_status":"success","top_k":5}
+{"id":"predict-adr-metformin-renal","endpoint":"predict","text":"Patient: 65-year-old male with Type 2 diabetes and stage 3 chronic kidney disease. Taking metformin 500mg twice daily.","expected_status":"success","top_k":5}

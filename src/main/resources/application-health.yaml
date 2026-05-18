@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: medical-health-service
+  profiles:
+    include: interservice
 
 service:
   role: health

@@ -2,38 +2,31 @@ package com.whu.medicalbackend.agent.flask;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.MediaType;
+import com.whu.medicalbackend.agent.rag.RagRequest;
+import com.whu.medicalbackend.agent.rag.RagResponse;
+import com.whu.medicalbackend.agent.rag.RagService;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class FlaskRagProxyService {
 
-    private final RestClient flaskRestClient;
+    private final RagService ragService;
     private final ObjectMapper objectMapper;
 
-    public FlaskRagProxyService(RestClient flaskRestClient, ObjectMapper objectMapper) {
-        this.flaskRestClient = flaskRestClient;
+    public FlaskRagProxyService(RagService ragService, ObjectMapper objectMapper) {
+        this.ragService = ragService;
         this.objectMapper = objectMapper;
     }
 
     public Map<String, Object> query(String question, boolean withTrace, boolean withTiming) {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("question", question);
-        payload.put("with_trace", withTrace);
-        payload.put("with_timing", withTiming);
+        RagRequest request = new RagRequest(question);
+        request.setWithTrace(withTrace);
+        request.setWithTiming(withTiming);
 
-        Object resp = flaskRestClient.post()
-                .uri("/rag/query")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(payload)
-                .retrieve()
-                .body(Object.class);
-
-        return objectMapper.convertValue(resp, new TypeReference<>() {
+        RagResponse response = ragService.queryRag(request);
+        return objectMapper.convertValue(response, new TypeReference<>() {
         });
     }
 }

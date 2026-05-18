@@ -4,24 +4,25 @@ import com.whu.medicalbackend.common.response.ResultCode;
 import com.whu.medicalbackend.medical.dto.TaskVO;
 import com.whu.medicalbackend.medical.entity.Medicine;
 import com.whu.medicalbackend.medical.entity.MedicationTask;
-import com.whu.medicalbackend.family.mapper.FamilyEventLogMapper;
-import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
-import com.whu.medicalbackend.medical.mapper.MedicationTaskMapper;
-import com.whu.medicalbackend.medical.mapper.MedicineMapper;
-import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
-import com.whu.medicalbackend.user.entity.User;
+import com.whu.medicalbackend.common.client.FamilyServiceClient;
+import com.whu.medicalbackend.common.client.UserServiceClient;
+import com.whu.medicalbackend.common.client.dto.UserDTO;
 import com.whu.medicalbackend.common.enumField.EventLogEnum;
 import com.whu.medicalbackend.common.exception.BusinessException;
 import com.whu.medicalbackend.common.schedule.DynamicTaskScheduler;
+import com.whu.medicalbackend.medical.mapper.MedicationTaskMapper;
+import com.whu.medicalbackend.medical.mapper.MedicineMapper;
 import com.whu.medicalbackend.medical.service.TaskService;
 import com.whu.medicalbackend.user.mapper.UserMapper;
+import com.whu.medicalbackend.common.lock.DistributedLock;
+import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
-import com.whu.medicalbackend.ws.event.FamilyMedicineAlarmEvent;
-import com.whu.medicalbackend.ws.event.FamilyMedicineUpdateEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
+import com.whu.medicalbackend.family.mapper.FamilyEventLogMapper;
 import io.jsonwebtoken.lang.Assert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,13 +61,14 @@ public class TaskServiceImpl implements TaskService {
     private RedisService redisService;
 
     @Autowired
-    private FamilyMemberMapper memberMapper;
+    private FamilyServiceClient familyServiceClient;
 
     @Autowired
-    private UserMapper userMapper;
+    private UserServiceClient userServiceClient;
 
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    private DomainEventPublisher domainEventPublisher;
+
     @Autowired
     private FamilyEventLogMapper familyEventLogMapper;
 
@@ -108,6 +110,7 @@ public class TaskServiceImpl implements TaskService {
      * 不同状态对应不同的operate_time处理策略
      */
     @Override
+    @DistributedLock(prefix = RedisKeyBuilderUtil.LOCK_TASK_UPDATE_PREFIX, key = "#taskId", waitTime = 0, message = "任务处理中，请勿重复操作")
     public TaskVO updateTaskStatus(Long userId, Long taskId, Integer status) {
         // 1. 查询任务
         MedicationTask task = taskMapper.findById(taskId);
@@ -146,13 +149,13 @@ public class TaskServiceImpl implements TaskService {
         taskMapper.updateStatus(taskId, status, operateTime);
 
         // 记录事务日志
-        Long groupId = memberMapper.getGroupIdByUserId(userId);
+        Long groupId = familyServiceClient.getGroupIdByUserId(userId);
         if (groupId != null && status != 0) {
             // 逻辑对齐：根据状态决定 EventType
             String eventType = (status == 1) ? EventLogEnum.TASK_DONE.name() : EventLogEnum.ALARM_MISSED.name();
 
             // 插入日志
-            familyEventLogMapper.insertLog(groupId, userId, eventType, medicineName);
+            familyServiceClient.insertEventLog(groupId, userId, eventType, medicineName);
 
             // 如果是标记漏服，需要额外清理告警缓存 (保持一致性)
             if (status == 2) {
@@ -168,7 +171,7 @@ public class TaskServiceImpl implements TaskService {
 
         // 进行广播，条件是标记为漏服用
         if (groupId != null && status == 2) {
-            User user = userMapper.findByUserId(userId);
+            UserDTO user = userServiceClient.getUserById(userId);
             Assert.notNull(user, "任务所属用户Id为空");
 
             Map<String, Object> pushData = new HashMap<>();
@@ -178,8 +181,11 @@ public class TaskServiceImpl implements TaskService {
             pushData.put("medicineName", medicine.getName());
             pushData.put("alarmTime", LocalDateTime.now().format(formatter));
 
-            eventPublisher.publishEvent(new FamilyMedicineAlarmEvent(
-                    this, groupId, pushData));
+            DomainEvent alarmEvent = DomainEvent.of("medication.alarm", "MedicationTask", String.valueOf(taskId));
+            alarmEvent.setUserId(userId);
+            alarmEvent.setGroupId(groupId);
+            alarmEvent.setPayload(pushData);
+            domainEventPublisher.publish(alarmEvent);
         }
 
         // 6. 重新查询并返回
@@ -233,7 +239,7 @@ public class TaskServiceImpl implements TaskService {
 
     private void handleSnapshotAndBroadcast(Long groupId, Long userId, MedicationTask task, Integer newStatus) {
         Map<String, Object> pushData = new HashMap<>();
-        User user = userMapper.findByUserId(userId);
+        UserDTO user = userServiceClient.getUserById(userId);
 
         pushData.put("type", "medicine_update");
         pushData.put("memberName", user.getUsername());
@@ -242,9 +248,11 @@ public class TaskServiceImpl implements TaskService {
         pushData.put("timePoint", task.getTimePoint().toString());
         pushData.put("status", newStatus);
 
-        eventPublisher.publishEvent(new FamilyMedicineUpdateEvent(
-                this, groupId, pushData
-        ));
+        DomainEvent updateEvent = DomainEvent.of("medication.updated", "MedicationTask", String.valueOf(task.getId()));
+        updateEvent.setUserId(userId);
+        updateEvent.setGroupId(groupId);
+        updateEvent.setPayload(pushData);
+        domainEventPublisher.publish(updateEvent);
     }
 
     private String getMedicineName(Long medicineId) {

@@ -3,6 +3,9 @@ package com.whu.medicalbackend.family.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.whu.medicalbackend.common.client.UserServiceClient;
+import com.whu.medicalbackend.common.client.MedicationServiceClient;
+import com.whu.medicalbackend.common.client.HealthServiceClient;
 import com.whu.medicalbackend.common.enumField.EventLogEnum;
 import com.whu.medicalbackend.common.enumField.InviteStatus;
 import com.whu.medicalbackend.common.enumField.InviteType;
@@ -15,21 +18,17 @@ import com.whu.medicalbackend.family.mapper.FamilyEventLogMapper;
 import com.whu.medicalbackend.family.mapper.FamilyGroupMapper;
 import com.whu.medicalbackend.family.mapper.FamilyInviteApplyMapper;
 import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
-import com.whu.medicalbackend.health.entity.HealthData;
-import com.whu.medicalbackend.health.mapper.HealthDataMapper;
-import com.whu.medicalbackend.medical.mapper.MedicationTaskMapper;
 import com.whu.medicalbackend.common.schedule.DynamicTaskScheduler;
 import com.whu.medicalbackend.family.service.serviceImpl.FamilyGroupService;
 import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
-import com.whu.medicalbackend.user.entity.User;
-import com.whu.medicalbackend.user.mapper.UserMapper;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil; // 引入工具类
-import com.whu.medicalbackend.ws.event.FamilyMemberUpdateEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEvent;
+import com.whu.medicalbackend.common.infra.event.DomainEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,21 +60,21 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
     @Autowired
     private FamilyCacheService familyCacheService;
 
+    // 使用服务客户端替代直接的 Mapper 依赖
+    @Autowired
+    private UserServiceClient userServiceClient;
 
     @Autowired
-    private UserMapper userMapper;
+    private MedicationServiceClient medicationServiceClient;
 
     @Autowired
-    private MedicationTaskMapper taskMapper;
-
-    @Autowired
-    private HealthDataMapper healthDataMapper;
+    private HealthServiceClient healthServiceClient;
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    private DomainEventPublisher domainEventPublisher;
 
     private static final Logger logger = LoggerFactory.getLogger(FamilyGroupServiceImpl.class);
     @Autowired
@@ -120,7 +119,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
 
             return new FamilyCreateVO.FamilyCreateVOBuilder()
                     .fromFamilyGroup(group)
-                    .setOwnerUserNickname(userMapper.findByUserId(userId).getNickname())
+                    .setOwnerUserNickname(userServiceClient.getUserById(userId).getNickname())
                     .build();
         } finally {
             redisService.unlock(lockKey);
@@ -200,10 +199,10 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
 
         try {
             // 冗余校验
-            User invitee = userMapper.findByPhoneNumber(inviteePhone);
+            com.whu.medicalbackend.common.client.dto.UserDTO invitee = userServiceClient.getUserByPhone(inviteePhone);
             if(invitee == null) { throw new BusinessException("邀请的用户不存在"); }
 
-            if (memberMapper.checkUserInGroup(invitee.getId())) {
+            if (memberMapper.checkUserInGroup(invitee.getUserId())) {
                 throw new BusinessException("该用户已经加入其他家庭组");
             }
 
@@ -212,7 +211,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
                 throw new BusinessException("48 小时内只能向该用户发起一次邀请");
             }
 
-            if (applyMapper.hasPendingRecord(groupId, invitee.getId(), InviteType.invite)) {
+            if (applyMapper.hasPendingRecord(groupId, invitee.getUserId(), InviteType.invite)) {
                 throw new BusinessException("已有待处理的邀请，请勿重复发起");
             }
 
@@ -220,7 +219,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
             FamilyInviteApply invite = new FamilyInviteApply();
             invite.setGroupId(groupId);
             invite.setInviterId(leaderId);
-            invite.setInviteeId(invitee.getId());
+            invite.setInviteeId(invitee.getUserId());
             invite.setType(InviteType.invite);
             invite.setStatus(InviteStatus.pending);
             invite.setCreateTime(LocalDateTime.now());
@@ -357,24 +356,23 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
                         logger.warn("解析成员缓存失败: userId={}", uid);
                     }
 
-                    HealthData latestHealth = healthDataMapper.findByUserIdAndToday(uid);
+                    com.whu.medicalbackend.common.client.dto.HealthDataDTO latestHealth = healthServiceClient.getTodayHealthData(uid);
                     if (latestHealth != null) {
-                        detail.setHeartRate(latestHealth.getHeartRate());
-                        detail.setStepCount(latestHealth.getStepCount());
-                        detail.setSleepDuration(latestHealth.getSleepDuration());
-                        detail.setSleepScope(latestHealth.getSleepScope());
-                        detail.setBloodOxygen(latestHealth.getBloodOxygen());
-                        detail.setRelaxType(latestHealth.getRelaxType());
-                        detail.setRelaxSubType(latestHealth.getRelaxSubType());
-                        detail.setRelaxDuration(latestHealth.getRelaxDuration());
-                        detail.setPressureMaxScore(latestHealth.getPressureMaxScore());
-                        detail.setPressureMinScore(latestHealth.getPressureMinScore());
-                        detail.setPressureAvgScore(latestHealth.getPressureAvgScore());
-                        detail.setMeasureTime(latestHealth.getMeasureTime());
+                        // 从 JSON 字符串解析健康数据
+                        try {
+                            java.util.Map<String, Object> healthMap = objectMapper.readValue(latestHealth.getDataValue(), java.util.Map.class);
+                            detail.setHeartRate(healthMap.get("heartRate") != null ? ((Number) healthMap.get("heartRate")).doubleValue() : null);
+                            detail.setStepCount(healthMap.get("stepCount") != null ? ((Number) healthMap.get("stepCount")).intValue() : null);
+                            detail.setSleepDuration(healthMap.get("sleepDuration") != null ? ((Number) healthMap.get("sleepDuration")).doubleValue() : null);
+                            detail.setBloodOxygen(healthMap.get("bloodOxygen") != null ? ((Number) healthMap.get("bloodOxygen")).doubleValue() : null);
+                        } catch (Exception e) {
+                            logger.warn("解析健康数据失败: userId={}", uid);
+                        }
                     }
 
-                    int completed = taskMapper.countStatusByDate(uid, LocalDate.now(), 1);
-                    int total = taskMapper.countTotalByDate(uid, LocalDate.now());
+                    String today = LocalDate.now().toString();
+                    int completed = medicationServiceClient.countTasksByDate(uid, today, 1);
+                    int total = medicationServiceClient.countTasksByDate(uid, today, null);
                     detail.setCompletedTasks(completed);
                     detail.setTotalTasks(total);
 
@@ -436,7 +434,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
         }
 
         FamilyGroup group = groupMapper.selectById(groupId);
-        String ownerNickname = userMapper.findByUserId(group.getOwnerUserId()).getNickname();
+        String ownerNickname = userServiceClient.getUserById(group.getOwnerUserId()).getNickname();
 
         List<FamilyMemberVO> memberInfos = familyCacheService.getFamilyMembers(groupId);
 
@@ -520,7 +518,7 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
 
 
     public void publishJoinEvent(Long groupId, Long userId) {
-        User newUser = userMapper.findByUserId(userId);
+        com.whu.medicalbackend.common.client.dto.UserDTO newUser = userServiceClient.getUserById(userId);
         if(newUser == null) return;
 
         Map<String, Object> pushData = new HashMap<>();
@@ -529,15 +527,15 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
         pushData.put("groupId", groupId);
         pushData.put("targetNickname", newUser.getNickname());
 
-        eventPublisher.publishEvent(new FamilyMemberUpdateEvent(
-                this,
-                groupId,
-                pushData
-        ));
+        DomainEvent memberEvent = DomainEvent.of("family.member.changed", "FamilyGroup", String.valueOf(groupId));
+        memberEvent.setUserId(userId);
+        memberEvent.setGroupId(groupId);
+        memberEvent.setPayload(pushData);
+        domainEventPublisher.publish(memberEvent);
     }
 
     public void publishQuitEvent(Long groupId, Long userId) {
-        User newUser = userMapper.findByUserId(userId);
+        com.whu.medicalbackend.common.client.dto.UserDTO newUser = userServiceClient.getUserById(userId);
         if(newUser == null) return;
         Map<String, Object> pushData = new HashMap<>();
         pushData.put("type", "member_leave");
@@ -545,10 +543,10 @@ public class FamilyGroupServiceImpl implements FamilyGroupService {
         pushData.put("groupId", groupId);
         pushData.put("targetNickname", newUser.getNickname());
 
-        eventPublisher.publishEvent(new FamilyMemberUpdateEvent(
-                this,
-                groupId,
-                pushData
-        ));
+        DomainEvent memberEvent = DomainEvent.of("family.member.changed", "FamilyGroup", String.valueOf(groupId));
+        memberEvent.setUserId(userId);
+        memberEvent.setGroupId(groupId);
+        memberEvent.setPayload(pushData);
+        domainEventPublisher.publish(memberEvent);
     }
 }

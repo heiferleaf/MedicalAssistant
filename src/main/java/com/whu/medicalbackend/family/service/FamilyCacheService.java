@@ -4,10 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.whu.medicalbackend.family.dto.FamilyMemberVO;
 import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
-import com.whu.medicalbackend.user.entity.User;
+import com.whu.medicalbackend.common.client.UserServiceClient;
+import com.whu.medicalbackend.common.client.dto.UserDTO;
 import com.whu.medicalbackend.common.exception.BusinessException;
 import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
-import com.whu.medicalbackend.user.mapper.UserMapper;
 import com.whu.medicalbackend.common.util.RedisKeyBuilderUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,7 +19,7 @@ import java.util.Set;
 public class FamilyCacheService {
     @Autowired private RedisService redisService;
     @Autowired private FamilyMemberMapper   memberMapper;
-    @Autowired private UserMapper           userMapper;
+    @Autowired private UserServiceClient    userServiceClient;
     @Autowired private ObjectMapper         objectMapper;
 
     /**
@@ -27,7 +27,7 @@ public class FamilyCacheService {
      * 场景：创建家庭成功、审批通过、邀请成功后实时调用
      */
     public void syncSingleMemberToCache(Long groupId, Long userId) throws JsonProcessingException {
-        User user = userMapper.findByUserId(userId);
+        UserDTO user = userServiceClient.getUserById(userId);
         if(user == null) return;
 
         String role = memberMapper.getRoleInGroup(groupId, userId);
