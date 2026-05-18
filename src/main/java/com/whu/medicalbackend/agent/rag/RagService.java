@@ -1,44 +1,29 @@
 package com.whu.medicalbackend.agent.rag;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import com.whu.medicalbackend.agent.flask.UnifiedFlaskClient;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
 
 @Service
 public class RagService {
-    
-    @Value("${rag.service.url}")
-    private String ragServiceUrl;
-    
-    private final RestTemplate restTemplate;
+
+    private final UnifiedFlaskClient unifiedFlaskClient;
     private final ObjectMapper objectMapper;
-    
-    public RagService() {
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = new ObjectMapper();
+
+    public RagService(UnifiedFlaskClient unifiedFlaskClient, ObjectMapper objectMapper) {
+        this.unifiedFlaskClient = unifiedFlaskClient;
+        this.objectMapper = objectMapper;
     }
-    
+
     public RagResponse queryRag(RagRequest request) throws Exception {
-        String url = ragServiceUrl + "/rag/query";
-        
-        // 添加调试日志
-        System.out.println("调用RAG服务URL: " + url);
-        
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        
-        HttpEntity<RagRequest> httpRequest = new HttpEntity<>(request, headers);
-        
-        ResponseEntity<String> response = restTemplate.exchange(
-            url, HttpMethod.POST, httpRequest, String.class
+        Map<String, Object> result = unifiedFlaskClient.queryRag(
+                request.getQuestion(),
+                request.isWithTrace(),
+                request.isWithTiming()
         );
-        
-        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-            return objectMapper.readValue(response.getBody(), RagResponse.class);
-        } else {
-            throw new RuntimeException("RAG服务返回异常状态: " + response.getStatusCode());
-        }
+
+        return objectMapper.convertValue(result, RagResponse.class);
     }
 }

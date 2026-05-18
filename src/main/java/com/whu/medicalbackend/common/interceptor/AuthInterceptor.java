@@ -19,10 +19,15 @@ public class AuthInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
         if("OPTIONS".equals(request.getMethod())) return true;
         
-        // 特殊处理：PDF 下载接口允许匿名访问
+        // 特殊处理：放行 PDF 下载和 Agent 接口（免 Token）
         String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/api/medical/prepare/pdf/file/")) {
-            System.out.println("[AuthInterceptor] 放行 PDF 下载请求：" + requestURI);
+        if (requestURI.startsWith("/api/medical/prepare/pdf/file/")
+                || requestURI.startsWith("/api/agent/")
+                || requestURI.startsWith("/api/predict/")
+                || requestURI.startsWith("/api/rag/")
+                || requestURI.startsWith("/api/ocr/")
+                || requestURI.startsWith("/test/")) {
+            System.out.println("[AuthInterceptor] 放行免认证请求：" + requestURI);
             return true;
         }
 

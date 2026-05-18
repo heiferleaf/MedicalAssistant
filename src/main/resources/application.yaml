@@ -8,12 +8,26 @@ server:
 flask:
   base-url: ${FLASK_URL:http://8.148.94.242:8001}
   timeout-ms: 120000
+  # 客户端连接池（Module 5）
+  client:
+    connect-timeout-ms: 5000
+    read-timeout-ms: 120000
+    max-connections: 200
+    max-connections-per-route: 50
+    connection-ttl-ms: 300000
+    keep-alive-ms: 60000
 
-# Compatibility: some components expect ai.rag.*
+# AI 配置
 ai:
   rag:
     base-url: ${flask.base-url}
     timeout-ms: ${flask.timeout-ms}
+  # AI 缓存（Module 5）
+  cache:
+    enabled: true
+    ocr-ttl-seconds: 3600
+    rag-ttl-seconds: 1800
+    predict-ttl-seconds: 600
 
 # RAG服务配置
 rag:
@@ -25,7 +39,7 @@ rag:
 spring:
   application:
     name: mediacalbackend
-  
+
   # 日志配置
   main:
     log-startup-info: true
@@ -38,27 +52,20 @@ spring:
 
   # 数据源配置
   datasource:
-    # JDBC URL
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3307}/${MYSQL_DB:medicalassistant}?useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai
-    # 数据库用户名
     username: ${MYSQL_USER:appuser}
-    # 数据库密码
     password: ${MYSQL_PASSWORD:123456}
-    # 驱动类名（MySQL 8.x）
-    driver-class-name:  com.mysql.cj.jdbc.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
   # redis 配置
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: 6379
-      # 把 java 对象转为 redis 操作的网络包的一个驱动
-#      password: ${REDIS_PASSWORD:null}
       lettuce:
-        # 对连接池做配置
         pool:
-          max-active: 8 # 连接池最大连接数
-          max-idle: 8 # 最大空闲连接数
+          max-active: 8
+          max-idle: 8
 
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
@@ -67,7 +74,6 @@ spring:
     password: ${SPRING_RABBITMQ_PASSWORD:guest}
     listener:
       simple:
-        # 消费者并发数（多线程消费）
         concurrency: 2
         max-concurrency: 5
         default-requeue-rejected: false
@@ -96,7 +102,6 @@ infra:
       max-size: 8
   delay:
     redis:
-      # 迁移服药提醒/漏服标记前保持关闭，避免与现有 DynamicTaskScheduler 重复执行
       enabled: false
       poll-interval-ms: 1000
       batch-size: 100
@@ -113,23 +118,17 @@ management:
 
 # MyBatis配置
 mybatis:
-  # Mapper XML文件位置
   mapper-locations: classpath:mapper/*.xml
-  # 实体类别名包（XML中可以直接用类名，不用写全限定名）
   type-aliases-package: com.whu
-  # 实体类型转换处理（LocalTime(List<LocalTime>) <-> VARCHAR）
   type-handlers-package: com.whu
-  # MyBatis全局配置
   configuration:
-    # 开启驼峰命名映射：create_time -> createTime
     map-underscore-to-camel-case: true
-    # 打印SQL日志（开发环境）
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 # 阿里云 DashScope 配置
 dashscope:
   api-key: ${DASHSCOPE_API_KEY:}
-  model: qwen-turbo  # 使用支持联网搜索的模型
+  model: qwen-turbo
 
 # Redis Pub/Sub 判断的实例依据
 app:
@@ -144,10 +143,59 @@ agent:
   llm:
     enabled: true
   multi-turn:
-    max-turns: 5          # 最大执行轮数
-    timeout-ms: 30000     # 超时时间（毫秒）
-    retry-enabled: true   # 启用重试
-    max-retries: 2        # 最大重试次数
+    max-turns: 5
+    timeout-ms: 30000
+    retry-enabled: true
+    max-retries: 2
+  # 请求分级（Module 5）
+  task:
+    grading:
+      L1-timeout-ms: 2000
+      L2-timeout-ms: 10000
+      L3-timeout-ms: 30000
+      L4-timeout-ms: 120000
+
+# Resilience4j 限流熔断配置（Module 5）
+resilience4j:
+  ratelimiter:
+    configs:
+      default:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 500ms
+    instances:
+      flaskOcr:
+        base-config: default
+        limit-for-period: 30
+      flaskRag:
+        base-config: default
+        limit-for-period: 50
+      flaskPredict:
+        base-config: default
+        limit-for-period: 20
+      llmChat:
+        base-config: default
+        limit-for-period: 20
+      agentChat:
+        base-config: default
+        limit-for-period: 10
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+    instances:
+      flaskOcr:
+        base-config: default
+      flaskRag:
+        base-config: default
+      flaskPredict:
+        base-config: default
+      llmChat:
+        base-config: default
 
 printpdf:
   output-dir: ./uploads/printpdf

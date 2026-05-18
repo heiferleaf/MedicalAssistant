@@ -12,8 +12,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.whu.medicalbackend.agent.langchain4j.tools.ocr.OcrDrugRecognitionTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.family.FamilyAlarmTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.family.FamilyHealthSnapshotTool;
@@ -31,9 +33,9 @@ import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryHistoryTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskQueryTodayTool;
 import com.whu.medicalbackend.agent.langchain4j.tools.task.TaskUpdateStatusTool;
 import com.whu.medicalbackend.agent.langchain4j.core.listener.ToolExecutionBroadcaster;
+import com.whu.medicalbackend.agent.langchain4j.core.memory.RedisChatMemory;
 import com.whu.medicalbackend.agent.service.ToolExecutionPendingService;
 
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.MemoryId;
@@ -42,7 +44,7 @@ import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
 /**
- * 医疗助手 Agent - 支持 Human-in-the-loop
+ * 医疗助手 Agent - 支持 Human-in-the-loop + Redis 分布式记忆
  */
 @Component
 @ConditionalOnProperty(prefix = "agent.llm", name = "enabled", havingValue = "true")
@@ -52,13 +54,13 @@ public class MedicalAgent {
     private static final Logger logger = LoggerFactory.getLogger(MedicalAgent.class);
 
     private final MedicalExpert medicalExpert;
-    
+
     @Autowired
     private ToolExecutionPendingService toolExecutionPendingService;
-    
+
     @Autowired
     private ToolExecutionBroadcaster toolExecutionBroadcaster;
-    
+
     // 需要用户批准的 tool 名称
     private static final Set<String> REQUIRES_APPROVAL_TOOLS = new HashSet<>(Arrays.asList(
         "createPlan", "updatePlan", "deletePlan",
@@ -82,11 +84,15 @@ public class MedicalAgent {
                         MedicineAddTool medicineAddTool,
                         PredictTool predictTool,
                         RagTool ragTool,
-                        OcrDrugRecognitionTool ocrDrugRecognitionTool) {
+                        OcrDrugRecognitionTool ocrDrugRecognitionTool,
+                        StringRedisTemplate redisTemplate,
+                        ObjectMapper objectMapper) {
 
         this.medicalExpert = AiServices.builder(MedicalExpert.class)
                 .chatModel(chatModel)
-                .chatMemoryProvider(memoryId -> MessageWindowChatMemory.withMaxMessages(10))
+                // 使用 Redis 分布式 ChatMemory，通过 memoryId 动态创建
+                .chatMemoryProvider(memoryId -> new RedisChatMemory(
+                        memoryId, redisTemplate, objectMapper, 10))
                 .tools(planQueryTool, planCreateTool, planUpdateTool, planDeleteTool,
                        taskQueryTodayTool, taskUpdateStatusTool, taskQueryHistoryTool,
                        familyQueryTool, familyHealthSnapshotTool, familyAlarmTool, familyInviteTool,
@@ -99,7 +105,7 @@ public class MedicalAgent {
 
         @SystemMessage("""
                 You are a helpful and versatile assistant who can answer all kinds of legal questions and help users with various needs. Your primary specialty is medical health assistance, including helping users with health questions and managing medication plans and tasks, but you are also capable of answering other types of questions.
-                
+
                 IMPORTANT CAPABILITIES:
                 - You have INTERNET SEARCH capability enabled through your model
                 - For current events, weather, news, time-sensitive information, use your built-in search capability
@@ -138,10 +144,10 @@ public class MedicalAgent {
                 DRUG ADVERSE REACTION PREDICTION TOOLS:
                 - predictAdverseReactions: Predict potential drug adverse reactions based on clinical information
                 - analyzeAdverseReactionRisk: Analyze drug adverse reaction risks based on symptoms and medications
-                
+
                 MEDICAL KNOWLEDGE BASE TOOLS:
                 - queryMedicalKnowledge: Query medical knowledge base using RAG for professional medical information
-                
+
                 When should you use tools:
                 - ALWAYS use queryPlans when the user asks about their medication plans
                 - DO NOT use createPlan until the user has CONFIRMED the medication plan details
@@ -160,7 +166,7 @@ public class MedicalAgent {
                 - ALWAYS use predictAdverseReactions when the user asks about drug safety, side effects, or adverse reactions
                 - ALWAYS use analyzeAdverseReactionRisk when the user wants to assess medication risks
                 - ALWAYS use queryMedicalKnowledge when the user asks general medical questions, symptoms, diseases, treatments, or needs professional medical information
-                
+
                 Guidelines for tool usage:
                 1. For NON-MEDICAL questions (like weather, news, general knowledge, etc.), answer DIRECTLY using your knowledge, DO NOT use queryMedicalKnowledge
                 2. For medical questions, ALWAYS try queryMedicalKnowledge FIRST to get professional, evidence-based information
@@ -174,9 +180,9 @@ public class MedicalAgent {
                 10. For general medical knowledge questions, use queryMedicalKnowledge to provide accurate, professional information
                 11. IMPORTANT: When user wants to create a medication plan, DO NOT call createPlan immediately. Instead, provide suggested plan details and wait for user confirmation.
                 12. Only call createPlan AFTER the user has explicitly confirmed the plan details.
-                
+
                 Remember: You are a helpful and versatile assistant. While your primary specialty is medical health assistance (including medication management, family health monitoring, drug safety prediction, and access to professional medical knowledge), you should also be willing and able to answer all types of legal questions and help users with various needs. Use your medical tools for health-related queries, but for other questions, answer directly using your knowledge in a helpful and friendly manner.
-                
+
                 IMPORTANT RESPONSE FORMAT GUIDELINES:
                 - Always respond using Markdown format to make your messages more readable
                 - Use **bold** for important medical information, warnings, and key points
@@ -186,50 +192,46 @@ public class MedicalAgent {
                 - Use numbered lists (1., 2., 3.) for step-by-step instructions
                 - Use headings (#, ##, ###) to organize long responses into sections
                 - Always keep your responses clear, structured, and easy to read
-                
+
                 CRITICAL: USER CONFIRMATION REQUIRED FOR PLAN OPERATIONS!
                 - When user wants to CREATE a plan, summarize the plan details and ask "请确认是否创建此用药计划？"
                 - When user wants to UPDATE a plan, summarize the changes and ask "请确认是否修改此用药计划？"
                 - When user wants to DELETE a plan, ask "请确认是否删除此用药计划？"
                 - After user confirms (says "好的", "确认", "yes", "可以", "执行", etc.), call the tool.
-                
+
                 CRITICAL: FOR MEDICINE AND TASK OPERATIONS!
                 - When user wants to add medicine to cabinet (e.g., "添加布洛芬到药箱"), you MUST call addMedicine tool FIRST, then include [ACTION:addMedicine] in your response
                 - When user reports taking medicine (e.g., "我吃了阿司匹林", "药已吃"), you MUST call updateTaskStatus tool FIRST, then include [ACTION:updateTaskStatus] in your response
                 - After calling these tools, ALWAYS include the action marker in your response so frontend can show confirmation card!
                 """)
-        String medical(@MemoryId String memoryId, @V("userId") String userId, @UserMessage String userMessage);
+        String medical(@MemoryId String memoryId, @V("userId") String userId, @UserMessage String message);
     }
 
     /**
      * 执行 Agent - 支持 Human-in-the-loop
-     * 返回结构化结果，包括是否需要用户确认
      */
     public Map<String, Object> execute(String sessionId, String userId, String userMessage, String aiMessage) {
         try {
             logger.info("执行 Agent 推理，sessionId: {}, userId: {}, message: {}", sessionId, userId, userMessage);
 
-            // 调用 AI 获取回复
             String response = chat(sessionId, userId, userMessage);
             logger.info("Agent 文本回复：{}", response);
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("success", true);
             result.put("assistant_message", response);
-            
-            // 检查是否有待确认的请求（通过数据库查询）
+
+            // 检查是否有待确认的请求
             List<?> pendingRequests = toolExecutionPendingService.getUserPendingRequests(Long.parseLong(userId));
             if (pendingRequests != null && !pendingRequests.isEmpty()) {
-                // 有待确认的请求
                 Object pending = pendingRequests.get(0);
                 logger.info("检测到待确认请求：{}", pending);
-                
-                // 从待确认请求中提取 action 信息
+
                 if (pending instanceof Map) {
                     Map<?, ?> pendingMap = (Map<?, ?>) pending;
                     String actionType = (String) pendingMap.get("action_type");
                     String toolArgsJson = (String) pendingMap.get("tool_args_json");
-                    
+
                     if (actionType != null && toolArgsJson != null) {
                         result.put("action_type", actionType);
                         result.put("action_data", toolArgsJson);
@@ -237,7 +239,7 @@ public class MedicalAgent {
                     }
                 }
             }
-            
+
             result.put("need_confirm", false);
             result.put("actions", List.of());
 
@@ -250,63 +252,54 @@ public class MedicalAgent {
             return result;
         }
     }
-    
+
     /**
-     * 对话方法 - 支持 Human-in-the-loop
-     * 返回普通文本（AI 的回复）或 Tool 的待确认响应
+     * 对话方法 - 使用 Redis 分布式记忆
      */
-    public String chat(String sessionId, String userId, String userMessage) {
-        logger.info("执行医疗助手对话：sessionId={}, userId={}, message 长度={}", sessionId, userId, userMessage.length());
-        
-        // 如果消息包含 Base64 数据，记录前 100 个字符
-        if (userMessage.contains("图片数据：")) {
-            int base64Start = userMessage.indexOf("图片数据：") + 5;
-            String base64Preview = userMessage.substring(base64Start, Math.min(base64Start + 100, userMessage.length()));
+    public String chat(String sessionId, String userId, String message) {
+        logger.info("执行医疗助手对话：sessionId={}, userId={}, message 长度={}", sessionId, userId, message.length());
+
+        if (message.contains("图片数据：")) {
+            int base64Start = message.indexOf("图片数据：") + 5;
+            String base64Preview = message.substring(base64Start, Math.min(base64Start + 100, message.length()));
             logger.info("检测到图片消息，Base64 前 100 字符：{}", base64Preview);
         }
-        
-        // 设置当前 sessionId 到上下文
+
         toolExecutionBroadcaster.setCurrentSession(sessionId);
-        
+
         String memoryId = userId + "_" + sessionId;
         try {
-            return medicalExpert.medical(memoryId, userId, userMessage);
+            return medicalExpert.medical(memoryId, userId, message);
         } finally {
-            // 清除上下文
             toolExecutionBroadcaster.clearCurrentSession();
         }
     }
-    
+
     /**
-     * 处理 Tool 执行 - 由 Agent 框架自动调用
-     * 这里我们拦截需要批准的 tool
+     * 处理 Tool 执行 - 需要批准的拦截
      */
     public Object handleToolExecution(String toolName, Map<String, Object> arguments, String userId, String sessionId, String aiMessage) {
         logger.info("拦截 Tool 执行：toolName={}, userId={}", toolName, userId);
-        
+
         if (REQUIRES_APPROVAL_TOOLS.contains(toolName)) {
-            // 需要用户批准的 tool
             logger.info("Tool 需要用户批准：{}", toolName);
-            
+
             try {
-                // 构建 ToolExecutionRequest
-                dev.langchain4j.agent.tool.ToolExecutionRequest request = 
+                dev.langchain4j.agent.tool.ToolExecutionRequest request =
                     dev.langchain4j.agent.tool.ToolExecutionRequest.builder()
                         .name(toolName)
                         .arguments(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(arguments))
                         .build();
-                
-                // 保存到数据库，等待用户确认
+
                 String requestId = toolExecutionPendingService.savePendingRequest(
-                    Long.parseLong(userId), 
-                    sessionId, 
-                    request, 
+                    Long.parseLong(userId),
+                    sessionId,
+                    request,
                     aiMessage
                 );
-                
+
                 logger.info("已保存待确认请求：requestId={}", requestId);
-                
-                // 返回特殊响应，告知前端需要确认
+
                 Map<String, Object> pendingResponse = new LinkedHashMap<>();
                 pendingResponse.put("success", true);
                 pendingResponse.put("pending_confirmation", true);
@@ -314,7 +307,7 @@ public class MedicalAgent {
                 pendingResponse.put("tool_name", toolName);
                 pendingResponse.put("arguments", arguments);
                 pendingResponse.put("message", "请确认是否" + getActionMessage(toolName));
-                
+
                 return pendingResponse;
             } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
                 logger.error("序列化 Tool 参数失败", e);
@@ -324,11 +317,10 @@ public class MedicalAgent {
                 return error;
             }
         }
-        
-        // 不需要批准的 tool，返回 null 让框架继续执行
+
         return null;
     }
-    
+
     private String getActionMessage(String toolName) {
         switch (toolName) {
             case "createPlan": return "创建此用药计划";

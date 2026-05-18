@@ -3,6 +3,8 @@ package com.whu.medicalbackend.agent;
 import com.whu.medicalbackend.agent.flask.FlaskRagProxyService;
 import com.whu.medicalbackend.agent.langchain4j.agents.MedicalAgent;
 import com.whu.medicalbackend.agent.core.memory.AgentMemoryRepository;
+import com.whu.medicalbackend.agent.core.task.AgentTaskService;
+import com.whu.medicalbackend.agent.core.task.AgentTask;
 import com.whu.medicalbackend.agent.langchain4j.core.listener.ToolExecutionBroadcaster;
 import com.whu.medicalbackend.agent.service.OcrService;
 import com.whu.medicalbackend.agent.service.ToolExecutionPendingService;
@@ -35,6 +37,7 @@ public class AgentOrchestratorService {
     private final ToolExecutionBroadcaster toolExecutionBroadcaster;
     private final OcrService ocrService;
     private final ToolExecutionPendingService toolExecutionPendingService;
+    private final AgentTaskService agentTaskService;
     private final String flaskBaseUrl;
     private final boolean llmEnabled;
 
@@ -46,6 +49,7 @@ public class AgentOrchestratorService {
             ToolExecutionBroadcaster toolExecutionBroadcaster,
             OcrService ocrService,
             ToolExecutionPendingService toolExecutionPendingService,
+            AgentTaskService agentTaskService,
             @Value("${flask.base-url:http://localhost:8001}") String flaskBaseUrl,
             @Value("${agent.llm.enabled:false}") boolean llmEnabled) {
         this.memoryRepository = memoryRepository;
@@ -56,6 +60,7 @@ public class AgentOrchestratorService {
         this.toolExecutionPendingService = toolExecutionPendingService;
         this.toolExecutionBroadcaster = toolExecutionBroadcaster;
         this.ocrService = ocrService;
+        this.agentTaskService = agentTaskService;
         this.flaskBaseUrl = flaskBaseUrl;
         this.llmEnabled = llmEnabled && this.chatModel != null;
 
@@ -235,6 +240,27 @@ public class AgentOrchestratorService {
             logger.error("简单 LLM 调用失败", e);
             return Map.of("success", false, "message", "LLM 调用失败：" + e.getMessage());
         }
+    }
+
+    /**
+     * 提交聊天任务（带请求分级）
+     * 返回 taskId，客户端可通过 taskId 轮询结果
+     */
+    public AgentTask submitChatTask(Map<String, Object> payload) {
+        String userId = str(payload.get("user_id"));
+        String sessionId = str(payload.get("session_id"));
+
+        return agentTaskService.submit(sessionId, userId, payload, () -> {
+            Map<String, Object> result = chat(payload);
+            return result;
+        });
+    }
+
+    /**
+     * 获取异步任务结果
+     */
+    public AgentTask getTaskStatus(String taskId) {
+        return agentTaskService.getTask(taskId);
     }
 
     public Map<String, Object> health() {

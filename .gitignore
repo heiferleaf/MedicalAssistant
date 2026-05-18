@@ -37,5 +37,14 @@ temp-langchain4j/
 temp-*/
 /src/main/resources/application.yaml
 .DS_Store
+
+# 环境变量（含 API Key，禁止提交）
+.env
+
+# 前端项目（独立仓库）
+MedicalAssistant-frontend/
+
+# 测试临时文件
+test/
 uploads/
 uploads/printpdf/*.pdf
