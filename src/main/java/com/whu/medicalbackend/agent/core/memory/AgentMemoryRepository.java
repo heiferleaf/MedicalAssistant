@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -15,12 +16,20 @@ import java.util.*;
 @Repository
 public class AgentMemoryRepository {
 
+    private static final String SESSION_SEEN_PREFIX = "agent:session:seen:";
+    // 会话存活期内不重复写 touchSession；24h 足够覆盖单次对话生命周期
+    private static final Duration SESSION_SEEN_TTL = Duration.ofHours(24);
+
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final StringRedisTemplate redisTemplate;
 
-    public AgentMemoryRepository(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
+    public AgentMemoryRepository(JdbcTemplate jdbcTemplate,
+                                  ObjectMapper objectMapper,
+                                  StringRedisTemplate redisTemplate) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
+        this.redisTemplate = redisTemplate;
     }
 
     public void touchSession(String sessionId, String userId) {
@@ -33,8 +42,32 @@ public class AgentMemoryRepository {
         );
     }
 
-    public void appendMessage(String sessionId, String userId, String role, String content) {
+    /**
+     * touchSession that skips the DB upsert when Redis confirms the session was already created.
+     * Saves one DB round-trip on every message after session creation.
+     */
+    private void touchSessionCached(String sessionId, String userId) {
+        String key = SESSION_SEEN_PREFIX + sessionId;
+        Boolean seen = redisTemplate.hasKey(key);
+        if (Boolean.TRUE.equals(seen)) {
+            return;
+        }
         touchSession(sessionId, userId);
+        redisTemplate.opsForValue().set(key, "1", SESSION_SEEN_TTL);
+    }
+
+    /** Mark a session as known in Redis (called by AgentSessionController on explicit creation). */
+    public void markSessionSeen(String sessionId) {
+        redisTemplate.opsForValue().set(SESSION_SEEN_PREFIX + sessionId, "1", SESSION_SEEN_TTL);
+    }
+
+    /** Evict the session-seen flag (e.g. after delete). */
+    public void evictSessionSeen(String sessionId) {
+        redisTemplate.delete(SESSION_SEEN_PREFIX + sessionId);
+    }
+
+    public void appendMessage(String sessionId, String userId, String role, String content) {
+        touchSessionCached(sessionId, userId);
         jdbcTemplate.update(
                 "INSERT INTO agent_messages(session_id, user_id, role, content, created_at) VALUES(?,?,?,?,?)",
                 sessionId,
@@ -48,9 +81,9 @@ public class AgentMemoryRepository {
     /**
      * 保存带 action 的消息
      */
-    public void appendMessageWithAction(String sessionId, String userId, String role, String content, 
+    public void appendMessageWithAction(String sessionId, String userId, String role, String content,
                                         String actionType, String actionData) {
-        touchSession(sessionId, userId);
+        touchSessionCached(sessionId, userId);
         jdbcTemplate.update(
                 "INSERT INTO agent_messages(session_id, user_id, role, content, action_type, action_data, created_at) " +
                 "VALUES(?,?,?,?,?,?,?)",

@@ -66,6 +66,7 @@ public class AgentSessionController {
             }
             
             memoryRepository.touchSession(sessionId, userId);
+            memoryRepository.markSessionSeen(sessionId);
             
             Map<String, Object> result = new HashMap<>();
             result.put("sessionId", sessionId);
@@ -85,6 +86,7 @@ public class AgentSessionController {
     public Result<Void> deleteSession(@PathVariable String sessionId) {
         try {
             memoryRepository.deleteSession(sessionId);
+            memoryRepository.evictSessionSeen(sessionId);
             return Result.success(null);
         } catch (Exception e) {
             return Result.error(ResultCode.SYSTEM_ERROR, "删除会话失败：" + e.getMessage());
