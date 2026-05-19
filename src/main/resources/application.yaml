@@ -182,7 +182,7 @@ agent:
   # Mock LLM 拦截器 — 压测前序链路时开启，拦截所有 LLM 出站请求并返回 stub 响应
   # 切换方式：将 enabled 改为 true，无需修改任何代码
   mock:
-    enabled: false          # true = 拦截 LLM 出站请求；false = 正常调用 DashScope
+    enabled: true           # true = 拦截 LLM 出站请求；false = 正常调用 DashScope
     response-delay-ms: 0   # 可选模拟延迟(ms)，0 表示立即返回
   multi-turn:
     max-turns: 5
@@ -220,7 +220,9 @@ resilience4j:
         limit-for-period: 20
       agentChat:
         base-config: default
-        limit-for-period: 10
+        # 压测 mock 模式下放开限流，观测前序链路真实吞吐上限
+        # 生产环境应恢复为 10（防止 LLM 费用失控）
+        limit-for-period: ${AGENT_CHAT_RATE_LIMIT:10}
   circuitbreaker:
     configs:
       default:
