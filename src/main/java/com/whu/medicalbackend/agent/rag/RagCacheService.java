@@ -13,6 +13,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -74,13 +75,13 @@ public class RagCacheService {
         }
     }
 
-    public void put(String cacheKey, RagResponse response) {
+    public void put(String cacheKey, RagResponse response, String question) {
         if (!properties.isCacheEnabled() || response == null) {
             return;
         }
         try {
             boolean emptyAnswer = response.getAnswer() == null || response.getAnswer().trim().isEmpty();
-            long ttlSeconds = emptyAnswer ? properties.getNullCacheTtlSeconds() : ttlWithJitter();
+            long ttlSeconds = emptyAnswer ? properties.getNullCacheTtlSeconds() : selectTtl(question);
             redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(response), Duration.ofSeconds(ttlSeconds));
         } catch (Exception e) {
             logger.warn("Write RAG cache failed, key={}", cacheKey, e);
@@ -117,11 +118,37 @@ public class RagCacheService {
         return properties.isCacheEnabled();
     }
 
+    private static final long TTL_SHORT  = 600;   // 10min — 时效性强的问题
+    private static final long TTL_LONG   = 86400;  // 24h  — 基础药理知识
+
+    // 含这些词的问题时效性强，短缓存
+    private static final List<String> TIME_SENSITIVE_KEYWORDS = List.of(
+            "最新", "最近", "今天", "今日", "当前", "现在", "指南", "新冠", "covid",
+            "疫情", "outbreak", "recall", "召回", "通知", "公告", "latest", "recent", "current"
+    );
+
     private long ttlWithJitter() {
         long jitter = properties.getCacheTtlJitterSeconds() <= 0
                 ? 0
                 : ThreadLocalRandom.current().nextLong(properties.getCacheTtlJitterSeconds() + 1);
         return properties.getCacheTtlSeconds() + jitter;
+    }
+
+    private long selectTtl(String question) {
+        if (question == null) return ttlWithJitter();
+        String q = question.toLowerCase(Locale.ROOT);
+        for (String kw : TIME_SENSITIVE_KEYWORDS) {
+            if (q.contains(kw)) {
+                logger.debug("RAG cache short TTL triggered by keyword '{}' in question", kw);
+                return TTL_SHORT;
+            }
+        }
+        // 纯基础药理问题给长 TTL；否则用配置默认值
+        if (q.contains("副作用") || q.contains("不良反应") || q.contains("禁忌") || q.contains("药理")
+                || q.contains("mechanism") || q.contains("pharmacology") || q.contains("side effect")) {
+            return TTL_LONG;
+        }
+        return ttlWithJitter();
     }
 
     private String safe(String value) {
