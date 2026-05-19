@@ -184,6 +184,11 @@ agent:
   mock:
     enabled: true           # true = 拦截 LLM 出站请求；false = 正常调用 DashScope
     response-delay-ms: 0   # 可选模拟延迟(ms)，0 表示立即返回
+  # Sentinel 限流 QPS 阈值（可通过环境变量覆盖）
+  sentinel:
+    chat-qps: ${SENTINEL_CHAT_QPS:500}
+    stream-qps: ${SENTINEL_STREAM_QPS:300}
+    ocr-qps: ${SENTINEL_OCR_QPS:30}
   multi-turn:
     max-turns: 5
     timeout-ms: 30000
