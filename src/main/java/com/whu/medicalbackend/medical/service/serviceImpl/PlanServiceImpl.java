@@ -91,11 +91,8 @@ public class PlanServiceImpl implements PlanService {
                 .distinct()  // 去重
                 .collect(Collectors.toList());
 
-        // 3. 批量查询药品（一次查询，避免N次循环查询）
-        // Java知识点：Function. identity() 等价于 medicine -> medicine
-        Map<Long, Medicine> medicineMap = medicineIds.stream()
-                .map(id -> medicineMapper.findById(id))
-                .filter(medicine -> medicine != null)  // 过滤null
+        // 3. 批量查询药品（一次 IN 查询，替代 N 次单查）
+        Map<Long, Medicine> medicineMap = medicineMapper.findByIds(medicineIds).stream()
                 .collect(Collectors.toMap(Medicine::getId, Function.identity()));
 
         // 4. 转换为VO

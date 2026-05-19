@@ -268,15 +268,12 @@ public class TaskServiceImpl implements TaskService {
      * - 批量查询：1次查询所有药品ID = 3次SQL
      */
     private Map<Long, Medicine> batchQueryMedicines(List<MedicationTask> tasks) {
-        // 收集所有药品ID（去重）
         List<Long> medicineIds = tasks.stream()
                 .map(MedicationTask::getMedicineId)
                 .distinct()
                 .collect(Collectors.toList());
 
-        return medicineIds.stream()
-                .map(id -> medicineMapper.findById(id))
-                .filter(m -> m != null)
+        return medicineMapper.findByIds(medicineIds).stream()
                 .collect(Collectors.toMap(Medicine::getId, Function.identity()));
     }
 
