@@ -152,6 +152,12 @@ management:
     health:
       probes:
         enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://${ZIPKIN_HOST:localhost}:9411/api/v2/spans
 
 # MyBatis配置
 mybatis:
@@ -256,3 +262,6 @@ logging:
     com.whu.medicalbackend: DEBUG
     org.springframework.web: DEBUG
     org.springframework.web.servlet: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] [%X{spanId:-}] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] [%X{spanId:-}] %-5level %logger{36} - %msg%n"
