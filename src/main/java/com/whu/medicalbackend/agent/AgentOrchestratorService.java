@@ -94,18 +94,21 @@ public class AgentOrchestratorService {
             return Map.of("success", false, "error", "message 不能为空", "status", 400);
         }
 
+        // Fast-fail before touching DB: if neither agent nor chat model is available,
+        // there is nothing to respond with — no point persisting the user message.
+        boolean hasAgent = llmEnabled && medicalAgent != null;
+        if (!hasAgent && chatModel == null) {
+            return llmUnavailableResult(withTrace);
+        }
+
         memoryRepository.appendMessage(sessionId, userId, "user", message);
 
         // 优先使用 Medical Agent（如果启用）
-        if (llmEnabled && medicalAgent != null) {
+        if (hasAgent) {
             Map<String, Object> agentResult = handleMedicalAgentChat(userId, sessionId, message, withTrace, withTiming);
             if (agentResult != null) {
                 return agentResult;
             }
-        }
-
-        if (chatModel == null) {
-            return llmUnavailableResult(withTrace);
         }
 
         // 回退到简单 LLM 调用
