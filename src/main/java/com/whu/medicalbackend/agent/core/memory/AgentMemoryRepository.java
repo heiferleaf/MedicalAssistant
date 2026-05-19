@@ -151,6 +151,24 @@ public class AgentMemoryRepository {
         }
     }
 
+    /**
+     * Returns sessions for a user, each row already containing the last message content.
+     * Single query replaces the previous N+1 pattern in AgentSessionController.
+     */
+    public List<Map<String, Object>> getUserSessionsWithLastMessage(String userId) {
+        return jdbcTemplate.queryForList(
+                "SELECT s.session_id, s.user_id, s.created_at, s.updated_at, s.summary_text, " +
+                "       lm.content AS last_message_content " +
+                "FROM agent_sessions s " +
+                "LEFT JOIN agent_messages lm ON lm.id = (" +
+                "    SELECT id FROM agent_messages WHERE session_id = s.session_id ORDER BY id DESC LIMIT 1" +
+                ") " +
+                "WHERE s.user_id = ? " +
+                "ORDER BY s.updated_at DESC",
+                userId
+        );
+    }
+
     public List<Map<String, Object>> getUserSessions(String userId) {
         return jdbcTemplate.queryForList(
                 "SELECT session_id, user_id, created_at, updated_at, summary_text " +

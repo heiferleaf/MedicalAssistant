@@ -21,8 +21,9 @@ public class AgentSessionController {
     @GetMapping
     public Result<List<Map<String, Object>>> getSessions(@RequestParam String userId) {
         try {
-            List<Map<String, Object>> sessions = memoryRepository.getUserSessions(userId);
-            
+            List<Map<String, Object>> sessions =
+                    memoryRepository.getUserSessionsWithLastMessage(userId);
+
             List<Map<String, Object>> result = new ArrayList<>();
             for (Map<String, Object> session : sessions) {
                 Map<String, Object> item = new LinkedHashMap<>();
@@ -31,20 +32,11 @@ public class AgentSessionController {
                 item.put("createdAt", session.get("created_at"));
                 item.put("updatedAt", session.get("updated_at"));
                 item.put("summary", session.get("summary_text"));
-                
-                // 获取最近的消息预览
-                List<Map<String, Object>> recentMessages = memoryRepository.getRecentMessages(
-                    (String) session.get("session_id"), 1
-                );
-                if (!recentMessages.isEmpty()) {
-                    item.put("lastMessage", recentMessages.get(0).get("content"));
-                } else {
-                    item.put("lastMessage", "新会话");
-                }
-                
+                Object lastMsg = session.get("last_message_content");
+                item.put("lastMessage", lastMsg != null ? lastMsg : "新会话");
                 result.add(item);
             }
-            
+
             return Result.success(result);
         } catch (Exception e) {
             return Result.error(ResultCode.SYSTEM_ERROR, "获取会话列表失败：" + e.getMessage());
