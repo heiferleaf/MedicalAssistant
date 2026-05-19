@@ -1,11 +1,5 @@
 package com.whu.medicalbackend.common.config;
 
-<<<<<<< HEAD
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-=======
 import com.alibaba.csp.sentinel.Entry;
 import com.alibaba.csp.sentinel.SphU;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
@@ -25,9 +19,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 
 import java.io.IOException;
->>>>>>> ec91bf9 (修改Sentinel兼容bug)
 
 @Configuration
 public class SentinelWebConfig {

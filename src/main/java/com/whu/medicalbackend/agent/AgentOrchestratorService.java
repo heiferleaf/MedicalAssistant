@@ -9,6 +9,7 @@ import com.whu.medicalbackend.agent.langchain4j.core.listener.ToolExecutionBroad
 import com.whu.medicalbackend.agent.service.OcrService;
 import com.whu.medicalbackend.agent.service.ToolExecutionPendingService;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -208,19 +209,22 @@ public class AgentOrchestratorService {
         try {
             logger.info("使用简单 LLM 调用处理请求");
 
-            // 从数据库获取对话历史
-            List<Map<String, Object>> messages = memoryRepository.getRecentMessages(sessionId, 5);
-            List<Map<String, String>> history = new ArrayList<>();
-            for (Map<String, Object> msg : messages) {
-                history.add(Map.of(
-                        "role", str(msg.get("role")),
-                        "content", str(msg.get("content"))));
+            // 从数据库获取对话历史，构建多轮上下文
+            List<Map<String, Object>> recentMessages = memoryRepository.getRecentMessages(sessionId, 5);
+            List<ChatMessage> chatMessages = new ArrayList<>();
+            chatMessages.add(SystemMessage.from("你是一个医疗健康助手，负责帮助用户解答健康问题和管理用药计划。"));
+            for (Map<String, Object> msg : recentMessages) {
+                String role = str(msg.get("role"));
+                String content = str(msg.get("content"));
+                if ("user".equals(role)) {
+                    chatMessages.add(UserMessage.from(content));
+                } else if ("assistant".equals(role)) {
+                    chatMessages.add(AiMessage.from(content));
+                }
             }
+            chatMessages.add(UserMessage.from(message));
 
-            // 直接调用 LLM（不使用 Function Call）
-            SystemMessage systemMessage = SystemMessage.from("你是一个医疗健康助手，负责帮助用户解答健康问题和管理用药计划。");
-            UserMessage userMessage = UserMessage.from(message);
-            ChatResponse chatResponse = chatModel.chat(systemMessage, userMessage);
+            ChatResponse chatResponse = chatModel.chat(chatMessages);
             AiMessage aiMessage = chatResponse.aiMessage();
             String response = aiMessage.text();
 
