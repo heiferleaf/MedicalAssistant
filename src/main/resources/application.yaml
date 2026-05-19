@@ -7,11 +7,11 @@ server:
 # Flask AI service
 flask:
   base-url: ${FLASK_URL:http://127.0.0.1:8001}
-  timeout-ms: 120000
+  timeout-ms: 30000
   # 客户端连接池（Module 5）
   client:
     connect-timeout-ms: 5000
-    read-timeout-ms: 120000
+    read-timeout-ms: 30000
     max-connections: 200
     max-connections-per-route: 50
     connection-ttl-ms: 300000
