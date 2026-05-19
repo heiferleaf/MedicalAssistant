@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -18,8 +17,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -38,6 +40,10 @@ public class AgentProxyController {
 
     @Value("${agent.multi-turn.timeout-ms:30000}")
     private long agentTimeoutMs;
+
+    // Small dedicated pool for SSE heartbeat tasks (one thread per ~100 active streams).
+    private final ScheduledExecutorService heartbeatExecutor =
+            Executors.newScheduledThreadPool(4);
 
 
     @PostMapping("/chat")
@@ -147,43 +153,55 @@ public class AgentProxyController {
      * 使用 aiExecutor 线程池替代 ForkJoinPool.commonPool()
      */
     private SseEmitter handleChatStream(String userId, String sessionId, String message) {
-        // 创建 SSE Emitter，超时 5 分钟
         SseEmitter emitter = new SseEmitter(5 * 60 * 1000L);
 
-        // 使用 aiExecutor 异步执行（避免占用 Tomcat 线程池和 ForkJoinPool）
+        // Immediately acknowledge the connection so the client knows the request is queued.
+        try {
+            emitter.send(SseEmitter.event().name("queued").data("processing"));
+        } catch (IOException e) {
+            logger.warn("Failed to send queued event", e);
+        }
+
+        // Heartbeat every 15 s keeps the connection alive through nginx's proxy_read_timeout
+        // and prevents load-balancer idle-connection resets.
+        ScheduledFuture<?> heartbeat = heartbeatExecutor.scheduleAtFixedRate(() -> {
+            try {
+                emitter.send(SseEmitter.event().name("heartbeat").data(""));
+            } catch (Exception ignored) {
+                // emitter already completed or errored — heartbeat will be cancelled by onCompletion
+            }
+        }, 15, 15, TimeUnit.SECONDS);
+
+        emitter.onCompletion(() -> {
+            heartbeat.cancel(false);
+            logger.info("SSE 连接正常关闭，userId={}", userId);
+        });
+        emitter.onTimeout(() -> {
+            heartbeat.cancel(false);
+            logger.warn("SSE 连接超时，userId={}", userId);
+            emitter.complete();
+        });
+        emitter.onError(throwable -> {
+            heartbeat.cancel(false);
+            logger.error("SSE 连接异常，userId={}", userId, throwable);
+        });
+
+        // Run the actual LLM work on the AI thread pool, not the Tomcat request thread.
         CompletableFuture.runAsync(() -> {
             try {
-                // chatStream 内部负责发送所有 SSE 事件（含 end），此处只需关闭连接
                 agentOrchestratorService.chatStream(userId, sessionId, message, emitter);
                 emitter.complete();
-                logger.info("chatStream 完成");
+                logger.info("chatStream 完成，userId={}", userId);
             } catch (Exception e) {
-                logger.error("chatStream 处理失败", e);
+                logger.error("chatStream 处理失败，userId={}", userId, e);
                 try {
-                    emitter.send(SseEmitter.event()
-                        .name("error")
-                        .data(Map.of("error", e.getMessage())));
-                    emitter.completeWithError(e);
+                    emitter.send(SseEmitter.event().name("error").data(Map.of("error", e.getMessage())));
+                    emitter.complete();
                 } catch (IOException ex) {
                     logger.error("发送错误消息失败", ex);
                 }
             }
         }, aiExecutor);
-
-
-        // 设置完成回调，关闭连接
-        emitter.onCompletion(() -> {
-            logger.info("SSE 连接正常关闭");
-        });
-
-        emitter.onTimeout(() -> {
-            logger.warn("SSE 连接超时");
-            emitter.completeWithError(new RuntimeException("SSE timeout"));
-        });
-
-        emitter.onError(throwable -> {
-            logger.error("SSE 连接异常", throwable);
-        });
 
         return emitter;
     }
