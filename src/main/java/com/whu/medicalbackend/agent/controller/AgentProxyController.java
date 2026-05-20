@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -48,7 +49,7 @@ public class AgentProxyController {
 
     @PostMapping("/chat")
     @SentinelResource(value = "/api/agent/chat", blockHandler = "handleChatBlock")
-    public Result<Map<String, Object>> chat(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<Result<Map<String, Object>>> chat(@RequestBody Map<String, Object> payload) {
         logger.info("收到 chat 请求，payload: {}", payload);
         Future<Map<String, Object>> future = null;
         try {
@@ -57,29 +58,26 @@ public class AgentProxyController {
             String message = String.valueOf(payload.get("message"));
             logger.info("chat 请求详情：userId={}, sessionId={}, message 长度={}", userId, sessionId, message != null ? message.length() : 0);
 
-
             future = aiExecutor.submit(() -> agentOrchestratorService.chat(payload));
             Map<String, Object> resp = future.get(agentTimeoutMs, TimeUnit.MILLISECONDS);
             logger.info("chat 响应：success={}", resp.get("success"));
-            return Result.success(resp);
+            return ResponseEntity.ok(Result.success(resp));
         } catch (RejectedExecutionException e) {
-            logger.warn("Agent chat 进入限流保护，AI 线程池队列已满", e);
-            return Result.error(429, "Agent 服务繁忙，请稍后重试");
+            logger.warn("Agent chat 线程池队列已满", e);
+            return ResponseEntity.status(429).body(Result.error(429, "Agent 服务繁忙，请稍后重试"));
         } catch (TimeoutException e) {
-            if (future != null) {
-                future.cancel(true);
-            }
+            if (future != null) future.cancel(true);
             logger.warn("Agent chat 超时，timeoutMs={}", agentTimeoutMs, e);
-            return Result.error(504, "Agent 处理超时，请稍后重试");
+            return ResponseEntity.status(504).body(Result.error(504, "Agent 处理超时，请稍后重试"));
         } catch (Exception e) {
             logger.error("chat 处理失败", e);
-            return Result.error(ResultCode.SYSTEM_ERROR, "Agent chat 处理失败：" + e.getMessage());
+            return ResponseEntity.status(500).body(Result.error(ResultCode.SYSTEM_ERROR, "Agent chat 处理失败：" + e.getMessage()));
         }
     }
 
-    public Result<Map<String, Object>> handleChatBlock(Map<String, Object> payload, BlockException ex) {
-        logger.warn("chat 请求被限流：userId={}", payload.get("user_id"));
-        return Result.error(429, "AI 服务繁忙，请稍后重试");
+    public ResponseEntity<Result<Map<String, Object>>> handleChatBlock(Map<String, Object> payload, BlockException ex) {
+        logger.warn("chat 请求被 Sentinel 限流：userId={}", payload.get("user_id"));
+        return ResponseEntity.status(429).body(Result.error(429, "AI 服务繁忙，请稍后重试"));
     }
 
     @GetMapping({ "/health", "/health/" })

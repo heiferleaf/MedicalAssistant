@@ -132,8 +132,8 @@ infra:
       max-size: 32
     ai:
       core-size: 8
-      max-size: 20
-      queue-capacity: 100
+      max-size: 100
+      queue-capacity: 500
     pdf:
       core-size: 2
       max-size: 8
