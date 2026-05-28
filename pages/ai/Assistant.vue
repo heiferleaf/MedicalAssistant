@@ -43,10 +43,11 @@
 			<view class="footer">
 				<!-- 图片预览区域 -->
 				<view v-if="showImagePreview && scanImage" class="image-preview-bar">
-					<!-- 使用 image 标签，使用 Base64 显示 -->
-					<image :src="scanImageBase64 || scanImage" mode="aspectFill" class="preview-image"/>
-					<view class="remove-btn" @click="removeImage">
-						<image src="/static/Register/close.png" class="remove-icon"/>
+					<view class="image-wrapper">
+						<image :src="scanImageBase64 || scanImage" mode="aspectFill" class="preview-image"/>
+						<view class="remove-btn" @click="removeImage">
+							<image src="/static/Register/close.png" class="remove-icon"/>
+						</view>
 					</view>
 				</view>
 				
@@ -331,40 +332,38 @@ export default {
 	
 	// 图片预览条
 	.image-preview-bar {
-		display: flex;
-		align-items: center;
-		background: #f1f5f9;
-		border-radius: 24rpx;
-		padding: 12rpx;
-		margin: 20rpx 30rpx 0;
-		position: relative;
-		@media (prefers-color-scheme: dark) {
-			background: #334155;
-		}
-		
-		.preview-image {
+		padding: 10rpx 30rpx 0;
+
+		.image-wrapper {
+			position: relative;
+			display: inline-block;
 			width: 120rpx;
 			height: 120rpx;
-			border-radius: 8rpx;
-			object-fit: cover;
-		}
-		
-		.remove-btn {
-			position: absolute;
-			top: -16rpx;
-			right: -16rpx;
-			width: 48rpx;
-			height: 48rpx;
-			background: #ef4444;
-			border-radius: 50%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			box-shadow: 0 2rpx 8rpx rgba(239, 68, 68, 0.3);
-			
-			.remove-icon {
-				width: 28rpx;
-				height: 28rpx;
+
+			.preview-image {
+				width: 120rpx;
+				height: 120rpx;
+				border-radius: 8rpx;
+				object-fit: cover;
+			}
+
+			.remove-btn {
+				position: absolute;
+				top: -12rpx;
+				right: -12rpx;
+				width: 40rpx;
+				height: 40rpx;
+				background: #ef4444;
+				border-radius: 50%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				box-shadow: 0 2rpx 8rpx rgba(239, 68, 68, 0.3);
+
+				.remove-icon {
+					width: 24rpx;
+					height: 24rpx;
+				}
 			}
 		}
 	}
