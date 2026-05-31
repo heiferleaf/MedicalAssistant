@@ -80,6 +80,13 @@ spring:
     password: ${MYSQL_PASSWORD:App123456}
     # 驱动类名（MySQL 8.x）
     driver-class-name:  com.mysql.cj.jdbc.Driver
+    hikari:
+      # 每条 chat 请求最多 4 条 SQL；ai线程池 max=20，加缓冲留余量给其他模块
+      maximum-pool-size: 40
+      minimum-idle: 10
+      connection-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   # redis 配置
   data:
@@ -124,9 +131,9 @@ infra:
       core-size: 8
       max-size: 32
     ai:
-      core-size: 8
-      max-size: 20
-      queue-capacity: 100
+      core-size: 20
+      max-size: 100
+      queue-capacity: 500
     pdf:
       core-size: 2
       max-size: 8
@@ -178,6 +185,16 @@ service:
 agent:
   llm:
     enabled: true
+  # Mock LLM 拦截器 — 压测前序链路时开启，拦截所有 LLM 出站请求并返回 stub 响应
+  # 切换方式：将 enabled 改为 true，无需修改任何代码
+  mock:
+    enabled: true           # true = 拦截 LLM 出站请求；false = 正常调用 DashScope
+    response-delay-ms: 0   # 可选模拟延迟(ms)，0 表示立即返回
+  # Sentinel 限流 QPS 阈值（可通过环境变量覆盖）
+  sentinel:
+    chat-qps: ${SENTINEL_CHAT_QPS:500}
+    stream-qps: ${SENTINEL_STREAM_QPS:300}
+    ocr-qps: ${SENTINEL_OCR_QPS:30}
   multi-turn:
     max-turns: 5
     timeout-ms: 30000
@@ -214,7 +231,9 @@ resilience4j:
         limit-for-period: 20
       agentChat:
         base-config: default
-        limit-for-period: 10
+        # 压测 mock 模式下放开限流，观测前序链路真实吞吐上限
+        # 生产环境应恢复为 10（防止 LLM 费用失控）
+        limit-for-period: ${AGENT_CHAT_RATE_LIMIT:10}
   circuitbreaker:
     configs:
       default:

@@ -31,7 +31,9 @@ public class SentinelFilter implements Filter {
             entry = SphU.entry(resourceName);
             chain.doFilter(request, response);
         } catch (BlockException e) {
-            SentinelBlockHandler.handle(httpRequest, httpResponse, e);
+            httpResponse.setStatus(429);
+            httpResponse.setContentType("application/json;charset=UTF-8");
+            httpResponse.getWriter().write("{\"code\":429,\"message\":\"Too Many Requests\"}");
         } catch (IOException | ServletException | RuntimeException e) {
             Tracer.traceEntry(e, entry);
             throw e;

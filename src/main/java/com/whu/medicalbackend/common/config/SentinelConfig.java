@@ -16,11 +16,23 @@ public class SentinelConfig {
     @Value("${sentinel.dashboard.address:localhost:8858}")
     private String dashboardAddress;
 
+    /** 每秒允许通过的 /api/agent/chat 请求数（生产建议 500，压测可临时调大）。 */
+    @Value("${agent.sentinel.chat-qps:500}")
+    private int chatQps;
+
+    /** 每秒允许通过的 /api/agent/chat/stream（SSE）请求数。 */
+    @Value("${agent.sentinel.stream-qps:300}")
+    private int streamQps;
+
+    /** 每秒允许通过的 /api/ocr/predict 请求数。 */
+    @Value("${agent.sentinel.ocr-qps:30}")
+    private int ocrQps;
+
     @PostConstruct
     public void init() {
         System.setProperty("csp.sentinel.dashboard.server", dashboardAddress);
         System.setProperty("project.name", "medical-agent-service");
-        
+
         initFlowRules();
     }
 
@@ -30,21 +42,21 @@ public class SentinelConfig {
         FlowRule agentChatRule = new FlowRule();
         agentChatRule.setResource("/api/agent/chat");
         agentChatRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        agentChatRule.setCount(10);
+        agentChatRule.setCount(chatQps);
         agentChatRule.setLimitApp("default");
         rules.add(agentChatRule);
 
         FlowRule agentChatStreamRule = new FlowRule();
         agentChatStreamRule.setResource("/api/agent/chat/stream");
         agentChatStreamRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        agentChatStreamRule.setCount(10);
+        agentChatStreamRule.setCount(streamQps);
         agentChatStreamRule.setLimitApp("default");
         rules.add(agentChatStreamRule);
 
         FlowRule ocrRule = new FlowRule();
         ocrRule.setResource("/api/ocr/predict");
         ocrRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        ocrRule.setCount(5);
+        ocrRule.setCount(ocrQps);
         ocrRule.setLimitApp("default");
         rules.add(ocrRule);
 
