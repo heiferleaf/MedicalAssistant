@@ -16,11 +16,20 @@ public class SentinelConfig {
     @Value("${sentinel.dashboard.address:localhost:8858}")
     private String dashboardAddress;
 
+    @Value("${sentinel.flow.agent-chat-qps:200}")
+    private int agentChatQps;
+
+    @Value("${sentinel.flow.agent-chat-stream-qps:200}")
+    private int agentChatStreamQps;
+
+    @Value("${sentinel.flow.ocr-qps:50}")
+    private int ocrQps;
+
     @PostConstruct
     public void init() {
         System.setProperty("csp.sentinel.dashboard.server", dashboardAddress);
         System.setProperty("project.name", "medical-agent-service");
-        
+
         initFlowRules();
     }
 
@@ -30,21 +39,21 @@ public class SentinelConfig {
         FlowRule agentChatRule = new FlowRule();
         agentChatRule.setResource("/api/agent/chat");
         agentChatRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        agentChatRule.setCount(10);
+        agentChatRule.setCount(agentChatQps);
         agentChatRule.setLimitApp("default");
         rules.add(agentChatRule);
 
         FlowRule agentChatStreamRule = new FlowRule();
         agentChatStreamRule.setResource("/api/agent/chat/stream");
         agentChatStreamRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        agentChatStreamRule.setCount(10);
+        agentChatStreamRule.setCount(agentChatStreamQps);
         agentChatStreamRule.setLimitApp("default");
         rules.add(agentChatStreamRule);
 
         FlowRule ocrRule = new FlowRule();
         ocrRule.setResource("/api/ocr/predict");
         ocrRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        ocrRule.setCount(5);
+        ocrRule.setCount(ocrQps);
         ocrRule.setLimitApp("default");
         rules.add(ocrRule);
 

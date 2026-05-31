@@ -11,6 +11,7 @@ x-backend-env: &backend-env
   SPRING_RABBITMQ_PASSWORD: guest
   FLASK_URL: ${FLASK_URL:-http://host.docker.internal:8001}
   DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
+  DASHSCOPE_API_KEYS: ${DASHSCOPE_API_KEYS:-}
   TZ: Asia/Shanghai
 
 x-backend-service: &backend-service
@@ -122,6 +123,12 @@ services:
       <<: *backend-env
       MAIN_CLASS: com.whu.medicalbackend.bootstrap.AgentServiceApplication
       INSTANCE_ID: agent-service
+      # 全链路测试：AGENT_TEST_LOCAL_ONLY=true 时跳过 LLM API，只测本地管道
+      AGENT_TEST_LOCAL_ONLY: ${AGENT_TEST_LOCAL_ONLY:-false}
+      # Sentinel 流控阈值（压测时可调高以找到真实瓶颈）
+      SENTINEL_FLOW_AGENT_CHAT_QPS: ${SENTINEL_FLOW_AGENT_CHAT_QPS:-200}
+      SENTINEL_FLOW_AGENT_CHAT_STREAM_QPS: ${SENTINEL_FLOW_AGENT_CHAT_STREAM_QPS:-200}
+      SENTINEL_FLOW_AGENT_CHAT_STREAM_PARAM_QPS: ${SENTINEL_FLOW_AGENT_CHAT_STREAM_PARAM_QPS:-200}
     expose:
       - "8085"
 

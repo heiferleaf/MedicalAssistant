@@ -2,6 +2,8 @@ package com.whu.medicalbackend.family.controller;
 
 import com.whu.medicalbackend.common.response.Result;
 import com.whu.medicalbackend.family.dto.*;
+import com.whu.medicalbackend.family.mapper.FamilyEventLogMapper;
+import com.whu.medicalbackend.family.mapper.FamilyMemberMapper;
 import com.whu.medicalbackend.family.service.serviceImpl.FamilyGroupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +16,8 @@ import java.util.Map;
 public class FamilyGroupController {
 
     @Autowired private FamilyGroupService familyGroupService;
+    @Autowired private FamilyMemberMapper memberMapper;
+    @Autowired private FamilyEventLogMapper eventLogMapper;
 
     /**
      * 1.1 创建家庭组
@@ -124,5 +128,27 @@ public class FamilyGroupController {
     public Result<List<FamilyAlarmVO>> getTodayAlarms(@PathVariable Long groupId) {
         List<FamilyAlarmVO> list = familyGroupService.getTodayAlarms(groupId);
         return Result.success(list);
+    }
+
+    // ========== 内部微服务调用接口 ==========
+
+    /**
+     * 内部：根据用户ID查询所在家庭组ID
+     */
+    @GetMapping("/user/{userId}/groupId")
+    public Long getGroupIdByUserId(@PathVariable Long userId) {
+        return memberMapper.getGroupIdByUserId(userId);
+    }
+
+    /**
+     * 内部：记录家庭事件日志
+     */
+    @PostMapping("/event-log")
+    public void insertEventLog(@RequestBody Map<String, Object> body) {
+        Long groupId = Long.valueOf(body.get("groupId").toString());
+        Long userId = Long.valueOf(body.get("userId").toString());
+        String eventType = (String) body.get("eventType");
+        String medicineName = (String) body.get("medicineName");
+        eventLogMapper.insertLog(groupId, userId, eventType, medicineName);
     }
 }

@@ -30,13 +30,13 @@ public class AsyncConfig implements AsyncConfigurer {
     @Value("${infra.async.ws-push.max-size:32}")
     private int wsPushMaxSize;
 
-    @Value("${infra.async.ai.core-size:8}")
+    @Value("${infra.async.ai.core-size:32}")
     private int aiCoreSize;
 
-    @Value("${infra.async.ai.max-size:20}")
+    @Value("${infra.async.ai.max-size:64}")
     private int aiMaxSize;
 
-    @Value("${infra.async.ai.queue-capacity:100}")
+    @Value("${infra.async.ai.queue-capacity:200}")
     private int aiQueueCapacity;
 
     @Value("${infra.async.pdf.core-size:2}")

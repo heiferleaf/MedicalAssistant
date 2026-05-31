@@ -1,12 +1,18 @@
 package com.whu.medicalbackend.agent.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.whu.medicalbackend.agent.core.cache.AiCacheManager;
 import com.whu.medicalbackend.common.infra.http.AiHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Service
@@ -16,11 +22,17 @@ public class OcrService {
 
     private final AiHttpClient aiHttpClient;
     private final String flaskBaseUrl;
+    private final AiCacheManager aiCacheManager;
+    private final ObjectMapper objectMapper;
 
     public OcrService(AiHttpClient aiHttpClient,
-                      @Value("${flask.base-url:http://127.0.0.1:8001}") String flaskBaseUrl) {
+                      @Value("${flask.base-url:http://127.0.0.1:8001}") String flaskBaseUrl,
+                      AiCacheManager aiCacheManager,
+                      ObjectMapper objectMapper) {
         this.aiHttpClient = aiHttpClient;
         this.flaskBaseUrl = flaskBaseUrl;
+        this.aiCacheManager = aiCacheManager;
+        this.objectMapper = objectMapper;
         logger.info("OcrService initialized, Flask base URL: {}", flaskBaseUrl);
     }
 
@@ -31,6 +43,18 @@ public class OcrService {
         logger.info("=== 开始调用 Flask OCR 接口 ===");
         logger.info("Flask 地址：{}", flaskBaseUrl);
         logger.info("图片大小：{} bytes", imageBytes.length);
+
+        // 尝试从缓存获取
+        String imageHash = AiCacheManager.buildOcrCacheKey(imageBytes);
+        String cached = aiCacheManager.getCachedOcrResult(imageHash);
+        if (cached != null) {
+            logger.info("OCR 缓存命中，hash={}", imageHash);
+            try {
+                return objectMapper.readValue(cached, new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                logger.warn("OCR 缓存反序列化失败，回退到实际调用", e);
+            }
+        }
 
         try {
             // 创建 ByteArrayResource
@@ -71,6 +95,14 @@ public class OcrService {
                             }
                         }
                         cleanResponse.put(entry.getKey(), value);
+                    }
+
+                    // 写入缓存
+                    try {
+                        aiCacheManager.cacheOcrResult(imageHash, objectMapper.writeValueAsString(cleanResponse));
+                        logger.debug("OCR 结果已缓存，hash={}", imageHash);
+                    } catch (Exception e) {
+                        logger.warn("OCR 缓存写入失败", e);
                     }
 
                     return cleanResponse;

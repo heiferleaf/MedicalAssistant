@@ -1,5 +1,6 @@
 package com.whu.medicalbackend.user.controller;
 
+import com.whu.medicalbackend.common.client.dto.UserDTO;
 import com.whu.medicalbackend.user.dto.UserInfoDTO;
 import com.whu.medicalbackend.agent.service.serviceImpl.RedisService;
 import com.whu.medicalbackend.common.response.Result;
@@ -102,6 +103,34 @@ public class UserController {
             return Result.success("获取新accessToken成功", newAccessToken);
         }
         return Result.error(ResultCode.NEED_LOGIN_ERROR);
+    }
+
+    /**
+     * 内部接口：根据ID查询用户详情（供其他微服务调用）
+     */
+    @GetMapping("/{id}/detail")
+    public UserDTO getUserById(@PathVariable Long id) {
+        User user = userService.findById(id);
+        if (user == null) return null;
+        UserDTO dto = new UserDTO();
+        dto.setUserId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setNickname(user.getNickname());
+        return dto;
+    }
+
+    /**
+     * 内部接口：根据手机号查询用户（供其他微服务调用）
+     */
+    @GetMapping("/phone/{phone}")
+    public UserDTO getUserByPhone(@PathVariable String phone) {
+        User user = userService.findByPhoneNumber(phone);
+        if (user == null) return null;
+        UserDTO dto = new UserDTO();
+        dto.setUserId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setNickname(user.getNickname());
+        return dto;
     }
 
     private static final int AVATAR_COUNT = 100;

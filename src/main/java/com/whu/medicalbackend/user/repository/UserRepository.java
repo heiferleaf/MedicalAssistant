@@ -50,4 +50,18 @@ public class UserRepository{
     public int updateUserInfo(User user) {
         return userMapper.updateUserInfo(user);
     }
+
+    /**
+     * 根据ID查询用户
+     */
+    public User findById(Long userId) {
+        return userMapper.findByUserId(userId);
+    }
+
+    /**
+     * 根据手机号查询用户
+     */
+    public User findByPhoneNumber(String phoneNumber) {
+        return userMapper.findByPhoneNumber(phoneNumber);
+    }
 }

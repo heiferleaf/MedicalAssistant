@@ -18,7 +18,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -42,33 +42,39 @@ public class AgentProxyController {
 
     @PostMapping("/chat")
     @SentinelResource(value = "/api/agent/chat", blockHandler = "handleChatBlock")
-    public Result<Map<String, Object>> chat(@RequestBody Map<String, Object> payload) {
+    public CompletableFuture<Result<Map<String, Object>>> chat(@RequestBody Map<String, Object> payload) {
         logger.info("收到 chat 请求，payload: {}", payload);
-        Future<Map<String, Object>> future = null;
-        try {
-            String userId = String.valueOf(payload.get("user_id"));
-            String sessionId = String.valueOf(payload.get("session_id"));
-            String message = String.valueOf(payload.get("message"));
-            logger.info("chat 请求详情：userId={}, sessionId={}, message 长度={}", userId, sessionId, message != null ? message.length() : 0);
 
+        String userId = String.valueOf(payload.get("user_id"));
+        String sessionId = String.valueOf(payload.get("session_id"));
+        String message = String.valueOf(payload.get("message"));
+        logger.info("chat 请求详情：userId={}, sessionId={}, message 长度={}", userId, sessionId, message != null ? message.length() : 0);
 
-            future = aiExecutor.submit(() -> agentOrchestratorService.chat(payload));
-            Map<String, Object> resp = future.get(agentTimeoutMs, TimeUnit.MILLISECONDS);
-            logger.info("chat 响应：success={}", resp.get("success"));
-            return Result.success(resp);
-        } catch (RejectedExecutionException e) {
-            logger.warn("Agent chat 进入限流保护，AI 线程池队列已满", e);
-            return Result.error(429, "Agent 服务繁忙，请稍后重试");
-        } catch (TimeoutException e) {
-            if (future != null) {
-                future.cancel(true);
-            }
-            logger.warn("Agent chat 超时，timeoutMs={}", agentTimeoutMs, e);
-            return Result.error(504, "Agent 处理超时，请稍后重试");
-        } catch (Exception e) {
-            logger.error("chat 处理失败", e);
-            return Result.error(ResultCode.SYSTEM_ERROR, "Agent chat 处理失败：" + e.getMessage());
-        }
+        CompletableFuture<Map<String, Object>> future = CompletableFuture
+                .supplyAsync(() -> agentOrchestratorService.chat(payload), aiExecutor)
+                .orTimeout(agentTimeoutMs, TimeUnit.MILLISECONDS);
+
+        return future
+                .thenApply(resp -> {
+                    logger.info("chat 响应：success={}", resp.get("success"));
+                    return Result.success(resp);
+                })
+                .exceptionally(throwable -> {
+                    Throwable cause = throwable;
+                    if (cause instanceof CompletionException && cause.getCause() != null) {
+                        cause = cause.getCause();
+                    }
+                    if (cause instanceof TimeoutException) {
+                        logger.warn("Agent chat 超时，timeoutMs={}", agentTimeoutMs, cause);
+                        return Result.error(504, "Agent 处理超时，请稍后重试");
+                    }
+                    if (cause instanceof RejectedExecutionException) {
+                        logger.warn("Agent chat 进入限流保护，AI 线程池队列已满", cause);
+                        return Result.error(429, "Agent 服务繁忙，请稍后重试");
+                    }
+                    logger.error("chat 处理失败", cause);
+                    return Result.error(ResultCode.SYSTEM_ERROR, "Agent chat 处理失败：" + cause.getMessage());
+                });
     }
 
     public Result<Map<String, Object>> handleChatBlock(Map<String, Object> payload, BlockException ex) {
@@ -87,6 +93,19 @@ public class AgentProxyController {
     }
 
     /**
+     * 压测统计计数器接口
+     */
+    @GetMapping("/stats")
+    public Result<Map<String, Object>> stats() {
+        try {
+            Map<String, Object> stats = agentOrchestratorService.getStats();
+            return Result.success(stats);
+        } catch (Exception e) {
+            return Result.error(ResultCode.SYSTEM_ERROR, "Agent stats 获取失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * SSE 流式聊天接口
      */
     @GetMapping(value = "/chat/stream", produces = "text/event-stream;charset=UTF-8")
@@ -94,11 +113,13 @@ public class AgentProxyController {
     public SseEmitter chatStreamGet(
             @RequestParam("user_id") String userId,
             @RequestParam("session_id") String sessionId,
-            @RequestParam("message") String message) {
+            @RequestParam("message") String message,
+            jakarta.servlet.http.HttpServletResponse response) {
         logger.info("====== 收到 chatStream GET 请求 ======");
         logger.info("userId={}, sessionId={}, message 长度={}", userId, sessionId, message != null ? message.length() : 0);
         logger.info("===================================");
 
+        setSseHeaders(response);
         return handleChatStream(userId, sessionId, message);
     }
 
@@ -111,7 +132,8 @@ public class AgentProxyController {
             @RequestParam("user_id") String userId,
             @RequestParam("session_id") String sessionId,
             @RequestParam(value = "message", required = false) String message,
-            @RequestParam(value = "token", required = false) String token) {
+            @RequestParam(value = "token", required = false) String token,
+            jakarta.servlet.http.HttpServletResponse response) {
         logger.info("====== 收到 chatStream POST 请求 ======");
         logger.info("userId={}, sessionId={}, message 长度={}, token={}", userId, sessionId, message != null ? message.length() : 0, token != null ? "provided" : "missing");
         logger.info("===================================");
@@ -125,7 +147,17 @@ public class AgentProxyController {
             }
         }
 
+        setSseHeaders(response);
         return handleChatStream(userId, sessionId, message);
+    }
+
+    /**
+     * 设置 SSE 响应头（客户端缓存、Nginx 缓冲、重连间隔）
+     */
+    private void setSseHeaders(jakarta.servlet.http.HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("X-Accel-Buffering", "no");
+        response.setHeader("Connection", "keep-alive");
     }
 
     public SseEmitter handleChatStreamBlock(String userId, String sessionId, String message, BlockException ex) {

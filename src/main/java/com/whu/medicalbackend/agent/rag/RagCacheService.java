@@ -1,6 +1,7 @@
 package com.whu.medicalbackend.agent.rag;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.whu.medicalbackend.agent.core.cache.AiCacheManager;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -28,15 +29,18 @@ public class RagCacheService {
     private final RedissonClient redissonClient;
     private final ObjectMapper objectMapper;
     private final RagProperties properties;
+    private final AiCacheManager aiCacheManager;
 
     public RagCacheService(StringRedisTemplate redisTemplate,
                            RedissonClient redissonClient,
                            ObjectMapper objectMapper,
-                           RagProperties properties) {
+                           RagProperties properties,
+                           AiCacheManager aiCacheManager) {
         this.redisTemplate = redisTemplate;
         this.redissonClient = redissonClient;
         this.objectMapper = objectMapper;
         this.properties = properties;
+        this.aiCacheManager = aiCacheManager;
     }
 
     public String normalizeQuestion(String question) {
@@ -62,6 +66,18 @@ public class RagCacheService {
         try {
             String raw = redisTemplate.opsForValue().get(cacheKey);
             if (raw == null) {
+                // 尝试 AiCacheManager 二级缓存
+                String cached = aiCacheManager.getCachedRagResult(cacheKey);
+                if (cached != null) {
+                    logger.debug("RAG cache hit in AiCacheManager, key={}", cacheKey);
+                    RagResponse response = objectMapper.readValue(cached, RagResponse.class);
+                    response.setCacheHit(true);
+                    response.setProviderStatus("cache");
+                    // 回填到主缓存
+                    redisTemplate.opsForValue().set(cacheKey, cached,
+                            Duration.ofSeconds(properties.getCacheTtlSeconds()));
+                    return response;
+                }
                 return null;
             }
             RagResponse response = objectMapper.readValue(raw, RagResponse.class);
@@ -81,7 +97,10 @@ public class RagCacheService {
         try {
             boolean emptyAnswer = response.getAnswer() == null || response.getAnswer().trim().isEmpty();
             long ttlSeconds = emptyAnswer ? properties.getNullCacheTtlSeconds() : ttlWithJitter();
-            redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(response), Duration.ofSeconds(ttlSeconds));
+            String json = objectMapper.writeValueAsString(response);
+            redisTemplate.opsForValue().set(cacheKey, json, Duration.ofSeconds(ttlSeconds));
+            // 同步写入 AiCacheManager 二级缓存
+            aiCacheManager.cacheRagResult(cacheKey, json);
         } catch (Exception e) {
             logger.warn("Write RAG cache failed, key={}", cacheKey, e);
         }
