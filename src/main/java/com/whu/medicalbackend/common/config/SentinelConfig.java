@@ -16,15 +16,12 @@ public class SentinelConfig {
     @Value("${sentinel.dashboard.address:localhost:8858}")
     private String dashboardAddress;
 
-    /** 每秒允许通过的 /api/agent/chat 请求数（生产建议 500，压测可临时调大）。 */
     @Value("${agent.sentinel.chat-qps:500}")
     private int chatQps;
 
-    /** 每秒允许通过的 /api/agent/chat/stream（SSE）请求数。 */
     @Value("${agent.sentinel.stream-qps:300}")
     private int streamQps;
 
-    /** 每秒允许通过的 /api/ocr/predict 请求数。 */
     @Value("${agent.sentinel.ocr-qps:30}")
     private int ocrQps;
 

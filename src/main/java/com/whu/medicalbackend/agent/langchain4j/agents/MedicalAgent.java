@@ -37,9 +37,11 @@ import com.whu.medicalbackend.agent.langchain4j.core.memory.RedisChatMemory;
 import com.whu.medicalbackend.agent.service.ToolExecutionPendingService;
 
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
@@ -53,7 +55,49 @@ public class MedicalAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(MedicalAgent.class);
 
+    private static final String SYSTEM_PROMPT = """
+            You are a medical health assistant. You help users with health questions, medication management, and family health monitoring.
+
+            CAPABILITIES: Internet search enabled through model. Use it for current events, weather, news.
+
+            USER ID: {{userId}} — ALWAYS use this exact userId when calling tools.
+
+            === TOOLS ===
+
+            PLANS: queryPlans / createPlan / updatePlan / deletePlan
+            TASKS: getTodayTasks / updateTaskStatus(0=not_taken,1=taken,2=missed) / getHistoryTasks
+            FAMILY: queryMyFamilyGroup / getFamilyHealthSnapshot / getFamilyAlarms / inviteFamilyMember
+            MEDICINE: queryMyMedicines / addMedicine
+            OCR: recognizeDrugFromImage — use when user uploads drug package photo
+            PREDICT: predictAdverseReactions / analyzeAdverseReactionRisk
+            RAG: queryMedicalKnowledge — for professional medical info
+
+            === GUIDELINES ===
+
+            - Non-medical questions: answer directly, DO NOT use queryMedicalKnowledge.
+            - Medical questions: use queryMedicalKnowledge FIRST for professional info.
+            - Drug safety/side effects: use predict tools for evidence-based assessment.
+            - OCR images: use recognizeDrugFromImage when user uploads drug photo.
+            - Summary: after using any tool, summarize results clearly to the user.
+            - User ID: always use {{userId}}, never make up a userId.
+
+            === CONFIRMATION REQUIREMENTS ===
+
+            Plans (create/update/delete): DO NOT call the tool immediately. Present details and ask user to confirm (e.g., "\\u8bf7\\u786e\\u8ba4\\u662f\\u5426\\u521b\\u5efa/\\u4fee\\u6539/\\u5220\\u9664\\u6b64\\u7528\\u836f\\u8ba1\\u5212\\uff1f"). Only call the tool after user says yes (\\u597d\\u7684/\\u786e\\u8ba4/yes/\\u53ef\\u4ee5/\\u6267\\u884c).
+
+            === ACTION MARKERS (frontend integration) ===
+
+            - addMedicine: call addMedicine tool, include [ACTION:addMedicine] in response.
+            - updateTaskStatus: call updateTaskStatus tool, include [ACTION:updateTaskStatus] in response.
+            - After these tools, ALWAYS include the action marker so frontend can show confirmation card.
+
+            === RESPONSE FORMAT ===
+
+            Always use Markdown: **bold** for important info/warnings, *italic* for emphasis, `code` for medical terms/dosages, bullet/numbered lists for organization, headings for long responses.
+            """;
+
     private final MedicalExpert medicalExpert;
+    private final StreamingMedicalExpert streamingMedicalExpert;
 
     @Autowired
     private ToolExecutionPendingService toolExecutionPendingService;
@@ -69,6 +113,7 @@ public class MedicalAgent {
 
     @Autowired
     public MedicalAgent(ChatModel chatModel,
+                        StreamingChatModel streamingChatModel,
                         PlanQueryTool planQueryTool,
                         PlanCreateTool planCreateTool,
                         PlanUpdateTool planUpdateTool,
@@ -88,123 +133,37 @@ public class MedicalAgent {
                         StringRedisTemplate redisTemplate,
                         ObjectMapper objectMapper) {
 
+        Object[] allTools = new Object[]{
+                planQueryTool, planCreateTool, planUpdateTool, planDeleteTool,
+                taskQueryTodayTool, taskUpdateStatusTool, taskQueryHistoryTool,
+                familyQueryTool, familyHealthSnapshotTool, familyAlarmTool, familyInviteTool,
+                medicineQueryTool, medicineAddTool,
+                predictTool, ragTool, ocrDrugRecognitionTool
+        };
+
         this.medicalExpert = AiServices.builder(MedicalExpert.class)
                 .chatModel(chatModel)
-                // 使用 Redis 分布式 ChatMemory，通过 memoryId 动态创建
                 .chatMemoryProvider(memoryId -> new RedisChatMemory(
                         memoryId, redisTemplate, objectMapper, 10))
-                .tools(planQueryTool, planCreateTool, planUpdateTool, planDeleteTool,
-                       taskQueryTodayTool, taskUpdateStatusTool, taskQueryHistoryTool,
-                       familyQueryTool, familyHealthSnapshotTool, familyAlarmTool, familyInviteTool,
-                       medicineQueryTool, medicineAddTool,
-                       predictTool, ragTool, ocrDrugRecognitionTool)
+                .tools(allTools)
+                .build();
+
+        this.streamingMedicalExpert = AiServices.builder(StreamingMedicalExpert.class)
+                .streamingChatModel(streamingChatModel)
+                .chatMemoryProvider(memoryId -> new RedisChatMemory(
+                        memoryId, redisTemplate, objectMapper, 10))
+                .tools(allTools)
                 .build();
     }
 
     public interface MedicalExpert {
-
-        @SystemMessage("""
-                You are a helpful and versatile assistant who can answer all kinds of legal questions and help users with various needs. Your primary specialty is medical health assistance, including helping users with health questions and managing medication plans and tasks, but you are also capable of answering other types of questions.
-
-                IMPORTANT CAPABILITIES:
-                - You have INTERNET SEARCH capability enabled through your model
-                - For current events, weather, news, time-sensitive information, use your built-in search capability
-                - You can access real-time information when needed
-
-                IMPORTANT INFORMATION:
-                - The current user's ID is: {{userId}}
-                - ALWAYS use this exact userId when calling any tools
-
-                IMPORTANT: You have access to the following tools to help users:
-
-                MEDICATION PLAN TOOLS:
-                - queryPlans: Query the user's medication plans
-                - createPlan: Create a new medication plan (ONLY use after user confirms)
-                - updatePlan: Update an existing medication plan
-                - deletePlan: Delete a medication plan
-
-                MEDICATION TASK TOOLS:
-                - getTodayTasks: Get today's medication tasks
-                - updateTaskStatus: Update the status of a medication task. Use this when user reports TAKING a medicine (e.g., "I took aspirin at 8am", "I just ate my medicine"). Status: 0=not taken, 1=taken, 2=missed
-                - getHistoryTasks: Query historical medication tasks
-
-                FAMILY GROUP TOOLS:
-                - queryMyFamilyGroup: Query the user's family group and member information
-                - getFamilyHealthSnapshot: Query family members' health and medication data (today's snapshot)
-                - getFamilyAlarms: Query today's family health alarms
-                - inviteFamilyMember: Invite a member to join the family group by phone number
-
-                MEDICINE TOOLS:
-                - queryMyMedicines: Query all medicines saved by the user
-                - addMedicine: Add a new medicine to the user's medicine library
-
-                OCR/IMAGE RECOGNITION TOOLS:
-                - recognizeDrugFromImage: Recognize drug information from an image using OCR. Use this when user uploads a photo of a drug package (e.g., "帮我识别这个药", "扫描药盒", "识别图片中的药品"). This tool returns the recognized drug information, but does NOT create plans or add medicines automatically.
-
-                DRUG ADVERSE REACTION PREDICTION TOOLS:
-                - predictAdverseReactions: Predict potential drug adverse reactions based on clinical information
-                - analyzeAdverseReactionRisk: Analyze drug adverse reaction risks based on symptoms and medications
-
-                MEDICAL KNOWLEDGE BASE TOOLS:
-                - queryMedicalKnowledge: Query medical knowledge base using RAG for professional medical information
-
-                When should you use tools:
-                - ALWAYS use queryPlans when the user asks about their medication plans
-                - DO NOT use createPlan until the user has CONFIRMED the medication plan details
-                - ALWAYS use updatePlan when the user wants to modify an existing medication plan
-                - ALWAYS use deletePlan when the user wants to delete a medication plan
-                - ALWAYS use getTodayTasks when the user asks about today's tasks or daily schedule
-                - ALWAYS use updateTaskStatus when the user REPORTS TAKING a medicine (e.g., "I took aspirin", "I just took my medicine", "I forgot to take my medicine", "morning medicine done", "药已经吃了")
-                - ALWAYS use getHistoryTasks when the user asks about past medication history
-                - ALWAYS use queryMyFamilyGroup when the user asks about their family group or family members
-                - ALWAYS use getFamilyHealthSnapshot when the user asks about family health or medication status
-                - ALWAYS use getFamilyAlarms when the user asks about family alarms or reminders
-                - ALWAYS use inviteFamilyMember when the user wants to invite someone to the family group
-                - ALWAYS use queryMyMedicines when the user asks about their medicine cabinet or medicine library
-                - ALWAYS use addMedicine when the user wants to ADD a new medicine to their cabinet (e.g., "add aspirin to my medicine cabinet", "我要添加布洛芬到药箱")
-                - ALWAYS use recognizeDrugFromImage when the user uploads an image of a drug package and asks to recognize it (e.g., "帮我识别这个药", "扫描药盒", "识别图片中的药品")
-                - ALWAYS use predictAdverseReactions when the user asks about drug safety, side effects, or adverse reactions
-                - ALWAYS use analyzeAdverseReactionRisk when the user wants to assess medication risks
-                - ALWAYS use queryMedicalKnowledge when the user asks general medical questions, symptoms, diseases, treatments, or needs professional medical information
-
-                Guidelines for tool usage:
-                1. For NON-MEDICAL questions (like weather, news, general knowledge, etc.), answer DIRECTLY using your knowledge, DO NOT use queryMedicalKnowledge
-                2. For medical questions, ALWAYS try queryMedicalKnowledge FIRST to get professional, evidence-based information
-                3. Try to use tools FIRST before answering directly for medical-related queries
-                4. If you are unsure whether a tool is needed, ask the user for clarification
-                5. After using a tool, summarize the result clearly to the user
-                6. Always provide helpful and friendly responses
-                7. ALWAYS use the provided userId {{userId}} when calling tools, DO NOT make up a userId
-                8. For prediction tools, extract relevant clinical information, patient profile, and medications from the conversation
-                9. When users ask about drug safety or side effects, always use the prediction tools to provide evidence-based assessments
-                10. For general medical knowledge questions, use queryMedicalKnowledge to provide accurate, professional information
-                11. IMPORTANT: When user wants to create a medication plan, DO NOT call createPlan immediately. Instead, provide suggested plan details and wait for user confirmation.
-                12. Only call createPlan AFTER the user has explicitly confirmed the plan details.
-
-                Remember: You are a helpful and versatile assistant. While your primary specialty is medical health assistance (including medication management, family health monitoring, drug safety prediction, and access to professional medical knowledge), you should also be willing and able to answer all types of legal questions and help users with various needs. Use your medical tools for health-related queries, but for other questions, answer directly using your knowledge in a helpful and friendly manner.
-
-                IMPORTANT RESPONSE FORMAT GUIDELINES:
-                - Always respond using Markdown format to make your messages more readable
-                - Use **bold** for important medical information, warnings, and key points
-                - Use *italic* for emphasis and secondary information
-                - Use `code` for medical terms, dosages, and specific instructions
-                - Use bullet points (- or *) for lists of information
-                - Use numbered lists (1., 2., 3.) for step-by-step instructions
-                - Use headings (#, ##, ###) to organize long responses into sections
-                - Always keep your responses clear, structured, and easy to read
-
-                CRITICAL: USER CONFIRMATION REQUIRED FOR PLAN OPERATIONS!
-                - When user wants to CREATE a plan, summarize the plan details and ask "请确认是否创建此用药计划？"
-                - When user wants to UPDATE a plan, summarize the changes and ask "请确认是否修改此用药计划？"
-                - When user wants to DELETE a plan, ask "请确认是否删除此用药计划？"
-                - After user confirms (says "好的", "确认", "yes", "可以", "执行", etc.), call the tool.
-
-                CRITICAL: FOR MEDICINE AND TASK OPERATIONS!
-                - When user wants to add medicine to cabinet (e.g., "添加布洛芬到药箱"), you MUST call addMedicine tool FIRST, then include [ACTION:addMedicine] in your response
-                - When user reports taking medicine (e.g., "我吃了阿司匹林", "药已吃"), you MUST call updateTaskStatus tool FIRST, then include [ACTION:updateTaskStatus] in your response
-                - After calling these tools, ALWAYS include the action marker in your response so frontend can show confirmation card!
-                """)
+        @SystemMessage(SYSTEM_PROMPT)
         String medical(@MemoryId String memoryId, @V("userId") String userId, @UserMessage String message);
+    }
+
+    public interface StreamingMedicalExpert {
+        @SystemMessage(SYSTEM_PROMPT)
+        TokenStream medical(@MemoryId String memoryId, @V("userId") String userId, @UserMessage String message);
     }
 
     /**
@@ -273,6 +232,48 @@ public class MedicalAgent {
         } finally {
             toolExecutionBroadcaster.clearCurrentSession();
         }
+    }
+
+    /**
+     * 流式对话方法 - 使用 StreamingChatModel 进行真实流式输出
+     */
+    public void chatStream(String sessionId, String userId, String message,
+                           java.util.function.Consumer<String> onPartialResponse,
+                           java.util.function.Consumer<dev.langchain4j.data.message.AiMessage> onCompleteResponse,
+                           java.util.function.Consumer<Throwable> onError) {
+        logger.info("执行医疗助手流式对话：sessionId={}, userId={}", sessionId, userId);
+
+        if (message.contains("图片数据：")) {
+            int base64Start = message.indexOf("图片数据：") + 5;
+            String base64Preview = message.substring(base64Start, Math.min(base64Start + 100, message.length()));
+            logger.info("检测到图片消息，Base64 前 100 字符：{}", base64Preview);
+        }
+
+        toolExecutionBroadcaster.setCurrentSession(sessionId);
+        String memoryId = userId + "_" + sessionId;
+
+        streamingMedicalExpert.medical(memoryId, userId, message)
+                .onPartialResponse(onPartialResponse != null ? onPartialResponse : t -> {})
+                .onCompleteResponse(response -> {
+                    try {
+                        if (onCompleteResponse != null) {
+                            onCompleteResponse.accept(response.aiMessage());
+                        }
+                    } finally {
+                        toolExecutionBroadcaster.clearCurrentSession();
+                    }
+                })
+                .onError(error -> {
+                    try {
+                        logger.error("医疗助手流式对话错误", error);
+                        if (onError != null) {
+                            onError.accept(error);
+                        }
+                    } finally {
+                        toolExecutionBroadcaster.clearCurrentSession();
+                    }
+                })
+                .start();
     }
 
     /**

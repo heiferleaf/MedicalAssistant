@@ -33,18 +33,21 @@ public class AiCacheManager {
     private final int ocrTtlSeconds;
     private final int ragTtlSeconds;
     private final int predictTtlSeconds;
+    private final int chatTtlSeconds;
 
     public AiCacheManager(
             StringRedisTemplate redisTemplate,
             @Value("${ai.cache.enabled:true}") boolean enabled,
             @Value("${ai.cache.ocr-ttl-seconds:3600}") int ocrTtlSeconds,
             @Value("${ai.cache.rag-ttl-seconds:1800}") int ragTtlSeconds,
-            @Value("${ai.cache.predict-ttl-seconds:600}") int predictTtlSeconds) {
+            @Value("${ai.cache.predict-ttl-seconds:600}") int predictTtlSeconds,
+            @Value("${ai.cache.chat-ttl-seconds:300}") int chatTtlSeconds) {
         this.redisTemplate = redisTemplate;
         this.enabled = enabled;
         this.ocrTtlSeconds = ocrTtlSeconds;
         this.ragTtlSeconds = ragTtlSeconds;
         this.predictTtlSeconds = predictTtlSeconds;
+        this.chatTtlSeconds = chatTtlSeconds;
     }
 
     // ===== OCR 缓存 =====
@@ -84,6 +87,19 @@ public class AiCacheManager {
     public String getCachedPredictResult(String cacheKey) {
         if (!enabled) return null;
         return redisTemplate.opsForValue().get(PREFIX_PREDICT + cacheKey);
+    }
+
+    // ===== Chat 缓存 =====
+
+    public void cacheChatResult(String cacheKey, String result) {
+        if (!enabled) return;
+        redisTemplate.opsForValue().set(PREFIX_CHAT + cacheKey, result, chatTtlSeconds, TimeUnit.SECONDS);
+        logger.debug("Chat 结果已缓存: key={}, ttl={}s", cacheKey, chatTtlSeconds);
+    }
+
+    public String getCachedChatResult(String cacheKey) {
+        if (!enabled) return null;
+        return redisTemplate.opsForValue().get(PREFIX_CHAT + cacheKey);
     }
 
     // ===== 缓存预热入口 =====

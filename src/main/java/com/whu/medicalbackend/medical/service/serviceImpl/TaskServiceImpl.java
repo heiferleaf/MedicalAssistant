@@ -300,4 +300,13 @@ public class TaskServiceImpl implements TaskService {
                 return null;
         }
     }
+
+    @Override
+    public int countTasksByDate(Long userId, LocalDate date, Integer status) {
+        if (status != null) {
+            return taskMapper.countStatusByDate(userId, date, status);
+        } else {
+            return taskMapper.countTotalByDate(userId, date);
+        }
+    }
 }

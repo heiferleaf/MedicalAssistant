@@ -80,13 +80,12 @@ spring:
     password: ${MYSQL_PASSWORD:App123456}
     # 驱动类名（MySQL 8.x）
     driver-class-name:  com.mysql.cj.jdbc.Driver
-    hikari:
-      # 每条 chat 请求最多 4 条 SQL；ai线程池 max=20，加缓冲留余量给其他模块
-      maximum-pool-size: 40
-      minimum-idle: 10
-      connection-timeout: 3000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+hikari:
+      maximum-pool-size: ${DB_POOL_MAX:100}
+      minimum-idle: ${DB_POOL_MIN:10}
+      connection-timeout: 5000
+      idle-timeout: 300000
+      max-lifetime: 600000
 
   # redis 配置
   data:
@@ -97,8 +96,10 @@ spring:
 #      password: ${REDIS_PASSWORD:null}
       lettuce:
         pool:
-          max-active: 8
-          max-idle: 8
+          max-active: ${REDIS_POOL_MAX:40}
+          max-idle: 20
+          min-idle: 5
+          max-wait: 3000ms
 
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
@@ -131,9 +132,9 @@ infra:
       core-size: 8
       max-size: 32
     ai:
-      core-size: 20
-      max-size: 100
-      queue-capacity: 500
+      core-size: ${AI_CORE_SIZE:50}
+      max-size: ${AI_MAX_SIZE:200}
+      queue-capacity: ${AI_QUEUE_CAPACITY:500}
     pdf:
       core-size: 2
       max-size: 8
@@ -142,6 +143,14 @@ infra:
       enabled: true
       poll-interval-ms: 1000
       batch-size: 100
+
+# Sentinel 流控配置（压测时可调高 QPS 上限，通过 SENTINEL_FLOW_AGENT_CHAT_QPS 等环境变量覆盖）
+sentinel:
+  flow:
+    agent-chat-qps: ${SENTINEL_FLOW_AGENT_CHAT_QPS:200}
+    agent-chat-stream-qps: ${SENTINEL_FLOW_AGENT_CHAT_STREAM_QPS:200}
+    agent-chat-stream-param-qps: ${SENTINEL_FLOW_AGENT_CHAT_STREAM_PARAM_QPS:200}
+    ocr-qps: ${SENTINEL_FLOW_OCR_QPS:50}
 
 management:
   endpoints:
@@ -171,6 +180,8 @@ mybatis:
 # 阿里云 DashScope 配置 — 生产环境通过 DASHSCOPE_API_KEY 环境变量覆盖
 dashscope:
   api-key: ${DASHSCOPE_API_KEY:sk-e7051a4ddaa049e9bd25c8264dfb3b15}
+  # 多 Key 轮询：逗号分隔，优先级高于 api-key。如 DASHSCOPE_API_KEYS=sk-xxx1,sk-xxx2,sk-xxx3
+  api-keys: ${DASHSCOPE_API_KEYS:}
   model: qwen-turbo  # 使用支持联网搜索的模型
 
 # Redis Pub/Sub 判断的实例依据
@@ -200,6 +211,12 @@ agent:
     timeout-ms: 30000
     retry-enabled: true
     max-retries: 2
+  # Session 保留天数（超过此天数的 session 和消息会被自动清理）
+  session:
+    retention-days: ${SESSION_RETENTION_DAYS:3}
+  # 全链路测试模式：开启动后 LLM 调用被跳过，只测本地管道耗时（不消耗 token）
+  test:
+    local-only: ${AGENT_TEST_LOCAL_ONLY:false}
   # 请求分级（Module 5）
   task:
     grading:
@@ -210,6 +227,14 @@ agent:
 
 # Resilience4j 限流熔断配置（Module 5）
 resilience4j:
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 1s
+    instances:
+      llmChat:
+        base-config: default
   ratelimiter:
     configs:
       default:

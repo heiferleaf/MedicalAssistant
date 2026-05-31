@@ -35,13 +35,6 @@ public class TaskController {
 
     /**
      * 修改任务状态
-     *
-     * URL: PUT /api/task/123/status?userId=1
-     * Body: {"status": 1}
-     *
-     * SpringMVC知识点：
-     * - 路径中的{taskId}和方法路径/status组合
-     * - 完整路径：/api/task/{taskId}/status
      */
     @PutMapping("/{taskId}/status")
     public Result<TaskVO> updateTaskStatus(@RequestAttribute("userId") Long userId,
@@ -53,14 +46,6 @@ public class TaskController {
 
     /**
      * 查询历史任务
-     *
-     * URL: GET /api/task/history?userId=1&startDate=2026-01-01&endDate=2026-01-31&medicineName=xxx&status=1
-     *
-     * SpringMVC知识点：
-     * - @RequestParam(required = false)：可选参数
-     * - @DateTimeFormat：日期格式化
-     *   - 将字符串"2026-01-01"自动转为LocalDate对象
-     *   - pattern指定格式
      */
     @GetMapping("/history")
     public Result<List<TaskVO>> getHistoryTasks(
@@ -72,5 +57,15 @@ public class TaskController {
 
         List<TaskVO> tasks = taskService.getHistoryTasks(userId, startDate, endDate, medicineName, status);
         return Result.success(tasks);
+    }
+
+    /**
+     * 内部接口：统计指定日期任务数（供其他微服务调用）
+     */
+    @GetMapping("/count")
+    public int countTasksByDate(@RequestParam Long userId,
+                                @RequestParam String date,
+                                @RequestParam(required = false) Integer status) {
+        return taskService.countTasksByDate(userId, LocalDate.parse(date), status);
     }
 }

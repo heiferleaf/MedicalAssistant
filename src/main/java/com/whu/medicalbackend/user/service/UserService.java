@@ -9,4 +9,6 @@ public interface UserService{
     User register(UserRegisterDto dto);
     User login(UserLoginDto dto);
     User modify(UserInfoDTO user);
+    User findById(Long userId);
+    User findByPhoneNumber(String phoneNumber);
 }

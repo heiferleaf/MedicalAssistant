@@ -73,4 +73,14 @@ public class UserServiceImpl implements UserService{
         }
         return user;
     }
+
+    @Override
+    public User findById(Long userId) {
+        return userRepository.findById(userId);
+    }
+
+    @Override
+    public User findByPhoneNumber(String phoneNumber) {
+        return userRepository.findByPhoneNumber(phoneNumber);
+    }
 }

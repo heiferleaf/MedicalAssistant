@@ -32,4 +32,8 @@ public interface TaskService {
     List<TaskVO> getHistoryTasks(Long userId, LocalDate startDate, LocalDate endDate,
                                  String medicineName, Integer status);
 
+    /**
+     * 统计指定日期任务数（供其他微服务调用）
+     */
+    int countTasksByDate(Long userId, LocalDate date, Integer status);
 }
