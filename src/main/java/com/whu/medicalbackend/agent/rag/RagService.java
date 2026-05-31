@@ -76,7 +76,7 @@ public class RagService {
             response.setProviderStatus("provider");
 
             if (success) {
-                ragCacheService.put(cacheKey, response);
+                ragCacheService.put(cacheKey, response, question);
             }
             return response;
         } catch (RagServiceException e) {

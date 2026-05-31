@@ -1,8 +1,10 @@
 package com.whu.medicalbackend.common.client.dto;
 
-public class HealthDataDTO {
-    private String dataValue;
+import lombok.Data;
 
-    public String getDataValue() { return dataValue; }
-    public void setDataValue(String dataValue) { this.dataValue = dataValue; }
+@Data
+public class HealthDataDTO {
+    private Long id;
+    private Long userId;
+    private String dataValue;
 }

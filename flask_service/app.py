@@ -264,6 +264,7 @@ def call_llm(messages: list[dict[str, Any]], model: str = RAG_MODEL, max_tokens:
         max_tokens=max_tokens,
         result_format="message",
         temperature=0.1,
+        timeout=28,
     )
     if resp.status_code != 200:
         raise RuntimeError("DashScope error %s: %s" % (resp.status_code, resp.message))

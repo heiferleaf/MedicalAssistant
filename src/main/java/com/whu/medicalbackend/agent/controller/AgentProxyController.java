@@ -10,16 +10,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -39,47 +41,38 @@ public class AgentProxyController {
     @Value("${agent.multi-turn.timeout-ms:30000}")
     private long agentTimeoutMs;
 
+    // Small dedicated pool for SSE heartbeat tasks (one thread per ~100 active streams).
+    private final ScheduledExecutorService heartbeatExecutor =
+            Executors.newScheduledThreadPool(4);
+
 
     @PostMapping("/chat")
     @SentinelResource(value = "/api/agent/chat", blockHandler = "handleChatBlock")
-    public CompletableFuture<Result<Map<String, Object>>> chat(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<Result<Map<String, Object>>> chat(@RequestBody Map<String, Object> payload) {
         logger.info("收到 chat 请求，payload: {}", payload);
 
-        String userId = String.valueOf(payload.get("user_id"));
-        String sessionId = String.valueOf(payload.get("session_id"));
-        String message = String.valueOf(payload.get("message"));
-        logger.info("chat 请求详情：userId={}, sessionId={}, message 长度={}", userId, sessionId, message != null ? message.length() : 0);
-
-        CompletableFuture<Map<String, Object>> future = CompletableFuture
-                .supplyAsync(() -> agentOrchestratorService.chat(payload), aiExecutor)
-                .orTimeout(agentTimeoutMs, TimeUnit.MILLISECONDS);
-
-        return future
-                .thenApply(resp -> {
-                    logger.info("chat 响应：success={}", resp.get("success"));
-                    return Result.success(resp);
-                })
-                .exceptionally(throwable -> {
-                    Throwable cause = throwable;
-                    if (cause instanceof CompletionException && cause.getCause() != null) {
-                        cause = cause.getCause();
-                    }
-                    if (cause instanceof TimeoutException) {
-                        logger.warn("Agent chat 超时，timeoutMs={}", agentTimeoutMs, cause);
-                        return Result.error(504, "Agent 处理超时，请稍后重试");
-                    }
-                    if (cause instanceof RejectedExecutionException) {
-                        logger.warn("Agent chat 进入限流保护，AI 线程池队列已满", cause);
-                        return Result.error(429, "Agent 服务繁忙，请稍后重试");
-                    }
-                    logger.error("chat 处理失败", cause);
-                    return Result.error(ResultCode.SYSTEM_ERROR, "Agent chat 处理失败：" + cause.getMessage());
-                });
+        Future<Map<String, Object>> future = null;
+        try {
+            future = aiExecutor.submit(() -> agentOrchestratorService.chat(payload));
+            Map<String, Object> resp = future.get(agentTimeoutMs, TimeUnit.MILLISECONDS);
+            logger.info("chat 响应：success={}", resp.get("success"));
+            return ResponseEntity.ok(Result.success(resp));
+        } catch (RejectedExecutionException e) {
+            logger.warn("Agent chat 线程池队列已满", e);
+            return ResponseEntity.status(429).body(Result.error(429, "Agent 服务繁忙，请稍后重试"));
+        } catch (TimeoutException e) {
+            if (future != null) future.cancel(true);
+            logger.warn("Agent chat 超时，timeoutMs={}", agentTimeoutMs, e);
+            return ResponseEntity.status(504).body(Result.error(504, "Agent 处理超时，请稍后重试"));
+        } catch (Exception e) {
+            logger.error("chat 处理失败", e);
+            return ResponseEntity.status(500).body(Result.error(ResultCode.SYSTEM_ERROR, "Agent chat 处理失败：" + e.getMessage()));
+        }
     }
 
-    public Result<Map<String, Object>> handleChatBlock(Map<String, Object> payload, BlockException ex) {
-        logger.warn("chat 请求被限流：userId={}", payload.get("user_id"));
-        return Result.error(429, "AI 服务繁忙，请稍后重试");
+    public ResponseEntity<Result<Map<String, Object>>> handleChatBlock(Map<String, Object> payload, BlockException ex) {
+        logger.warn("chat 请求被 Sentinel 限流：userId={}", payload.get("user_id"));
+        return ResponseEntity.status(429).body(Result.error(429, "AI 服务繁忙，请稍后重试"));
     }
 
     @GetMapping({ "/health", "/health/" })
@@ -179,43 +172,55 @@ public class AgentProxyController {
      * 使用 aiExecutor 线程池替代 ForkJoinPool.commonPool()
      */
     private SseEmitter handleChatStream(String userId, String sessionId, String message) {
-        // 创建 SSE Emitter，超时 5 分钟
         SseEmitter emitter = new SseEmitter(5 * 60 * 1000L);
 
-        // 使用 aiExecutor 异步执行（避免占用 Tomcat 线程池和 ForkJoinPool）
-        CompletableFuture.runAsync(() -> {
+        // Immediately acknowledge the connection so the client knows the request is queued.
+        try {
+            emitter.send(SseEmitter.event().name("queued").data("processing"));
+        } catch (IOException e) {
+            logger.warn("Failed to send queued event", e);
+        }
+
+        // Heartbeat every 15 s keeps the connection alive through nginx's proxy_read_timeout
+        // and prevents load-balancer idle-connection resets.
+        ScheduledFuture<?> heartbeat = heartbeatExecutor.scheduleAtFixedRate(() -> {
             try {
-                // chatStream 内部负责发送所有 SSE 事件（含 end），此处只需关闭连接
+                emitter.send(SseEmitter.event().name("heartbeat").data(""));
+            } catch (Exception ignored) {
+                // emitter already completed or errored — heartbeat will be cancelled by onCompletion
+            }
+        }, 15, 15, TimeUnit.SECONDS);
+
+        emitter.onCompletion(() -> {
+            heartbeat.cancel(false);
+            logger.info("SSE 连接正常关闭，userId={}", userId);
+        });
+        emitter.onTimeout(() -> {
+            heartbeat.cancel(false);
+            logger.warn("SSE 连接超时，userId={}", userId);
+            emitter.complete();
+        });
+        emitter.onError(throwable -> {
+            heartbeat.cancel(false);
+            logger.error("SSE 连接异常，userId={}", userId, throwable);
+        });
+
+        // Run the actual LLM work on the AI thread pool, not the Tomcat request thread.
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
                 agentOrchestratorService.chatStream(userId, sessionId, message, emitter);
                 emitter.complete();
-                logger.info("chatStream 完成");
+                logger.info("chatStream 完成，userId={}", userId);
             } catch (Exception e) {
-                logger.error("chatStream 处理失败", e);
+                logger.error("chatStream 处理失败，userId={}", userId, e);
                 try {
-                    emitter.send(SseEmitter.event()
-                        .name("error")
-                        .data(Map.of("error", e.getMessage())));
-                    emitter.completeWithError(e);
+                    emitter.send(SseEmitter.event().name("error").data(Map.of("error", e.getMessage())));
+                    emitter.complete();
                 } catch (IOException ex) {
                     logger.error("发送错误消息失败", ex);
                 }
             }
         }, aiExecutor);
-
-
-        // 设置完成回调，关闭连接
-        emitter.onCompletion(() -> {
-            logger.info("SSE 连接正常关闭");
-        });
-
-        emitter.onTimeout(() -> {
-            logger.warn("SSE 连接超时");
-            emitter.completeWithError(new RuntimeException("SSE timeout"));
-        });
-
-        emitter.onError(throwable -> {
-            logger.error("SSE 连接异常", throwable);
-        });
 
         return emitter;
     }

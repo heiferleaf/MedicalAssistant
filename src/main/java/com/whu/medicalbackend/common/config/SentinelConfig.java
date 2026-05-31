@@ -16,13 +16,13 @@ public class SentinelConfig {
     @Value("${sentinel.dashboard.address:localhost:8858}")
     private String dashboardAddress;
 
-    @Value("${sentinel.flow.agent-chat-qps:200}")
-    private int agentChatQps;
+    @Value("${agent.sentinel.chat-qps:500}")
+    private int chatQps;
 
-    @Value("${sentinel.flow.agent-chat-stream-qps:200}")
-    private int agentChatStreamQps;
+    @Value("${agent.sentinel.stream-qps:300}")
+    private int streamQps;
 
-    @Value("${sentinel.flow.ocr-qps:50}")
+    @Value("${agent.sentinel.ocr-qps:30}")
     private int ocrQps;
 
     @PostConstruct
@@ -39,14 +39,14 @@ public class SentinelConfig {
         FlowRule agentChatRule = new FlowRule();
         agentChatRule.setResource("/api/agent/chat");
         agentChatRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        agentChatRule.setCount(agentChatQps);
+        agentChatRule.setCount(chatQps);
         agentChatRule.setLimitApp("default");
         rules.add(agentChatRule);
 
         FlowRule agentChatStreamRule = new FlowRule();
         agentChatStreamRule.setResource("/api/agent/chat/stream");
         agentChatStreamRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        agentChatStreamRule.setCount(agentChatStreamQps);
+        agentChatStreamRule.setCount(streamQps);
         agentChatStreamRule.setLimitApp("default");
         rules.add(agentChatStreamRule);
 

@@ -11,6 +11,8 @@ import java.util.List;
 public interface MedicineMapper {
     Medicine findById(@Param("id") Long id);
 
+    List<Medicine> findByIds(@Param("ids") List<Long> ids);
+
     Medicine findByUserIdAndName(@Param("userId") Long userId, @Param("name") String name);
 
     int insert(Medicine medicine);

@@ -10,6 +10,7 @@ import com.whu.medicalbackend.agent.langchain4j.core.listener.ToolExecutionBroad
 import com.whu.medicalbackend.agent.service.OcrService;
 import com.whu.medicalbackend.agent.service.ToolExecutionPendingService;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -114,6 +115,13 @@ public class AgentOrchestratorService {
             return Map.of("success", false, "error", "message 不能为空", "status", 400);
         }
 
+        // Fast-fail before touching DB: if neither agent nor chat model is available,
+        // there is nothing to respond with — no point persisting the user message.
+        boolean hasAgent = llmEnabled && medicalAgent != null;
+        if (!hasAgent && chatModel == null) {
+            return llmUnavailableResult(withTrace);
+        }
+
         memoryRepository.appendMessage(sessionId, userId, "user", message);
 
         // Chat 缓存（仅限 L1/L2 短文本简单请求）
@@ -147,7 +155,7 @@ public class AgentOrchestratorService {
         }
 
         // 优先使用 Medical Agent（如果启用）
-        if (llmEnabled && medicalAgent != null) {
+        if (hasAgent) {
             Map<String, Object> agentResult = handleMedicalAgentChat(userId, sessionId, message, withTrace, withTiming);
             if (agentResult != null) {
                 // 最终校验：Medical Agent 返回了内容但可能为空
@@ -158,10 +166,6 @@ public class AgentOrchestratorService {
                     return agentResult;
                 }
             }
-        }
-
-        if (chatModel == null) {
-            return llmUnavailableResult(withTrace);
         }
 
         // 回退到简单 LLM 调用
@@ -290,16 +294,22 @@ public class AgentOrchestratorService {
         try {
             logger.info("使用简单 LLM 调用处理请求");
 
-            // 从数据库获取对话历史
-            List<Map<String, Object>> messages = memoryRepository.getRecentMessages(sessionId, 5);
-            List<Map<String, String>> history = new ArrayList<>();
-            for (Map<String, Object> msg : messages) {
-                history.add(Map.of(
-                        "role", str(msg.get("role")),
-                        "content", str(msg.get("content"))));
+            // 从数据库获取对话历史，构建多轮上下文
+            List<Map<String, Object>> recentMessages = memoryRepository.getRecentMessages(sessionId, 5);
+            List<ChatMessage> chatMessages = new ArrayList<>();
+            chatMessages.add(SystemMessage.from("你是一个医疗健康助手，负责帮助用户解答健康问题和管理用药计划。"));
+            for (Map<String, Object> msg : recentMessages) {
+                String role = str(msg.get("role"));
+                String content = str(msg.get("content"));
+                if ("user".equals(role)) {
+                    chatMessages.add(UserMessage.from(content));
+                } else if ("assistant".equals(role)) {
+                    chatMessages.add(AiMessage.from(content));
+                }
             }
+            chatMessages.add(UserMessage.from(message));
 
-            // 直接调用 LLM，通过 LlmChatDelegate 保护（含 @Retry + @RateLimiter + @CircuitBreaker）
+// 直接调用 LLM，通过 LlmChatDelegate 保护（含 @Retry + @RateLimiter + @CircuitBreaker）
             SystemMessage systemMessage = SystemMessage.from("你是一个医疗健康助手，负责帮助用户解答健康问题和管理用药计划。");
             UserMessage userMessage = UserMessage.from(message);
             apiCallCount.incrementAndGet();

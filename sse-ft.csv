@@ -1,0 +1,103 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1779170945818,48,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,42,0,29
+1779170945876,30,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,30,0,0
+1779170945912,6923,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,6194,249,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=8e66c5b3ff0d44ecb12100dc3ec68972&message=%E6%9C%80%E8%BF%91%E6%80%BB%E6%98%AF%E5%A4%B1%E7%9C%A0,613,0,0
+1779170952836,5,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,5,0,0
+1779170952844,22,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,22,0,0
+1779170952868,1461,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,1229,222,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=ef46810e72974cf5925c42d37b1ee0b3&message=%E5%85%B3%E8%8A%82%E7%97%9B,455,0,0
+1779170954332,9,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,9,0,0
+1779170954343,35,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,35,0,0
+1779170954380,5730,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,6073,231,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=05adb863ec54414893f773f5e318f9b0&message=%E8%83%83%E9%85%B8%E8%BF%87%E5%A4%9A,539,0,0
+1779170960113,7,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,7,0,0
+1779170960123,34,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,33,0,0
+1779170960159,1591,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,1624,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=caee48dc903e4e9ba467b3591a0f763a&message=%E8%A1%80%E5%8E%8B%E6%9C%89%E7%82%B9%E9%AB%98,409,0,0
+1779170961753,6,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,6,0,0
+1779170961762,26,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,26,0,0
+1779170961790,4665,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,5271,258,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=d17d7e4c5f8746189b322abbc918bf41&message=%E7%9A%AE%E8%82%A4%E8%BF%87%E6%95%8F%E8%B5%B7%E7%BA%A2%E7%96%B9,275,0,0
+1779170966458,7,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,7,0,0
+1779170966468,26,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,26,0,0
+1779170966496,1788,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2431,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=068ebe33fc5a4db29b6b82a5d888fdb1&message=%E8%A1%80%E5%8E%8B%E6%9C%89%E7%82%B9%E9%AB%98,363,0,0
+1779170968286,5,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,5,0,0
+1779170968294,18,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,18,0,0
+1779170968314,1740,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,1866,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=8f1cc084a64e4a9ea5ffe1119ead06eb&message=%E5%BF%83%E8%B7%B3%E6%9C%89%E7%82%B9%E5%BF%AB,384,0,0
+1779170970059,7,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,7,0,0
+1779170970069,23,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,23,0,0
+1779170970095,2108,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2454,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=bfe49456503f4cb4b3a1d82a7c8e8139&message=%E8%80%B3%E9%B8%A3%E6%80%8E%E4%B9%88%E5%8A%9E,371,0,0
+1779170972206,8,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,8,0,0
+1779170972217,26,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,26,0,0
+1779170972245,6059,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,5790,267,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=8acce6d7c7284751bd545345b7028849&message=%E8%85%BF%E6%8A%BD%E7%AD%8B%E6%98%AF%E4%BB%80%E4%B9%88%E5%8E%9F%E5%9B%A0,391,0,0
+1779170978308,10,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,10,0,0
+1779170978322,22,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,21,0,0
+1779170978348,3354,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,3955,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=2f334f17fc974654a519d9a76cfb03ce&message=%E4%BE%BF%E7%A7%98%E6%80%8E%E4%B9%88%E5%8A%9E,226,0,0
+1779170981704,6,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,6,0,0
+1779170981713,24,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,24,0,0
+1779170981739,7314,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,5700,267,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=0b72be2dade94bfe9b17bfc227131ca4&message=%E8%85%BF%E6%8A%BD%E7%AD%8B%E6%98%AF%E4%BB%80%E4%B9%88%E5%8E%9F%E5%9B%A0,317,0,0
+1779170989059,9,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,9,0,0
+1779170989071,23,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,23,0,0
+1779170989096,4230,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,4526,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=30b233f3d16c4296a0629707ea61da63&message=%E8%80%B3%E9%B8%A3%E6%80%8E%E4%B9%88%E5%8A%9E,351,0,0
+1779170993331,9,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,9,0,0
+1779170993344,28,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,28,0,0
+1779170993376,2429,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2687,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=f4279cc48143450e95c9cfc993852bf8&message=%E5%BF%83%E8%B7%B3%E6%9C%89%E7%82%B9%E5%BF%AB,296,0,0
+1779170995807,4,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,4,0,0
+1779170995812,19,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,19,0,0
+1779170995833,2872,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,3150,258,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=78cbaa75cdcb4b278a7bf63a3fd1120d&message=%E7%9C%BC%E7%9D%9B%E5%B9%B2%E6%B6%A9%E6%80%8E%E4%B9%88%E5%8A%9E,348,0,0
+1779170998707,5,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,5,0,0
+1779170998714,17,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,17,0,0
+1779170998735,5018,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,5594,267,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=c9dee1dd21ce47d1996c2a7dbd9ef5db&message=%E8%85%BF%E6%8A%BD%E7%AD%8B%E6%98%AF%E4%BB%80%E4%B9%88%E5%8E%9F%E5%9B%A0,303,0,0
+1779171003759,7,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,7,0,0
+1779171003770,26,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,26,0,0
+1779171003798,3708,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,4364,258,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=24aa0912752c48d49cd42ba39a59c874&message=%E7%9A%AE%E8%82%A4%E8%BF%87%E6%95%8F%E8%B5%B7%E7%BA%A2%E7%96%B9,279,0,0
+1779171007509,8,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,8,0,2
+1779171007519,20,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,20,0,0
+1779171007540,1994,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2635,249,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=29dbd1a255904ccdbf221b6cc9696491&message=%E6%8B%89%E8%82%9A%E5%AD%90%E5%A5%BD%E5%87%A0%E5%A4%A9,249,0,0
+1779171009536,6,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,6,0,0
+1779171009546,19,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,19,0,0
+1779171009568,4399,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,3713,231,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=ac2201cb5738413192e2b0f854b70ea7&message=%E5%8F%A3%E8%85%94%E6%BA%83%E7%96%A1,720,0,0
+1779171013972,7,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,7,0,0
+1779171013982,25,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,25,0,0
+1779171014010,1980,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2288,249,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=11eb2d44ef8c4aabb3c6415aebdceced&message=%E5%92%B3%E5%97%BD%E5%A5%BD%E5%87%A0%E5%A4%A9%E4%BA%86,318,0,0
+1779171015992,4,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,4,0,0
+1779171015997,18,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,18,0,0
+1779171016017,1734,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2116,249,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=4ba5349164f14013b5ed6da10125592e&message=%E5%92%B3%E5%97%BD%E5%A5%BD%E5%87%A0%E5%A4%A9%E4%BA%86,330,0,0
+1779171017754,5,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,5,0,0
+1779171017761,20,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,20,0,0
+1779171017783,1619,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,1886,231,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=612b74ab68b84e05bc1a58038e95561c&message=%E7%BB%8F%E5%B8%B8%E5%A4%B4%E6%99%95,370,0,0
+1779171019406,7,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,6,0,0
+1779171019415,20,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,20,0,0
+1779171019438,3799,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,3802,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=6606c41b82724defb0a46c418df0aa66&message=%E4%BE%BF%E7%A7%98%E6%80%8E%E4%B9%88%E5%8A%9E,368,0,0
+1779171023239,7,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,6,0,0
+1779171023248,21,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,21,0,0
+1779171023273,11257,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,6982,231,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=b93b6a433ac245ddbfca4a805fa11a08&message=%E5%8F%A3%E8%85%94%E6%BA%83%E7%96%A1,344,0,0
+1779171034533,8,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,8,0,0
+1779171034543,18,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,18,0,0
+1779171034562,3658,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,4192,231,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=c38d53d34a224cc5a563d6992bbce3f2&message=%E5%8F%A3%E8%85%94%E6%BA%83%E7%96%A1,278,0,0
+1779171038225,8,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,8,0,0
+1779171038236,22,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,22,0,0
+1779171038261,1830,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2088,249,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=81e0ed9d6e9546c7a633dfdae1bc3489&message=%E5%92%B3%E5%97%BD%E5%A5%BD%E5%87%A0%E5%A4%A9%E4%BA%86,309,0,0
+1779171040095,6,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,6,0,0
+1779171040104,21,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,21,0,0
+1779171040128,1518,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,1456,231,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=e6e640a6ae634b1d987aec7d8353b346&message=%E8%85%B0%E9%85%B8%E8%83%8C%E7%97%9B,301,0,0
+1779171041649,5,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,5,0,0
+1779171041656,16,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,16,0,0
+1779171041674,4868,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,5158,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=f477a37b4c0e42b49d52de58bed28e9b&message=%E8%80%B3%E9%B8%A3%E6%80%8E%E4%B9%88%E5%8A%9E,288,0,0
+1779171046543,7,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,7,0,0
+1779171046552,19,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,19,0,0
+1779171046574,2181,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2194,249,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=386744c5d9014e52a032b823caa21621&message=%E5%92%B3%E5%97%BD%E5%A5%BD%E5%87%A0%E5%A4%A9%E4%BA%86,596,0,0
+1779171048758,7,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,7,0,0
+1779171048768,23,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,23,0,0
+1779171048793,3808,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,3487,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=4a0082d3716a463aae0c26617df6e6e7&message=%E4%BE%BF%E7%A7%98%E6%80%8E%E4%B9%88%E5%8A%9E,386,0,0
+1779171052605,7,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,7,0,0
+1779171052615,21,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,21,0,0
+1779171052640,2119,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2346,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=21c2f8214a924fb98abc8bd5a912132f&message=%E6%88%91%E4%BB%8A%E5%A4%A9%E5%A4%B4%E7%97%9B,327,0,0
+1779171054763,9,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,9,0,0
+1779171054774,22,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,22,0,0
+1779171054798,3543,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,3417,231,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=85ea4aaee87545cbb97e0abb7f9ea00b&message=%E5%8F%A3%E8%85%94%E6%BA%83%E7%96%A1,390,0,0
+1779171058344,10,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,10,0,0
+1779171058357,23,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,23,0,0
+1779171058383,2240,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2176,224,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=75ad2ad382af40279e2d1aa18b68471c&message=%E5%8F%91%E7%83%A738%E5%BA%A6,520,0,0
+1779171060626,6,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,5,0,0
+1779171060634,20,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,20,0,0
+1779171060656,2577,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,2599,249,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=48aaed174c4643519b2ae79665fe9b30&message=%E6%8B%89%E8%82%9A%E5%AD%90%E5%A5%BD%E5%87%A0%E5%A4%A9,283,0,0
+1779171063237,8,SSE 探活 Health,200,,SSE 流式 Chat 压测 2-1,text,true,,671,127,1,1,http://localhost/api/agent/health,8,0,0
+1779171063248,24,SSE 创建会话,200,,SSE 流式 Chat 压测 2-1,text,true,,410,196,1,1,http://localhost/api/agent/sessions,24,0,0
+1779171063277,5210,SSE 流式 Chat,200,,SSE 流式 Chat 压测 2-1,text,true,,5075,240,1,1,http://localhost/api/agent/chat/stream?user_id=1&session_id=d5ddec1868c749a9aead7e557e3ddf21&message=%E8%80%B3%E9%B8%A3%E6%80%8E%E4%B9%88%E5%8A%9E,332,0,0
