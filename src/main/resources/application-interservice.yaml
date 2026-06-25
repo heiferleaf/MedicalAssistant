@@ -1,0 +1,14 @@
+# 服务间通信配置
+service:
+  user:
+    url: ${USER_SERVICE_URL:http://user-service:8081}
+  family:
+    url: ${FAMILY_SERVICE_URL:http://family-service:8083}
+  medication:
+    url: ${MEDICATION_SERVICE_URL:http://medication-service:8082}
+  health:
+    url: ${HEALTH_SERVICE_URL:http://health-service:8084}
+  agent:
+    url: ${AGENT_SERVICE_URL:http://agent-service:8085}
+  notification:
+    url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8086}

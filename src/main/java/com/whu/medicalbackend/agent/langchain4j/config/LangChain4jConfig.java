@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +35,7 @@ public class LangChain4jConfig {
      * 如果只有一个 Key，则退化到单模型，零额外开销。
      */
     @Bean
+    @ConditionalOnMissingBean(ChatModel.class)
     @ConditionalOnProperty(prefix = "agent.llm", name = "enabled", havingValue = "true")
     @ConditionalOnExpression("!'${dashscope.api-key:}'.isBlank() || !'${dashscope.api-keys:}'.isBlank()")
     public ChatModel chatModel(ApiKeyManager apiKeyManager) {
@@ -70,6 +72,7 @@ public class LangChain4jConfig {
      * 策略同上：多 Key 时每个 Key 创建一个 StreamingChatModel 并轮询分发。
      */
     @Bean
+    @ConditionalOnMissingBean(StreamingChatModel.class)
     @ConditionalOnProperty(prefix = "agent.llm", name = "enabled", havingValue = "true")
     @ConditionalOnExpression("!'${dashscope.api-key:}'.isBlank() || !'${dashscope.api-keys:}'.isBlank()")
     public StreamingChatModel streamingChatModel(ApiKeyManager apiKeyManager) {

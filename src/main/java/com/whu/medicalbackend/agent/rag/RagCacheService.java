@@ -107,6 +107,31 @@ long ttlSeconds = emptyAnswer ? properties.getNullCacheTtlSeconds() : selectTtl(
         }
     }
 
+    /**
+     * 带自定义 TTL 的缓存写入（支持动态 TTL）
+     */
+    public void putWithTtl(String cacheKey, RagResponse response, String question, long ttlSeconds) {
+        if (!properties.isCacheEnabled() || response == null) {
+            return;
+        }
+        try {
+            redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(response), Duration.ofSeconds(ttlSeconds));
+        } catch (Exception e) {
+            logger.warn("Write RAG cache failed, key={}", cacheKey, e);
+        }
+    }
+
+    /**
+     * 获取过期的缓存值（用于降级返回）
+     * 注：Redis 本身不支持获取已过期的数据，此处返回 null
+     * 实际降级需要在应用层维护"过期但保留"的缓存
+     */
+    public RagResponse getStale(String cacheKey) {
+        // TODO: 可选实现：维护 TTL 更长的"stale" 版本缓存
+        // 当前简化为返回 null，由调用方自行处理
+        return null;
+    }
+
     public boolean tryLock(RLock lock) {
         try {
             return lock.tryLock(properties.getCacheLockWaitSeconds(), properties.getCacheLockLeaseSeconds(), TimeUnit.SECONDS);

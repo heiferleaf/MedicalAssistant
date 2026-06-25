@@ -5,6 +5,7 @@ Enhancements:
 - Redis predict cache to avoid redundant LLM calls
 - Unified model: qwen-turbo (matches Spring application.yaml)
 """
+import asyncio
 import base64
 import hashlib
 import json
@@ -305,7 +306,7 @@ def normalize_predictions(raw_list: list) -> list:
 # ── RAG ───────────────────────────────────────────────────────────────────────
 
 @app.post("/rag/query")
-async def rag_query(req: RagRequest):
+def rag_query(req: RagRequest):  # sync def → FastAPI runs in threadpool, avoids blocking the event loop
     t0 = time.time()
     question = req.question.strip()
 
@@ -388,7 +389,7 @@ async def rag_query(req: RagRequest):
 # ── Predict ───────────────────────────────────────────────────────────────────
 
 @app.post("/api/predict/analyze")
-async def predict_analyze(req: PredictRequest):
+def predict_analyze(req: PredictRequest):  # sync def → threadpool, avoids blocking event loop
     text = req.text.strip()
     if not text:
         return JSONResponse(
@@ -430,7 +431,9 @@ async def ocr_predict(file: UploadFile = File(...)):
     img_bytes = await file.read()
     try:
         b64 = base64.b64encode(img_bytes).decode("utf-8")
-        resp = MultiModalConversation.call(
+        # blocking SDK call → run in threadpool so it doesn't block the event loop
+        resp = await asyncio.to_thread(
+            MultiModalConversation.call,
             model=OCR_MODEL,
             messages=[{
                 "role": "user",
